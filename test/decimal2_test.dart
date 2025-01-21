@@ -5,8 +5,8 @@ void expectDecimal(
   Decimal d,
   Object str, {
   BigInt? value,
-  int? shift,
-  int? precision,
+  int? scale,
+  int? fractionDigits,
 }) {
   expect(d.toString(), str);
 
@@ -14,12 +14,12 @@ void expectDecimal(
     expect(d.value, value);
   }
 
-  if (shift != null) {
-    expect(d.shift, shift);
+  if (scale != null) {
+    expect(d.scale, scale);
   }
 
-  if (precision != null) {
-    expect(d.fractionDigits, precision);
+  if (fractionDigits != null) {
+    expect(d.fractionDigits, fractionDigits);
   }
 }
 
@@ -34,57 +34,57 @@ void main() {
           Decimal.parse('0'),
           '0',
           value: BigInt.zero,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('0.0'),
           '0',
           value: BigInt.zero,
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('.0'),
           '0',
           value: BigInt.zero,
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('00000.00000'),
           '0',
           value: BigInt.zero,
-          shift: -5,
-          precision: 0,
+          scale: 5,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse(' 0'),
           '0',
           value: BigInt.zero,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('0 '),
           '0',
           value: BigInt.zero,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse(' 0.0'),
           '0',
           value: BigInt.zero,
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('0.0 '),
           '0',
           value: BigInt.zero,
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
 
         expect(
@@ -113,29 +113,29 @@ void main() {
           Decimal.parse('-0'),
           '0',
           value: BigInt.zero,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-0.0'),
           '0',
           value: BigInt.zero,
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-.0'),
           '0',
           value: BigInt.zero,
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-00000.00000'),
           '0',
           value: BigInt.zero,
-          shift: -5,
-          precision: 0,
+          scale: 5,
+          fractionDigits: 0,
         );
       });
 
@@ -144,78 +144,78 @@ void main() {
           Decimal.parse('1'),
           '1',
           value: BigInt.one,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('0.1'),
           '0.1',
           value: BigInt.one,
-          shift: -1,
-          precision: 1,
+          scale: 1,
+          fractionDigits: 1,
         );
         expectDecimal(
           Decimal.parse('.1'),
           '0.1',
           value: BigInt.one,
-          shift: -1,
-          precision: 1,
+          scale: 1,
+          fractionDigits: 1,
         );
         expectDecimal(
           Decimal.parse('0.01'),
           '0.01',
           value: BigInt.one,
-          shift: -2,
-          precision: 2,
+          scale: 2,
+          fractionDigits: 2,
         );
         expectDecimal(
           Decimal.parse('0.001'),
           '0.001',
           value: BigInt.one,
-          shift: -3,
-          precision: 3,
+          scale: 3,
+          fractionDigits: 3,
         );
         expectDecimal(
           Decimal.parse('1.0'),
           '1',
           value: BigInt.from(10),
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('1.00'),
           '1',
           value: BigInt.from(100),
-          shift: -2,
-          precision: 0,
+          scale: 2,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('1.000'),
           '1',
           value: BigInt.from(1000),
-          shift: -3,
-          precision: 0,
+          scale: 3,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('10'),
           '10',
           value: BigInt.from(10),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('100'),
           '100',
           value: BigInt.from(100),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('1000'),
           '1000',
           value: BigInt.from(1000),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
 
         expect(
@@ -255,71 +255,71 @@ void main() {
           Decimal.parse('-1'),
           '-1',
           value: -BigInt.one,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-0.1'),
           '-0.1',
           value: -BigInt.one,
-          shift: -1,
-          precision: 1,
+          scale: 1,
+          fractionDigits: 1,
         );
         expectDecimal(
           Decimal.parse('-0.01'),
           '-0.01',
           value: -BigInt.one,
-          shift: -2,
-          precision: 2,
+          scale: 2,
+          fractionDigits: 2,
         );
         expectDecimal(
           Decimal.parse('-0.001'),
           '-0.001',
           value: -BigInt.one,
-          shift: -3,
-          precision: 3,
+          scale: 3,
+          fractionDigits: 3,
         );
         expectDecimal(
           Decimal.parse('-1.0'),
           '-1',
           value: BigInt.from(-10),
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-1.00'),
           '-1',
           value: BigInt.from(-100),
-          shift: -2,
-          precision: 0,
+          scale: 2,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-1.000'),
           '-1',
           value: BigInt.from(-1000),
-          shift: -3,
-          precision: 0,
+          scale: 3,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-10'),
           '-10',
           value: BigInt.from(-10),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-100'),
           '-100',
           value: BigInt.from(-100),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-1000'),
           '-1000',
           value: BigInt.from(-1000),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
       });
 
@@ -328,198 +328,198 @@ void main() {
           Decimal.parse('1234567890'),
           '1234567890',
           value: BigInt.from(1234567890),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('123456789.0'),
           '123456789',
           value: BigInt.from(1234567890),
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('12345678.90'),
           '12345678.9',
           value: BigInt.from(1234567890),
-          shift: -2,
-          precision: 1,
+          scale: 2,
+          fractionDigits: 1,
         );
         expectDecimal(
           Decimal.parse('1234567.890'),
           '1234567.89',
           value: BigInt.from(1234567890),
-          shift: -3,
-          precision: 2,
+          scale: 3,
+          fractionDigits: 2,
         );
         expectDecimal(
           Decimal.parse('123456.7890'),
           '123456.789',
           value: BigInt.from(1234567890),
-          shift: -4,
-          precision: 3,
+          scale: 4,
+          fractionDigits: 3,
         );
         expectDecimal(
           Decimal.parse('12345.67890'),
           '12345.6789',
           value: BigInt.from(1234567890),
-          shift: -5,
-          precision: 4,
+          scale: 5,
+          fractionDigits: 4,
         );
         expectDecimal(
           Decimal.parse('1234.567890'),
           '1234.56789',
           value: BigInt.from(1234567890),
-          shift: -6,
-          precision: 5,
+          scale: 6,
+          fractionDigits: 5,
         );
         expectDecimal(
           Decimal.parse('123.4567890'),
           '123.456789',
           value: BigInt.from(1234567890),
-          shift: -7,
-          precision: 6,
+          scale: 7,
+          fractionDigits: 6,
         );
         expectDecimal(
           Decimal.parse('12.34567890'),
           '12.3456789',
           value: BigInt.from(1234567890),
-          shift: -8,
-          precision: 7,
+          scale: 8,
+          fractionDigits: 7,
         );
         expectDecimal(
           Decimal.parse('1.234567890'),
           '1.23456789',
           value: BigInt.from(1234567890),
-          shift: -9,
-          precision: 8,
+          scale: 9,
+          fractionDigits: 8,
         );
         expectDecimal(
           Decimal.parse('0.1234567890'),
           '0.123456789',
           value: BigInt.from(1234567890),
-          shift: -10,
-          precision: 9,
+          scale: 10,
+          fractionDigits: 9,
         );
         expectDecimal(
           Decimal.parse('0.01234567890'),
           '0.0123456789',
           value: BigInt.from(1234567890),
-          shift: -11,
-          precision: 10,
+          scale: 11,
+          fractionDigits: 10,
         );
         expectDecimal(
           Decimal.parse('0.001234567890'),
           '0.00123456789',
           value: BigInt.from(1234567890),
-          shift: -12,
-          precision: 11,
+          scale: 12,
+          fractionDigits: 11,
         );
         expectDecimal(
           Decimal.parse('0.0001234567890'),
           '0.000123456789',
           value: BigInt.from(1234567890),
-          shift: -13,
-          precision: 12,
+          scale: 13,
+          fractionDigits: 12,
         );
 
         expectDecimal(
           Decimal.parse('-1234567890'),
           '-1234567890',
           value: BigInt.from(-1234567890),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-123456789.0'),
           '-123456789',
           value: BigInt.from(-1234567890),
-          shift: -1,
-          precision: 0,
+          scale: 1,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('-12345678.90'),
           '-12345678.9',
           value: BigInt.from(-1234567890),
-          shift: -2,
-          precision: 1,
+          scale: 2,
+          fractionDigits: 1,
         );
         expectDecimal(
           Decimal.parse('-1234567.890'),
           '-1234567.89',
           value: BigInt.from(-1234567890),
-          shift: -3,
-          precision: 2,
+          scale: 3,
+          fractionDigits: 2,
         );
         expectDecimal(
           Decimal.parse('-123456.7890'),
           '-123456.789',
           value: BigInt.from(-1234567890),
-          shift: -4,
-          precision: 3,
+          scale: 4,
+          fractionDigits: 3,
         );
         expectDecimal(
           Decimal.parse('-12345.67890'),
           '-12345.6789',
           value: BigInt.from(-1234567890),
-          shift: -5,
-          precision: 4,
+          scale: 5,
+          fractionDigits: 4,
         );
         expectDecimal(
           Decimal.parse('-1234.567890'),
           '-1234.56789',
           value: BigInt.from(-1234567890),
-          shift: -6,
-          precision: 5,
+          scale: 6,
+          fractionDigits: 5,
         );
         expectDecimal(
           Decimal.parse('-123.4567890'),
           '-123.456789',
           value: BigInt.from(-1234567890),
-          shift: -7,
-          precision: 6,
+          scale: 7,
+          fractionDigits: 6,
         );
         expectDecimal(
           Decimal.parse('-12.34567890'),
           '-12.3456789',
           value: BigInt.from(-1234567890),
-          shift: -8,
-          precision: 7,
+          scale: 8,
+          fractionDigits: 7,
         );
         expectDecimal(
           Decimal.parse('-1.234567890'),
           '-1.23456789',
           value: BigInt.from(-1234567890),
-          shift: -9,
-          precision: 8,
+          scale: 9,
+          fractionDigits: 8,
         );
         expectDecimal(
           Decimal.parse('-0.1234567890'),
           '-0.123456789',
           value: BigInt.from(-1234567890),
-          shift: -10,
-          precision: 9,
+          scale: 10,
+          fractionDigits: 9,
         );
         expectDecimal(
           Decimal.parse('-0.01234567890'),
           '-0.0123456789',
           value: BigInt.from(-1234567890),
-          shift: -11,
-          precision: 10,
+          scale: 11,
+          fractionDigits: 10,
         );
         expectDecimal(
           Decimal.parse('-0.001234567890'),
           '-0.00123456789',
           value: BigInt.from(-1234567890),
-          shift: -12,
-          precision: 11,
+          scale: 12,
+          fractionDigits: 11,
         );
         expectDecimal(
           Decimal.parse('-0.0001234567890'),
           '-0.000123456789',
           value: BigInt.from(-1234567890),
-          shift: -13,
-          precision: 12,
+          scale: 13,
+          fractionDigits: 12,
         );
       });
 
@@ -531,8 +531,8 @@ void main() {
           ),
           '1234567890123456789012345678901234567890',
           value: BigInt.parse('1234567890123456789012345678901234567890'),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse(
@@ -540,8 +540,8 @@ void main() {
           ),
           '123456789012345678901234567890.123456789',
           value: BigInt.parse('1234567890123456789012345678901234567890'),
-          shift: -10,
-          precision: 9,
+          scale: 10,
+          fractionDigits: 9,
         );
         expectDecimal(
           Decimal.parse(
@@ -549,8 +549,8 @@ void main() {
           ),
           '12345678901234567890.1234567890123456789',
           value: BigInt.parse('1234567890123456789012345678901234567890'),
-          shift: -20,
-          precision: 19,
+          scale: 20,
+          fractionDigits: 19,
         );
         expectDecimal(
           Decimal.parse(
@@ -558,8 +558,8 @@ void main() {
           ),
           '1234567890.12345678901234567890123456789',
           value: BigInt.parse('1234567890123456789012345678901234567890'),
-          shift: -30,
-          precision: 29,
+          scale: 30,
+          fractionDigits: 29,
         );
         expectDecimal(
           Decimal.parse(
@@ -567,8 +567,8 @@ void main() {
           ),
           '0.123456789012345678901234567890123456789',
           value: BigInt.parse('1234567890123456789012345678901234567890'),
-          shift: -40,
-          precision: 39,
+          scale: 40,
+          fractionDigits: 39,
         );
         expectDecimal(
           Decimal.parse(
@@ -576,8 +576,8 @@ void main() {
           ),
           '0.0000000000123456789012345678901234567890123456789',
           value: BigInt.parse('1234567890123456789012345678901234567890'),
-          shift: -50,
-          precision: 49,
+          scale: 50,
+          fractionDigits: 49,
         );
 
         expectDecimal(
@@ -586,8 +586,8 @@ void main() {
           ),
           '-1234567890123456789012345678901234567890',
           value: BigInt.parse('-1234567890123456789012345678901234567890'),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse(
@@ -595,8 +595,8 @@ void main() {
           ),
           '-123456789012345678901234567890.123456789',
           value: BigInt.parse('-1234567890123456789012345678901234567890'),
-          shift: -10,
-          precision: 9,
+          scale: 10,
+          fractionDigits: 9,
         );
         expectDecimal(
           Decimal.parse(
@@ -604,8 +604,8 @@ void main() {
           ),
           '-12345678901234567890.1234567890123456789',
           value: BigInt.parse('-1234567890123456789012345678901234567890'),
-          shift: -20,
-          precision: 19,
+          scale: 20,
+          fractionDigits: 19,
         );
         expectDecimal(
           Decimal.parse(
@@ -613,8 +613,8 @@ void main() {
           ),
           '-1234567890.12345678901234567890123456789',
           value: BigInt.parse('-1234567890123456789012345678901234567890'),
-          shift: -30,
-          precision: 29,
+          scale: 30,
+          fractionDigits: 29,
         );
         expectDecimal(
           Decimal.parse(
@@ -622,8 +622,8 @@ void main() {
           ),
           '-0.123456789012345678901234567890123456789',
           value: BigInt.parse('-1234567890123456789012345678901234567890'),
-          shift: -40,
-          precision: 39,
+          scale: 40,
+          fractionDigits: 39,
         );
         expectDecimal(
           Decimal.parse(
@@ -631,37 +631,37 @@ void main() {
           ),
           '-0.0000000000123456789012345678901234567890123456789',
           value: BigInt.parse('-1234567890123456789012345678901234567890'),
-          shift: -50,
-          precision: 49,
+          scale: 50,
+          fractionDigits: 49,
         );
 
         expectDecimal(
           Decimal.parse('1000000000000000000000000000000'),
           '1000000000000000000000000000000',
           value: BigInt.parse('1000000000000000000000000000000'),
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('100000000000000000000.0000000000'),
           '100000000000000000000',
           value: BigInt.parse('1000000000000000000000000000000'),
-          shift: -10,
-          precision: 0,
+          scale: 10,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('10000000000.00000000000000000000'),
           '10000000000',
           value: BigInt.parse('1000000000000000000000000000000'),
-          shift: -20,
-          precision: 0,
+          scale: 20,
+          fractionDigits: 0,
         );
         expectDecimal(
           Decimal.parse('1.000000000000000000000000000000'),
           '1',
           value: BigInt.parse('1000000000000000000000000000000'),
-          shift: -30,
-          precision: 0,
+          scale: 30,
+          fractionDigits: 0,
         );
       });
     });
@@ -672,64 +672,64 @@ void main() {
         value += Decimal(1, shiftLeft: 3),
         '11000',
         value: BigInt.from(11),
-        shift: 3,
-        precision: 0,
+        scale: -3,
+        fractionDigits: 0,
       );
       expectDecimal(
         value += Decimal(1, shiftLeft: 2),
         '11100',
         value: BigInt.from(111),
-        shift: 2,
-        precision: 0,
+        scale: -2,
+        fractionDigits: 0,
       );
       expectDecimal(
         value += Decimal(1, shiftLeft: 1),
         '11110',
         value: BigInt.from(1111),
-        shift: 1,
-        precision: 0,
+        scale: -1,
+        fractionDigits: 0,
       );
       expectDecimal(
         value += Decimal(10000, shiftRight: 4), // 1
         '11111',
         value: BigInt.from(111110000),
-        shift: -4,
-        precision: 0,
+        scale: 4,
+        fractionDigits: 0,
       );
       expectDecimal(
         value += Decimal(1, shiftRight: 1),
         '11111.1',
         value: BigInt.from(111111000),
-        shift: -4,
-        precision: 1,
+        scale: 4,
+        fractionDigits: 1,
       );
       expectDecimal(
         value += Decimal(1, shiftRight: 2),
         '11111.11',
         value: BigInt.from(111111100),
-        shift: -4,
-        precision: 2,
+        scale: 4,
+        fractionDigits: 2,
       );
       expectDecimal(
         value += Decimal(1, shiftRight: 3),
         '11111.111',
         value: BigInt.from(111111110),
-        shift: -4,
-        precision: 3,
+        scale: 4,
+        fractionDigits: 3,
       );
       expectDecimal(
         value += Decimal(1, shiftRight: 4),
         '11111.1111',
         value: BigInt.from(111111111),
-        shift: -4,
-        precision: 4,
+        scale: 4,
+        fractionDigits: 4,
       );
       expectDecimal(
         value += Decimal(1, shiftRight: 5),
         '11111.11111',
         value: BigInt.from(1111111111),
-        shift: -5,
-        precision: 5,
+        scale: 5,
+        fractionDigits: 5,
       );
 
       final values = List<Decimal>.generate(
@@ -750,8 +750,8 @@ void main() {
         value: BigInt.parse(
           '11111111111111111111111111111111111111110000000000000000000',
         ),
-        shift: -39,
-        precision: 20,
+        scale: 39,
+        fractionDigits: 20,
       );
     });
 
@@ -760,29 +760,29 @@ void main() {
         Decimal(123, shiftRight: 2) * Decimal(456, shiftRight: 1),
         '56.088',
         value: BigInt.from(56088),
-        shift: -3,
-        precision: 3,
+        scale: 3,
+        fractionDigits: 3,
       );
       expectDecimal(
         Decimal(-123, shiftRight: 2) * Decimal(456, shiftRight: 1),
         '-56.088',
         value: BigInt.from(-56088),
-        shift: -3,
-        precision: 3,
+        scale: 3,
+        fractionDigits: 3,
       );
       expectDecimal(
         Decimal(123, shiftRight: 2) * Decimal(-456, shiftRight: 1),
         '-56.088',
         value: BigInt.from(-56088),
-        shift: -3,
-        precision: 3,
+        scale: 3,
+        fractionDigits: 3,
       );
       expectDecimal(
         Decimal(-123, shiftRight: 2) * Decimal(-456, shiftRight: 1),
         '56.088',
         value: BigInt.from(56088),
-        shift: -3,
-        precision: 3,
+        scale: 3,
+        fractionDigits: 3,
       );
 
       var value = Decimal.parse('123456.00');
@@ -790,36 +790,36 @@ void main() {
         value *= Decimal.parse('12345.6'),
         '1524138393.6',
         value: BigInt.from(1524138393600),
-        shift: -3,
-        precision: 1,
+        scale: 3,
+        fractionDigits: 1,
       );
       expectDecimal(
         value *= Decimal.parse('1234.56'),
         '1881640295202.816',
         value: BigInt.from(188164029520281600),
-        shift: -5,
-        precision: 3,
+        scale: 5,
+        fractionDigits: 3,
       );
       expectDecimal(
         value *= Decimal.parse('123.456'),
         '232299784284558.852096',
         value: BigInt.parse('23229978428455885209600'),
-        shift: -8,
-        precision: 6,
+        scale: 8,
+        fractionDigits: 6,
       );
       expectDecimal(
         value *= Decimal.parse('12.3456'),
         '2867880216863449.7644363776',
         value: BigInt.parse('2867880216863449764436377600'),
-        shift: -12,
-        precision: 10,
+        scale: 12,
+        fractionDigits: 10,
       );
       expectDecimal(
         value *= Decimal.parse('1.23456'),
         '3540570200530940.541182574329856',
         value: BigInt.parse('354057020053094054118257432985600'),
-        shift: -17,
-        precision: 15,
+        scale: 17,
+        fractionDigits: 15,
       );
 
       value = Decimal.parse('-123456');
@@ -827,36 +827,36 @@ void main() {
         value *= Decimal.parse('12345.6'),
         '-1524138393.6',
         value: BigInt.from(-15241383936),
-        shift: -1,
-        precision: 1,
+        scale: 1,
+        fractionDigits: 1,
       );
       expectDecimal(
         value *= Decimal.parse('-1234.56'),
         '1881640295202.816',
         value: BigInt.from(1881640295202816),
-        shift: -3,
-        precision: 3,
+        scale: 3,
+        fractionDigits: 3,
       );
       expectDecimal(
         value *= Decimal.parse('-123.456'),
         '-232299784284558.852096',
         value: BigInt.parse('-232299784284558852096'),
-        shift: -6,
-        precision: 6,
+        scale: 6,
+        fractionDigits: 6,
       );
       expectDecimal(
         value *= Decimal.parse('-12.3456'),
         '2867880216863449.7644363776',
         value: BigInt.parse('28678802168634497644363776'),
-        shift: -10,
-        precision: 10,
+        scale: 10,
+        fractionDigits: 10,
       );
       expectDecimal(
         value *= Decimal.parse('-1.23456'),
         '-3540570200530940.541182574329856',
         value: BigInt.parse('-3540570200530940541182574329856'),
-        shift: -15,
-        precision: 15,
+        scale: 15,
+        fractionDigits: 15,
       );
     });
 
@@ -866,8 +866,8 @@ void main() {
           Decimal(24, shiftRight: 1) / Decimal(12, shiftRight: 1),
           '2',
           value: BigInt.two,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
 
         var value = Decimal.parse('3540570200530940.541182574329856');
@@ -875,43 +875,43 @@ void main() {
           value /= Decimal(123456),
           '28678802168.634497644363776',
           value: BigInt.parse('28678802168634497644363776'),
-          shift: -15,
-          precision: 15,
+          scale: 15,
+          fractionDigits: 15,
         );
         expectDecimal(
           value /= Decimal.parse('12345.6'),
           '2322997.84284558852096',
           value: BigInt.parse('232299784284558852096'),
-          shift: -14,
-          precision: 14,
+          scale: 14,
+          fractionDigits: 14,
         );
         expectDecimal(
           value /= Decimal.parse('1234.56'),
           '1881.640295202816',
           value: BigInt.from(1881640295202816),
-          shift: -12,
-          precision: 12,
+          scale: 12,
+          fractionDigits: 12,
         );
         expectDecimal(
           value /= Decimal.parse('123.456'),
           '15.241383936',
           value: BigInt.from(15241383936),
-          shift: -9,
-          precision: 9,
+          scale: 9,
+          fractionDigits: 9,
         );
         expectDecimal(
           value /= Decimal.parse('12.3456'),
           '1.23456',
           value: BigInt.from(123456),
-          shift: -5,
-          precision: 5,
+          scale: 5,
+          fractionDigits: 5,
         );
         expectDecimal(
           value /= Decimal.parse('1.23456'),
           '1',
           value: BigInt.one,
-          shift: 0,
-          precision: 0,
+          scale: 0,
+          fractionDigits: 0,
         );
 
         expect(
@@ -1508,8 +1508,8 @@ void main() {
               e.numerator,
               '7100000',
               value: BigInt.from(7100),
-              shift: 3,
-              precision: 0,
+              scale: -3,
+              fractionDigits: 0,
             );
             expect(e.denominator, BigInt.from(7));
           }
@@ -1518,15 +1518,15 @@ void main() {
             v1 ~/ v2,
             '1014285',
             value: BigInt.from(1014285),
-            shift: 0,
-            precision: 0,
+            scale: 0,
+            fractionDigits: 0,
           );
           expectDecimal(
             v1 % v2,
             '0.00615',
             value: BigInt.from(61500),
-            shift: -7,
-            precision: 5,
+            scale: 7,
+            fractionDigits: 5,
           );
 
           // +n / -n
@@ -1545,7 +1545,7 @@ void main() {
               e.numerator,
               '-7100000',
               value: BigInt.from(-7100),
-              shift: 3,
+              scale: -3,
             );
             expect(e.denominator, BigInt.from(7));
           }
@@ -1554,15 +1554,15 @@ void main() {
             v1 ~/ v2,
             '-1014285',
             value: BigInt.from(-1014285),
-            shift: 0,
-            precision: 0,
+            scale: 0,
+            fractionDigits: 0,
           );
           expectDecimal(
             v1 % v2,
             '0.00615',
             value: BigInt.from(61500),
-            shift: -7,
-            precision: 5,
+            scale: 7,
+            fractionDigits: 5,
           );
         });
 
@@ -1587,8 +1587,8 @@ void main() {
               e.numerator,
               '7.71',
               value: BigInt.from(7710000),
-              shift: -6,
-              precision: 2,
+              scale: 6,
+              fractionDigits: 2,
             );
             expect(e.denominator, BigInt.from(7));
           }
@@ -1597,15 +1597,15 @@ void main() {
             v1 ~/ v2,
             '1',
             value: BigInt.one,
-            shift: 0,
-            precision: 0,
+            scale: 0,
+            fractionDigits: 0,
           );
           expectDecimal(
             v1 % v2,
             '8733',
             value: BigInt.from(873300),
-            shift: -2,
-            precision: 0,
+            scale: 2,
+            fractionDigits: 0,
           );
         });
       });
@@ -1616,16 +1616,16 @@ void main() {
         Decimal(2).pow(4),
         '16',
         value: BigInt.from(16),
-        shift: 0,
-        precision: 0,
+        scale: 0,
+        fractionDigits: 0,
       );
 
       expectDecimal(
         Decimal(2, shiftRight: 1).pow(4),
         '0.0016',
         value: BigInt.from(16),
-        shift: -4,
-        precision: 4,
+        scale: 4,
+        fractionDigits: 4,
       );
     });
 
@@ -1643,38 +1643,38 @@ void main() {
   group('ShortDecimal', () {
     test('toString', () {
       expectShortDecimal(ShortDecimal(0), '0');
-      expectShortDecimal(ShortDecimal(0, shift: 1), '0');
-      expectShortDecimal(ShortDecimal(0, shift: 2), '0');
-      expectShortDecimal(ShortDecimal(0, shift: 3), '0');
+      expectShortDecimal(ShortDecimal(0, scale: 1), '0');
+      expectShortDecimal(ShortDecimal(0, scale: 2), '0');
+      expectShortDecimal(ShortDecimal(0, scale: 3), '0');
 
-      expectShortDecimal(ShortDecimal(1, shift: 3), '0.001');
-      expectShortDecimal(ShortDecimal(1, shift: 2), '0.01');
-      expectShortDecimal(ShortDecimal(1, shift: 1), '0.1');
+      expectShortDecimal(ShortDecimal(1, scale: 3), '0.001');
+      expectShortDecimal(ShortDecimal(1, scale: 2), '0.01');
+      expectShortDecimal(ShortDecimal(1, scale: 1), '0.1');
       expectShortDecimal(ShortDecimal(1), '1');
       expectShortDecimal(ShortDecimal(10), '10');
       expectShortDecimal(ShortDecimal(100), '100');
       expectShortDecimal(ShortDecimal(1000), '1000');
-      expectShortDecimal(ShortDecimal(1000, shift: 1), '100');
-      expectShortDecimal(ShortDecimal(1000, shift: 2), '10');
-      expectShortDecimal(ShortDecimal(1000, shift: 3), '1');
-      expectShortDecimal(ShortDecimal(1000, shift: 4), '0.1');
-      expectShortDecimal(ShortDecimal(1000, shift: 5), '0.01');
-      expectShortDecimal(ShortDecimal(1000, shift: 6), '0.001');
+      expectShortDecimal(ShortDecimal(1000, scale: 1), '100');
+      expectShortDecimal(ShortDecimal(1000, scale: 2), '10');
+      expectShortDecimal(ShortDecimal(1000, scale: 3), '1');
+      expectShortDecimal(ShortDecimal(1000, scale: 4), '0.1');
+      expectShortDecimal(ShortDecimal(1000, scale: 5), '0.01');
+      expectShortDecimal(ShortDecimal(1000, scale: 6), '0.001');
 
       expectShortDecimal(ShortDecimal(1234567890), '1234567890');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 1), '123456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 2), '12345678.9');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 3), '1234567.89');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 4), '123456.789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 5), '12345.6789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 6), '1234.56789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 7), '123.456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 8), '12.3456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 9), '1.23456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 10), '0.123456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 11), '0.0123456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 12), '0.00123456789');
-      expectShortDecimal(ShortDecimal(1234567890, shift: 13), '0.000123456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 1), '123456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 2), '12345678.9');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 3), '1234567.89');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 4), '123456.789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 5), '12345.6789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 6), '1234.56789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 7), '123.456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 8), '12.3456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 9), '1.23456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 10), '0.123456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 11), '0.0123456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 12), '0.00123456789');
+      expectShortDecimal(ShortDecimal(1234567890, scale: 13), '0.000123456789');
     });
   });
 }

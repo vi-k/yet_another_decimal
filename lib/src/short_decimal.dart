@@ -8,15 +8,15 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   @visibleForTesting
   final int scale; // = fraction digits
 
-  factory ShortDecimal(int value, {int shift = 0}) {
-    assert(shift >= 0, 'The shift must be at least 0');
+  factory ShortDecimal(int value, {int scale = 0}) {
+    assert(scale >= 0, 'The scale must be at least 0');
 
-    while (shift > 0 && value % 10 == 0) {
+    while (scale > 0 && value % 10 == 0) {
       value ~/= 10;
-      shift--;
+      scale--;
     }
 
-    return ShortDecimal._(value, shift);
+    return ShortDecimal._(value, scale);
   }
 
   const ShortDecimal._(this.value, this.scale);
@@ -26,18 +26,18 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   ShortDecimal operator +(ShortDecimal other) {
     final (a, b, scale) = _toCommonScale(this, other);
 
-    return ShortDecimal(a + b, shift: scale);
+    return ShortDecimal(a + b, scale: scale);
   }
 
   ShortDecimal operator -(ShortDecimal other) {
     final (a, b, scale) = _toCommonScale(this, other);
 
-    return ShortDecimal(a - b, shift: scale);
+    return ShortDecimal(a - b, scale: scale);
   }
 
   ShortDecimal operator *(ShortDecimal other) => ShortDecimal(
         value * other.value,
-        shift: scale + other.scale,
+        scale: scale + other.scale,
       );
 
   ShortDecimal operator /(ShortDecimal other) {
@@ -77,7 +77,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       scale++;
     }
 
-    return ShortDecimal(value, shift: scale);
+    return ShortDecimal(value, scale: scale);
   }
 
   bool operator <(ShortDecimal other) {

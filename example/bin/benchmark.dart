@@ -1,4 +1,3 @@
-import 'package:decimal/decimal.dart';
 import 'package:example/benchmark.dart';
 
 void printUsage() {
@@ -50,27 +49,6 @@ void printUsage() {
 }
 
 void main(List<String> arguments) {
-  // print(Decimal(24, shiftLeft: 1) << 1);
-  // print(Decimal(24, shiftLeft: 1) << 2);
-  // print(Decimal(24, shiftLeft: 1) << 3);
-  // final v1 = Decimal.fromInt(8733);
-  // final v2 = Decimal.parse('0.0086100');
-  // print((v1 / v2).toDecimal(scaleOnInfinitePrecision: 10));
-  // print(v1 ~/ v2);
-  // print(v1 % v2);
-  // print(v1.remainder(v2));
-
-  // final v3 = Decimal.fromInt(94833);
-  // final v4 = Decimal.parse('86100');
-  // print((v3 / v4).toDecimal(scaleOnInfinitePrecision: 10));
-  // print(v3 ~/ v4);
-  // print(v3 % v4);
-  // print(v3.remainder(v4));
-  final v1 = Decimal.fromInt(15129).shift(-1);
-  final v2 = Decimal.fromInt(86100);
-  print(v1 ~/ v2);
-  print(v1 % v2);
-
   if (arguments.isEmpty || arguments.isNotEmpty && arguments[0] == '--help') {
     printUsage();
     return;

@@ -14,7 +14,7 @@ final class Decimal2ShortTest extends MyBenchmarkBase {
     String? expectedExerciseResult,
   )   : values = list
             .map(
-              (e) => ShortDecimal(e.$1, shift: e.$2),
+              (e) => ShortDecimal(e.$1, scale: e.$2),
             )
             .toList(),
         _convertToStringResult = List<String>.filled(list.length, ''),
