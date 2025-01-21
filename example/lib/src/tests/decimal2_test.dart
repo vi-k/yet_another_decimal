@@ -14,7 +14,7 @@ final class Decimal2Test extends MyBenchmarkBase {
     String? expectedExerciseResult,
   )   : values = list
             .map(
-              (e) => Decimal.fromBigInt(e.$1, shiftLeft: e.$2),
+              (e) => Decimal.fromBigInt(e.$1, shiftRight: e.$2),
             )
             .toList(),
         _convertToStringResult = List<String>.filled(list.length, ''),
