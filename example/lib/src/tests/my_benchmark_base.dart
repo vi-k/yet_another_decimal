@@ -27,8 +27,8 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         resultMessage = 'ok';
       } else {
         resultMessage = 'FAILED!!!'
-            ' expected: $expectedExerciseResult'
-            ' actual: $result';
+            '\n expected: $expectedExerciseResult'
+            '\n actual:   $result';
       }
     }
   }

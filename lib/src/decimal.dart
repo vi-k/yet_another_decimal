@@ -1,5 +1,9 @@
 import 'package:meta/meta.dart';
 
+import 'division.dart';
+import 'fraction.dart';
+import 'helpers.dart';
+
 @immutable
 final class Decimal implements Comparable<Decimal> {
   static final _char0 = '0'.codeUnitAt(0);
@@ -89,12 +93,12 @@ final class Decimal implements Comparable<Decimal> {
   Decimal operator -() => Decimal._(-value, scale);
 
   Decimal operator +(Decimal other) {
-    final (a, b, scale) = _align(this, other);
+    final (a, b, scale) = align(other);
     return Decimal._(a + b, scale);
   }
 
   Decimal operator -(Decimal other) {
-    final (a, b, scale) = _align(this, other);
+    final (a, b, scale) = align(other);
     return Decimal._(a - b, scale);
   }
 
@@ -104,60 +108,89 @@ final class Decimal implements Comparable<Decimal> {
       );
 
   Decimal operator /(Decimal other) {
-    final (value, scale, denominator) = _fractionalize(other);
+    var value = this.value;
+    var scale = this.scale;
+    var divisor = other.value;
 
-    if (denominator != BigInt.one) {
-      throw DecimalDivideException._(
-        Decimal._(value, scale),
-        denominator,
-      );
+    if (divisor.isNegative) {
+      divisor = -divisor;
+      value = -value;
     }
 
-    return Decimal._(value, scale);
+    final gcd = value.fastGcd(divisor);
+    value ~/= gcd;
+    divisor ~/= gcd;
+    scale -= other.scale;
+
+    if (divisor != BigInt.one) {
+      while (divisor % _bigIntFive == BigInt.zero) {
+        value *= BigInt.two;
+        scale++;
+        divisor = divisor ~/ _bigIntFive;
+      }
+
+      while (divisor % BigInt.two == BigInt.zero) {
+        value *= _bigIntFive;
+        scale++;
+        divisor = divisor ~/ BigInt.two;
+      }
+    }
+
+    if (divisor != BigInt.one) {
+      throw DecimalDivideException._(this, other);
+    }
+
+    return Decimal._(value, scale); // as quotient
   }
 
   Decimal operator ~/(Decimal other) {
-    final (a, b, _) = _align(this, other);
+    final (a, b, _) = align(other);
     return Decimal._(a ~/ b, 0);
   }
 
+  /// Calculates the result of division as an integer quotient and remainder.
+  Division divide(Decimal other) => Division(this, other);
+
+  /// Calculates the result of division as fraction.
+  Fraction fraction(Decimal other) {
+    final (dividend, divisor, _) = align(other);
+
+    return Fraction(dividend, divisor);
+  }
+
   Decimal operator %(Decimal other) {
-    final (a, b, scale) = _align(this, other);
+    final (a, b, scale) = align(other);
+
     return Decimal._(a % b, scale);
   }
 
-  (Decimal, Decimal) divide(Decimal other) {
-    final (a, b, scale) = _align(this, other);
-    return (Decimal._(a ~/ b, 0), Decimal._(a % b, scale));
-  }
+  Decimal remainder(Decimal other) {
+    final (a, b, scale) = align(other);
 
-  @visibleForTesting
-  Fraction fraction(Decimal other) {
-    final (value, scale, denominator) = _fractionalize(other);
-
-    return Fraction._(
-      Decimal._(value, scale),
-      denominator,
-    );
+    return Decimal._(a.remainder(b), scale);
   }
 
   bool operator <(Decimal other) {
-    final (a, b, _) = _align(this, other);
+    final (a, b, _) = align(other);
+
     return a < b;
   }
 
   bool operator <=(Decimal other) {
-    final (a, b, _) = _align(this, other);
+    final (a, b, _) = align(other);
+
     return a <= b;
   }
 
   bool operator >(Decimal other) {
-    final (a, b, _) = _align(this, other);
+    final (a, b, _) = align(other);
+
     return a > b;
   }
 
   bool operator >=(Decimal other) {
-    final (a, b, _) = _align(this, other);
+    final (a, b, _) = align(other);
+
     return a >= b;
   }
 
@@ -167,54 +200,39 @@ final class Decimal implements Comparable<Decimal> {
 
   Decimal abs() => value.isNegative ? Decimal._(-value, scale) : this;
 
-  Decimal _dropFraction(
-    int fractionDigits,
-    BigInt Function(BigInt result, BigInt divisor) callback,
-  ) {
-    if (scale <= fractionDigits) {
-      return this;
-    }
-
-    final divisor = _mult10N(BigInt.one, scale - fractionDigits);
-    final result = callback(value ~/ divisor, divisor);
-
-    return Decimal._(result, fractionDigits);
-  }
-
-  Decimal floor({int fractionDigits = 0}) => _dropFraction(
+  Decimal floor([int fractionDigits = 0]) => _dropFraction(
         fractionDigits,
         (result, divisor) => isNegative && value % divisor != BigInt.zero
             ? result - BigInt.one
             : result,
       );
 
-  Decimal round({int fractionDigits = 0}) => _dropFraction(
+  Decimal round([int fractionDigits = 0]) => _dropFraction(
         fractionDigits,
         (result, divisor) {
-          final modulo = value.abs() % divisor;
-          return modulo >= divisor - modulo
+          final remainder = value.remainder(divisor).abs();
+          return remainder >= divisor - remainder
               ? result + BigInt.from(value.sign)
               : result;
         },
       );
 
-  Decimal ceil({int fractionDigits = 0}) => _dropFraction(
+  Decimal ceil([int fractionDigits = 0]) => _dropFraction(
         fractionDigits,
         (result, divisor) => !isNegative && value % divisor != BigInt.zero
             ? result + BigInt.one
             : result,
       );
 
-  Decimal truncate({int fractionDigits = 0}) => _dropFraction(
+  Decimal truncate([int fractionDigits = 0]) => _dropFraction(
         fractionDigits,
         (result, divisor) => result,
       );
 
   Decimal clamp(Decimal lowerLimit, Decimal upperLimit) {
-    assert(
-      lowerLimit <= upperLimit,
-      'The `lowerLimit` must be no greater than `upperLimit`',
-    );
+    if (lowerLimit > upperLimit) {
+      throw ArgumentError('The lowerLimit must be no greater than upperLimit');
+    }
 
     return this < lowerLimit
         ? lowerLimit
@@ -224,13 +242,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   Decimal pow(int exponent) {
-    if (exponent < 0) {
-      throw ArgumentError.value(
-        exponent,
-        null,
-        'Eexponent must not be negative',
-      );
-    }
+    _checkNonNegativeArgument(exponent, 'exponent');
 
     return Decimal._(value.pow(exponent), scale * exponent);
   }
@@ -241,8 +253,8 @@ final class Decimal implements Comparable<Decimal> {
 
   @override
   int compareTo(Decimal other) {
-    final (a, b, _) = _align(this, other);
-    return a.compareTo(b);
+    final (a, b, _) = align(other);
+    return a.compareTo(b).sign;
   }
 
   @override
@@ -253,7 +265,7 @@ final class Decimal implements Comparable<Decimal> {
 
     switch (other) {
       case Decimal():
-        final (a, b, _) = _align(this, other);
+        final (a, b, _) = align(other);
         return a == b;
 
       case BigInt():
@@ -278,6 +290,7 @@ final class Decimal implements Comparable<Decimal> {
 
   @override
   String toString() {
+    final value = this.value;
     var result = value.toString();
     var scale = this.scale;
 
@@ -301,59 +314,70 @@ final class Decimal implements Comparable<Decimal> {
       return result;
     }
 
+    if (scale < 0) {
+      return '$result${'0' * -scale}';
+    }
+
     // Going between a sign and a number.
-    final (sign, number) = _splitByIndex(result, value.isNegative ? 1 : 0);
+    final (sign, number) = result.splitByIndex(value.isNegative ? 1 : 0);
+    if (scale >= number.length) {
+      return '${sign}0.${number.padLeft(scale, '0')}';
+    }
+
+    final (integer, fractional) = number.splitByIndex(number.length - scale);
+
+    return '$sign$integer.$fractional';
+  }
+
+  String toStringAsFixed(int fractionDigits) {
+    _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
+
+    var value = this.value;
+    var scale = this.scale;
+
+    if (fractionDigits < scale) {
+      final rounded = round(fractionDigits);
+      value = rounded.value;
+      scale = rounded.scale;
+    }
+
+    var result = value.toString();
 
     if (scale < 0) {
-      return '$sign$number${'0' * -scale}';
+      if (value != BigInt.zero) {
+        result = '$result${'0' * -scale}';
+      }
+      scale = 0;
     }
+
+    if (fractionDigits == 0) {
+      return result;
+    }
+
+    // Going between a sign and a number.
+    final (sign, number) = result.splitByIndex(value.isNegative ? 1 : 0);
 
     if (scale >= number.length) {
       return '${sign}0.${number.padLeft(scale, '0')}';
     }
 
-    final (integer, fractional) = _splitByIndex(number, number.length - scale);
+    final (integer, fractional) = number.splitByIndex(number.length - scale);
 
-    return '$sign$integer.$fractional';
+    return '$sign$integer.${fractional.padRight(fractionDigits, '0')}';
   }
 
+  // TODO(vi.k): do it.
   String toStringAsExponential([int fractionDigits = 0]) =>
       throw UnimplementedError();
 
-  String toStringAsFixed(int fractionDigits) => throw UnimplementedError();
-
+  // TODO(vi.k): do it.
+  //
+  // 1234567 (6) -> 1.23457e+6 ?
   String toStringAsPrecision(int precision) => throw UnimplementedError();
 
-  static BigInt _mult10N(BigInt value, int count) {
-    var result = value;
-    for (var i = count; i > 0; i--) {
-      result *= _bigIntTen;
-    }
-
-    return result;
-  }
-
-  // https://github.com/dart-lang/sdk/issues/46180
-  static BigInt _gcd(BigInt a, BigInt b) {
-    while (b != BigInt.zero) {
-      final tmp = b;
-      b = a % b;
-      a = tmp;
-    }
-
-    return a;
-  }
-
-  static (BigInt, BigInt, int) _align(Decimal a, Decimal b) {
-    final as = a.scale;
-    final bs = b.scale;
-
-    if (as == bs) {
-      return (a.value, b.value, as);
-    } else if (as > bs) {
-      return (a.value, _mult10N(b.value, as - bs), as);
-    } else {
-      return (_mult10N(a.value, bs - as), b.value, bs);
+  static void _checkNonNegativeArgument(int value, String name) {
+    if (value < 0) {
+      throw ArgumentError.value(value, name, 'The value must be >= 0');
     }
   }
 
@@ -374,120 +398,115 @@ final class Decimal implements Comparable<Decimal> {
     return Decimal._(value, scale);
   }
 
-  /// Fractionalize.
-  ///
-  /// Return:
-  /// numerator - value and scale
-  /// denominator - always > 0
-  (BigInt, int, BigInt) _fractionalize(Decimal other) {
-    var value = this.value;
-    var scale = this.scale;
-    var denominator = other.value;
-
-    if (denominator.isNegative) {
-      denominator = -denominator;
-      value = -value;
+  Decimal _dropFraction(
+    int fractionDigits,
+    BigInt Function(BigInt result, BigInt divisor) callback,
+  ) {
+    if (scale <= fractionDigits) {
+      return this;
     }
 
-    final gcd = _gcd(value, denominator);
-    value ~/= gcd;
-    denominator ~/= gcd;
-    scale -= other.scale;
+    final divisor = BigInt.one.mult10N(scale - fractionDigits);
+    final result = callback(value ~/ divisor, divisor);
 
-    if (denominator != BigInt.one) {
-      while (denominator % _bigIntFive == BigInt.zero) {
-        value *= BigInt.two;
-        scale++;
-        denominator = denominator ~/ _bigIntFive;
-      }
-
-      while (denominator % BigInt.two == BigInt.zero) {
-        value *= _bigIntFive;
-        scale++;
-        denominator = denominator ~/ BigInt.two;
-      }
-    }
-
-    return (value, scale, denominator);
+    return Decimal._(result, fractionDigits);
   }
-
-  (String, String) _splitByIndex(String str, int index) =>
-      (str.substring(0, index), str.substring(index));
 }
 
-final class Fraction {
-  final Decimal numerator;
+// final class _Fraction {
+//   final Decimal numerator;
 
-  /// Always > 0.
-  final BigInt denominator;
+//   /// Always > 0.
+//   final BigInt denominator;
 
-  Fraction._(this.numerator, this.denominator)
-      : assert(
-          !denominator.isNegative,
-          'The `denominator` must be greater than 0',
-        );
+//   _Fraction._(this.numerator, this.denominator)
+//       : assert(
+//           !denominator.isNegative,
+//           'The `denominator` must be greater than 0',
+//         );
 
-  (BigInt, BigInt, int) _prepare(int fractionDigits) {
-    final (scaledValue, scale) = fractionDigits > numerator.scale
-        ? (
-            Decimal._mult10N(numerator.value, fractionDigits - numerator.scale),
-            fractionDigits
-          )
-        : (numerator.value, numerator.scale);
-    final result = scaledValue ~/ denominator;
+//   (BigInt, BigInt, int) _prepare(int fractionDigits) {
+//     BigInt scaledValue;
+//     int scale;
+//     if (fractionDigits <= numerator.scale) {
+//       scaledValue = numerator.value;
+//       scale = numerator.scale;
+//     } else {
+//       scaledValue = numerator.value.mult10N(
+//         fractionDigits - numerator.scale,
+//       );
+//       scale = fractionDigits;
+//     }
 
-    return (result, scaledValue, scale);
-  }
+//     final result = scaledValue ~/ denominator;
 
-  Decimal floor({int fractionDigits = 0}) {
-    var (result, scaledValue, scale) = _prepare(fractionDigits);
-    if (numerator.isNegative && scaledValue % denominator != BigInt.zero) {
-      result -= BigInt.one;
-    }
+//     return (result, scaledValue, scale);
+//   }
 
-    return Decimal._(result, scale).floor(fractionDigits: fractionDigits);
-  }
+//   Decimal floor({int fractionDigits = 0}) {
+//     var (result, scaledValue, scale) = _prepare(fractionDigits);
+//     if (numerator.isNegative && scaledValue % denominator != BigInt.zero) {
+//       result -= BigInt.one;
+//     }
 
-  Decimal round({int fractionDigits = 0}) {
-    var (result, scaledValue, scale) = _prepare(fractionDigits);
-    final modulo = scaledValue.abs() % denominator;
-    if (modulo >= denominator - modulo) {
-      result += BigInt.from(numerator.sign);
-    }
+//     return Decimal._(result, scale).floor(fractionDigits: fractionDigits);
+//   }
 
-    return Decimal._(result, scale).round(fractionDigits: fractionDigits);
-  }
+//   Decimal round({int fractionDigits = 0}) {
+//     var (result, scaledValue, scale) = _prepare(fractionDigits);
+//     final remainder = scaledValue.remainder(denominator).abs();
+//     if (remainder >= denominator - remainder) {
+//       result += BigInt.from(numerator.sign);
+//     }
 
-  Decimal ceil({int fractionDigits = 0}) {
-    var (result, scaledValue, scale) = _prepare(fractionDigits);
-    if (!numerator.isNegative && scaledValue % denominator != BigInt.zero) {
-      result += BigInt.one;
-    }
+//     return Decimal._(result, scale).round(fractionDigits: fractionDigits);
+//   }
 
-    return Decimal._(result, scale).ceil(fractionDigits: fractionDigits);
-  }
+//   Decimal ceil({int fractionDigits = 0}) {
+//     var (result, scaledValue, scale) = _prepare(fractionDigits);
+//     if (!numerator.isNegative && scaledValue % denominator != BigInt.zero) {
+//       result += BigInt.one;
+//     }
 
-  Decimal truncate({int fractionDigits = 0}) {
-    final (result, _, scale) = _prepare(fractionDigits);
+//     return Decimal._(result, scale).ceil(fractionDigits: fractionDigits);
+//   }
 
-    return Decimal._(result, scale).truncate(fractionDigits: fractionDigits);
-  }
+//   Decimal truncate({int fractionDigits = 0}) {
+//     final (result, _, scale) = _prepare(fractionDigits);
 
-  @override
-  String toString() => '$numerator/$denominator';
-}
+//     return Decimal._(result, scale).truncate(fractionDigits: fractionDigits);
+//   }
 
-final class DecimalDivideException extends Fraction implements Exception {
-  DecimalDivideException._(super.numerator, super.denominator) : super._();
+//   @override
+//   String toString() => '$numerator/$denominator';
+// }
+
+final class DecimalDivideException implements Exception {
+  final Decimal dividend;
+  final Decimal divisor;
+
+  const DecimalDivideException._(this.dividend, this.divisor);
 
   @visibleForTesting
-  DecimalDivideException.forTest(super.numerator, super.denominator)
-      : super._();
+  DecimalDivideException.forTest(this.dividend, this.divisor);
+
+  Fraction get fraction => dividend.fraction(divisor);
+
+  Division get division => dividend.divide(divisor);
+
+  Decimal floor([int fractionDigits = 0]) => fraction.floor(fractionDigits);
+
+  Decimal round([int fractionDigits = 0]) => fraction.round(fractionDigits);
+
+  Decimal ceil([int fractionDigits = 0]) => fraction.ceil(fractionDigits);
+
+  Decimal truncate([int fractionDigits = 0]) =>
+      fraction.truncate(fractionDigits);
 
   @override
   String toString() => '$DecimalDivideException:'
-      ' The result of division cannot be represented as $Decimal'
-      ' (numerator: $numerator, denominator: $denominator)';
+      ' The result of division cannot be represented as $Decimal:'
+      ' $dividend / $divisor = $division';
 }
 
 extension BigIntExtension on BigInt {
