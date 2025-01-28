@@ -1,3 +1,4 @@
+export 'src/environment.dart';
 export 'src/operations.dart';
 export 'src/packages.dart';
 export 'src/run.dart';

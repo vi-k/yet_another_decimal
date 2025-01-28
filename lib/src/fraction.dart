@@ -48,7 +48,7 @@ final class Fraction {
   int get sign => numerator.sign;
 
   Decimal floor([int fractionDigits = 0]) {
-    final scaledNumerator = numerator.mult10N(fractionDigits);
+    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
     var quotient = scaledNumerator ~/ denominator;
 
     if (scaledNumerator.isNegative &&
@@ -60,7 +60,7 @@ final class Fraction {
   }
 
   Decimal round([int fractionDigits = 0]) {
-    final scaledNumerator = numerator.mult10N(fractionDigits);
+    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
     var quotient = scaledNumerator ~/ denominator;
 
     final remainder = scaledNumerator.remainder(denominator).abs();
@@ -72,7 +72,7 @@ final class Fraction {
   }
 
   Decimal ceil([int fractionDigits = 0]) {
-    final scaledNumerator = numerator.mult10N(fractionDigits);
+    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
     var quotient = scaledNumerator ~/ denominator;
 
     if (!scaledNumerator.isNegative &&
@@ -84,7 +84,7 @@ final class Fraction {
   }
 
   Decimal truncate([int fractionDigits = 0]) {
-    final scaledNumerator = numerator.mult10N(fractionDigits);
+    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
     final quotient = scaledNumerator ~/ denominator;
 
     return Decimal.fromBigInt(quotient, shiftRight: fractionDigits);

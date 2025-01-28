@@ -1,5 +1,5 @@
 name: example
-description: A sample command-line application.
+description: Example for decimal2.
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 publish_to: none
@@ -8,13 +8,19 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
+  ansi_escape_codes: ^1.4.1
   benchmark_harness: ^2.3.1
-  decimal: ^3.0.2
+  big_decimal: ^0.5.0
+  decimal: ^3.2.1
   decimal2:
     path: ..
   decimal_type: ^0.0.2
-  fixed: ^5.3.0
+  fixed: ^5.3.1
+  format: ^1.6.0
 
 dev_dependencies:
   lints: ^5.0.0
   test: ^1.24.0
+
+dependency_overrides:
+  intl: 0.20.2

@@ -1,5 +1,6 @@
 # TODO
 
-- Сделать toStringAsExponential и toStringAsPrecision.
-- Написать README.
-- Написать документацию.
+- toStringAsExponential и toStringAsPrecision.
+- write README.
+- write comments (doc).
+- tests for ShortDecimal.

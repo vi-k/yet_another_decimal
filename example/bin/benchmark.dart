@@ -1,113 +1,140 @@
-import 'package:decimal/decimal.dart';
-import 'package:decimal2/decimal2.dart' as d;
+import 'package:ansi_escape_codes/ansi_escape_codes.dart';
+import 'package:decimal2/decimal2.dart';
 import 'package:example/benchmark.dart';
 
 void printUsage() {
-  print('Usage: dart benchmark.dart [-]id [-]id ...');
+  print(
+    '${def}Usage:'
+    ' ${accent}dart benchmark.dart'
+    ' $def[$accent-$def]${accent}tag'
+    ' $def[$accent-$def]${accent}tag$def ...$reset',
+  );
 
-  print('\nWhere id:\n');
+  print('\n${def}Where tag:$reset\n');
 
-  print('all - all packages and all tests');
-  print('all-packages - all packages');
-  print('all-tests - all tests');
+  print('${accent}all$def (all packages and all tests)$reset');
 
-  print('\nPackages:');
-  final groups = <String, List<Package>>{};
+  print('\n${def}Packages:$reset');
   for (final package in Package.values) {
-    final group = package.group;
-    if (group == null) {
-      groups[package.id] = [];
-    } else {
-      final list = groups[group];
-      if (list == null) {
-        groups[group] = [package];
-      } else {
-        list.add(package);
-      }
-    }
+    final tags = package.tags;
+    print(
+      '$accent${package.id}'
+      '$def${tags.isEmpty ? '' : ' (tags: ${tags.join(', ')})'}'
+      '$reset',
+    );
   }
 
-  for (final entry in groups.entries) {
-    if (entry.value.isEmpty) {
-      print(entry.key);
-    } else {
-      print('${entry.key} (${entry.value.map((e) => e.id).join(', ')})');
-    }
+  print('\n${def}Tests:$reset');
+  for (final test in Test.values) {
+    final tags = test.tags;
+    print(
+      '$accent${test.id}'
+      ' $def(tags: ${tags.join(', ')})$reset',
+    );
   }
 
-  print('\nTests:');
-  for (final op in Op.values) {
-    final tests = Test.byOperation(op.id);
-    print('${op.id} (${tests.map((e) => e.id).join(', ')})');
-  }
-
-  print('\nExamples:');
-  print('\nAll packages and all tests:');
-  print('> dart benchmark.dart all');
-  print('\nTest "divide" for all packages');
-  print('> dart benchmark.dart all-packages divide');
-  print('\nAll tests for all packages excluding "decimal2"');
-  print('> dart benchmark.dart all -decimal2');
+  print('\n${def}Examples:$reset');
+  print('\n${def}All packages and all tests:$reset');
+  print('$def> ${accent}dart benchmark.dart all$reset');
+  print('\n${def}Test "divide" for all packages$reset');
+  print('$def> ${accent}dart benchmark.dart divide$reset');
+  print('\n${def}All tests for all packages excluding "decimal2"$reset');
+  print('$def> ${accent}dart benchmark.dart -decimal2$reset');
 }
 
 void main(List<String> arguments) {
+  final v = Decimal(1000000000000000000, shiftRight: 18);
+
+  final sw = Stopwatch()..start();
+  for (var i = 0; i < 10000000; i++) {
+    v.toString();
+  }
+  sw.stop();
+  print(sw.elapsed); // 0:00:02.406469
+
+  sw
+    ..reset()
+    ..start();
+  for (var i = 0; i < 10000000; i++) {
+    // Это оптимизация, так как мы много раз используем одно и тоже значение.
+    // Оптимизация выполнится только один раз. Остальное время мы вхолостую
+    // будем запускать метод. В данном случае можно было бы выполнить
+    // оптимизацию один раз до цикла.
+    v.optimize();
+    v.toString();
+  }
+  sw.stop();
+  print(sw.elapsed); // 00:00:00.061205
+
+  return;
+
   if (arguments.isEmpty || arguments.isNotEmpty && arguments[0] == '--help') {
     printUsage();
     return;
   }
 
-  final packages = <Package>{};
-  final tests = <Test>{};
+  final includePackages = <Package>{};
+  final excludePackages = <Package>{};
+  final includeTests = <Test>{};
+  final excludeTests = <Test>{};
 
   for (final arg in arguments) {
     switch (arg) {
       case 'all':
-        packages.addAll(Package.values);
-        tests.addAll(Test.values);
-
-      case 'all-packages':
-        packages.addAll(Package.values);
-
-      case 'all-tests':
-        tests.addAll(Test.values);
+        includePackages.addAll(Package.values);
+        includeTests.addAll(Test.values);
 
       default:
         final exclude = arg.startsWith('-');
-        final id = exclude ? arg.substring(1) : arg;
+        final tag = exclude ? arg.substring(1) : arg;
+        var ok = false;
 
-        final package = Package.byId(id);
+        final package = Package.byId(tag);
         if (package != null) {
-          exclude ? packages.remove(package) : packages.add(package);
-          continue;
+          exclude ? excludePackages.add(package) : includePackages.add(package);
+          ok = true;
         }
 
-        final packagesByGroup = Package.byGroup(id);
-        if (packagesByGroup.isNotEmpty) {
+        final packagesByTag = Package.byTag(tag);
+        if (packagesByTag.isNotEmpty) {
           exclude
-              ? packages.removeAll(packagesByGroup)
-              : packages.addAll(packagesByGroup);
-          continue;
+              ? excludePackages.addAll(packagesByTag)
+              : includePackages.addAll(packagesByTag);
+          ok = true;
         }
 
-        final test = Test.byId(id);
+        final test = Test.byId(tag);
         if (test != null) {
-          exclude ? tests.remove(test) : tests.add(test);
-          continue;
+          exclude ? excludeTests.add(test) : includeTests.add(test);
+          ok = true;
         }
 
-        final testByOperations = Test.byOperation(id);
-        if (testByOperations.isNotEmpty) {
+        final testByTag = Test.byTag(tag);
+        if (testByTag.isNotEmpty) {
           exclude
-              ? tests.removeAll(testByOperations)
-              : tests.addAll(testByOperations);
-          continue;
+              ? excludeTests.addAll(testByTag)
+              : includeTests.addAll(testByTag);
+          ok = true;
         }
 
-        print('Unknown argument: $arg\n');
-        printUsage();
-        return;
+        if (!ok) {
+          print('${error}Unknown argument: $accentError$arg$reset\n');
+          printUsage();
+          return;
+        }
     }
   }
+
+  if (includePackages.isEmpty) {
+    includePackages.addAll(Package.values);
+  }
+
+  if (includeTests.isEmpty) {
+    includeTests.addAll(Test.values);
+  }
+
+  final packages = includePackages.difference(excludePackages);
+  final tests = includeTests.difference(excludeTests);
 
   run(
     packages: packages,
