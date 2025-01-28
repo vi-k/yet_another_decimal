@@ -1,6 +1,8 @@
 # Decimals
 
-Ещё один пакет для Decimals - десятичных дробей с фиксированной запятой.
+The test is awaiting translation into English.
+
+Это ещё один пакет для Decimals - десятичных дробей с фиксированной запятой.
 
 ## Почему?
 
