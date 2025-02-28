@@ -1,6 +1,6 @@
 name: yet_another_decimal
 description: Yet another package for fixed point decimals.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/vi-k/yet_another_decimal
 
 environment:
@@ -8,7 +8,6 @@ environment:
 
 dependencies:
   meta: ^1.16.0
-  rational: ^2.2.3
 
 dev_dependencies:
   lints: ^5.0.0
