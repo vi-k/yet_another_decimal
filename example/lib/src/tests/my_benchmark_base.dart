@@ -3,9 +3,9 @@ import 'dart:math';
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
 import 'package:benchmark_harness/benchmark_harness.dart';
 
-import '../environment.dart';
 import '../operations.dart';
 import '../packages.dart';
+import '../utils/output.dart';
 
 abstract base class MyBenchmarkBase extends BenchmarkBase {
   final Package package;
@@ -38,7 +38,7 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
     final resultString = result.toString();
     final expectedResultString = expectedExerciseResult.toString();
     if (resultString == expectedResultString) {
-      resultMessage = '${accentOk}OK$reset';
+      resultMessage = ok('OK');
       return;
     }
 
@@ -82,12 +82,12 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         isWarning: isWarning,
       );
 
-      description = '\n ${accent}expected: $def$expected$reset'
-          '\n ${accent}actual:   $actual$reset';
+      description = '\n ${accent('expected:')} $expected'
+          '\n ${accent('actual:')}   $actual';
     }
 
     resultMessage =
-        '${isWarning ? '$accentWarning[WARNING]' : '${accentError}ERROR'}'
+        '${isWarning ? accentWarning('WARNING') : accentError('ERROR')}'
         '$reset$description';
 
     if (!isWarning) {
@@ -197,13 +197,12 @@ extension on String {
   }
 
   if (end == actual.length && actual.length < expected.length) {
-    return (expectedReturn, '${isWarning ? warning : error}$actual$reset');
+    return (expectedReturn, isWarning ? warning(actual) : error(actual));
   }
 
+  final rest = actual.substring(end);
   return (
     expectedReturn,
-    '$def${actual.substring(0, end)}'
-        '${isWarning ? warning : error}${actual.substring(end)}'
-        '$reset'
+    '${actual.substring(0, end)}${isWarning ? warning(rest) : error(rest)}'
   );
 }

@@ -9,13 +9,13 @@ enum Package {
   final String id;
   final String type;
   final Set<String> tags;
-  final bool excludeFromWinners;
+  final bool excludeFromComparision;
 
   const Package(
     this.id,
     this.type, [
     this.tags = const {},
-    this.excludeFromWinners = false,
+    this.excludeFromComparision = false,
   ]);
 
   static Package? byId(String id) {

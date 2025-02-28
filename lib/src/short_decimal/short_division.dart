@@ -1,38 +1,35 @@
-import 'package:meta/meta.dart';
-
-import 'decimal.dart';
-import 'helpers.dart';
+part of 'short_decimal.dart';
 
 @immutable
-final class Division {
+final class ShortDivision {
   /// Integer quotient.
-  final BigInt quotient;
+  final int quotient;
 
   /// Remainder.
-  final Decimal remainder;
+  final ShortDecimal remainder;
 
-  factory Division(Decimal dividend, Decimal divisor) {
+  factory ShortDivision(ShortDecimal dividend, ShortDecimal divisor) {
     if (divisor.isZero) {
       throw UnsupportedError('division by zero');
     }
 
-    final (a, b, scale) = dividend.align(divisor);
+    final (a, b, scale) = dividend._align(divisor);
 
-    return Division._(
+    return ShortDivision._(
       a ~/ b,
-      Decimal.fromBigInt(
+      ShortDecimal(
         a.remainder(b),
         shiftRight: scale,
       ),
     );
   }
 
-  const Division._(this.quotient, this.remainder);
+  const ShortDivision._(this.quotient, this.remainder);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Division &&
+      other is ShortDivision &&
           quotient == other.quotient &&
           remainder == other.remainder;
 

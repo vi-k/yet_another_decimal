@@ -1,7 +1,4 @@
-import 'package:meta/meta.dart';
-
-import 'decimal.dart';
-import 'helpers.dart';
+part of 'decimal.dart';
 
 @immutable
 final class Fraction {
@@ -23,7 +20,7 @@ final class Fraction {
 
     final gcd = dividend.fastGcd(divisor);
 
-    return Fraction._(dividend ~/ gcd, divisor ~/ gcd);
+    return Fraction._asIs(dividend ~/ gcd, divisor ~/ gcd);
   }
 
   factory Fraction.parse(String str) {
@@ -31,7 +28,7 @@ final class Fraction {
 
     if (fractionBar == -1) {
       final numerator = BigInt.parse(str);
-      return Fraction._(numerator, BigInt.one);
+      return Fraction._asIs(numerator, BigInt.one);
     }
 
     final dividend = BigInt.parse(str.substring(0, fractionBar));
@@ -40,15 +37,38 @@ final class Fraction {
     return Fraction(dividend, divisor);
   }
 
-  Fraction._(this.numerator, this.denominator)
+  Fraction._asIs(this.numerator, this.denominator)
       : assert(denominator > BigInt.zero, 'The denominator must be > 0');
 
   bool get isNegative => numerator.isNegative;
 
   int get sign => numerator.sign;
 
+  Fraction operator *(Fraction other) => Fraction(
+        numerator * other.numerator,
+        denominator * other.denominator,
+      );
+
+  Fraction operator /(Fraction other) => Fraction(
+        numerator * other.denominator,
+        denominator * other.numerator,
+      );
+
+  Fraction operator +(Fraction other) => Fraction(
+        numerator * other.denominator + other.numerator * denominator,
+        denominator * other.denominator,
+      );
+
+  Fraction operator -(Fraction other) => Fraction(
+        numerator * other.denominator - other.numerator * denominator,
+        denominator * other.denominator,
+      );
+
+  Decimal toDecimal() =>
+      Decimal.fromBigInt(numerator) / Decimal.fromBigInt(denominator);
+
   Decimal floor([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
+    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
     var quotient = scaledNumerator ~/ denominator;
 
     if (scaledNumerator.isNegative &&
@@ -60,7 +80,7 @@ final class Fraction {
   }
 
   Decimal round([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
+    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
     var quotient = scaledNumerator ~/ denominator;
 
     final remainder = scaledNumerator.remainder(denominator).abs();
@@ -72,7 +92,7 @@ final class Fraction {
   }
 
   Decimal ceil([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
+    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
     var quotient = scaledNumerator ~/ denominator;
 
     if (!scaledNumerator.isNegative &&
@@ -84,7 +104,7 @@ final class Fraction {
   }
 
   Decimal truncate([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * DecimalInternals.pow10(fractionDigits);
+    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
     final quotient = scaledNumerator ~/ denominator;
 
     return Decimal.fromBigInt(quotient, shiftRight: fractionDigits);

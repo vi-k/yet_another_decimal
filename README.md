@@ -1,80 +1,93 @@
 # Decimals
 
-The test is awaiting translation into English.
+It's yet another package for fixed point decimals.
 
-Это ещё один пакет для Decimals - десятичных дробей с фиксированной запятой.
+## Table of contents
 
-## Почему?
+1. [Why?](#why)
 
-По состоянию на январь 2025 на pub.dev есть несколько пакетов, работающих
-с Decimals:
+    1.1. [What packages are already in place?](#packages)
 
-### [decimal](https://pub.dev/packages/decimal)
+    1.2. [What's it supposed to be?](#expectations)
 
-Замечательный пакет, корректно работающий с Decimals. Существует с 2014 года и
-постоянно обновляется. В одном из последних обновлений (3.2.0) была значительно
-увеличена производительность. До этого скорость была слабой стороной этого
-пакета. Именно это стало одной из причин, почему появился
-[decimal2](https://pub.dev/packages/decimal2), т.к. он создавался до появления
-3.2.0.
+    1.3. [Package performance](#package-performance)
 
-### [fixed](https://pub.dev/packages/fixed)
+    1.4. [`decimal` vs `decimal2`](#decimal-vs-decimal2)
 
-Пакет для работы с числами с фиксированной запятой. Это почти тоже самое, что
-и Decimals, но не совсем. Вам не удастся просто так выполнить операцию 1 / 8
-и получить ожидаемые 0.125:
+2. [`Decimal` vs `ShortDecimal`](#decimal-vs-short-decimal)
 
-```dart
-final a = Fixed.fromInt(100, scale: 2); // 1.00
-final b = Fixed.fromInt(800, scale: 2); // 8.00
-print('$a / $b = ${a / b}'); // 0.13
-```
+    2.1. [`ShortDecimal` limitations](#short-decimal-limitations)
 
-Результатом будет 0.13, а не 0.125. Причина именно в том, что понимается в этом
-пакете под фиксированном количеством знаков после запятой. Как в обоих
-операндах, результат также будет иметь 2 знака после запятой. Т.е. фиксация
-количества знаков после запятой, по мнению автора пакета, относится к тому, что
-результат деления сохраняет кол-во знаков после запятой делимого или делителя.
-Для получения корректного значения необходимо, чтобы хотя бы один из операндов
-имел scale равным 3:
+    2.2. [Performance](#short-decimal-performance)
 
-```dart
-final a = Fixed.fromInt(100, scale: 2); // 1.00
-final b = Fixed.fromInt(8000, scale: 3); // 8.000
-print('$a / $b = ${a / b}'); // 1.00 / 8.000 = 0.125
-```
+    2.3. [`Decimal` optimization](#decimal-optimization)
 
-Или:
+<a id="why"></a>
+## Why?
 
-```dart
-final a = Fixed.fromInt(100, scale: 2); // 1.00
-final b = Fixed.fromInt(800, scale: 2); // 8.00
-final scaledA = a.copyWith(scale: 3);
-print('$scaledA / $b = ${scaledA / b}'); // 1.000 / 8.00 = 0.125
-```
+As of February 2025, there are several packages on [pub.dev](https://pub.dev)
+that work with decimals.
 
-Но главный недостаток пакета в том, что для операции деления под капотом
-используется `double`:
+<a id="packages"></a>
+### What packages are already in place?
+
+#### [decimal](https://pub.dev/packages/decimal)
+
+A wonderful package that works correctly with decimals. It exists since 2014
+and is constantly updated. In one of the latest updates (3.2.0), performance
+has been significantly improved. Before that, speed was the weak point of this
+package. This was one of the reasons why
+[decimal2](https://pub.dev/packages/decimal2) appeared, since I started writing
+it before 3.2.0. However, I would have written it anyway. More about it below.
+
+#### [fixed](https://pub.dev/packages/fixed)
+
+The package has difficulty dividing. You can't just do a 1 / 8 operation and
+get the expected 0.125:
 
 ```dart
-final v = Fixed.parse('111111111111111111');
-print(v * v); // 12345679012345678987654320987654321
-print(v * v / v); // 111111111111111120
+final a = Fixed.fromInt(1, scale: 0); // 1
+final b = Fixed.fromInt(8, scale: 0); // 8
+print('$a / $b = ${a / b}'); // 1 / 8 = 0
+
+final c = Fixed.fromInt(10, scale: 1); // 1.0
+final d = Fixed.fromInt(80, scale: 1); // 8.0
+print('$c / $d = ${c / d}'); // 1.0 / 8.0 = 0.1
+
+final e = Fixed.fromInt(100, scale: 2); // 1.00
+final f = Fixed.fromInt(800, scale: 2); // 8.00
+print('$e / $f = ${e / f}'); // 1.00 / 8.00 = 0.13
 ```
 
-Это очень неожиданно! Обычно числа с фиксированной запятой используют
-для того, чтобы избежать погрешностей операций с плавающей запятой, а не
-наоборот. На мой взгляд, это слишком серьёзная проблема, чтобы ей пренебречь.
+The result depends on the scale of the numerator and denominator. That is, the
+division method does not calculate the scale of the result. You have to do it
+yourself.
 
-Но порадовало то, что автор поддерживает пакет и быстро исправляет найденные
-ошибки. Может, поправит и это?
+```dart
+final a = Fixed.fromInt(1, scale: 0).copyWith(scale: 3); // 1.000
+final b = Fixed.fromInt(8, scale: 0); // 8
+print('$a / $b = ${a / b}'); // 1.000 / 8 = 0.125
+```
 
-### [decimal_type](https://pub.dev/packages/decimal_type)
+But the main drawback of the package is not even that, but the fact that
+`double` is used for the division operation under the hood:
 
-Так как меня не устраивала производительность пакета
-[decimal](https://pub.dev/packages/decimal), этот пакет привлёк моё внимание
-своей скоростью. К сожалению, он как и [fixed](https://pub.dev/packages/fixed),
-использует для деления `double`.
+```dart
+final a = Fixed.parse('111111111111111111');
+final b = a * a;
+print(b); // 12345679012345678987654320987654321
+print(b / a); // 111111111111111120 (!)
+```
+
+The reason for the error is that double has limited precision, and in this
+example we have gone beyond the limits of that precision. But fixed-point
+Deciamls are used to avoid errors in floating-point operations, not the other
+way around. In my opinion, this is a very bad solution.
+
+#### [decimal_type](https://pub.dev/packages/decimal_type)
+
+This package also uses to divide `double`, but unlike
+[fixed](https://pub.dev/packages/fixed) it doesn't know some corner case:
 
 ```dart
 var a = Decimal(BigInt.parse('644385861467633436300000'), decimalPrecision: 0);
@@ -82,79 +95,85 @@ var b = Decimal.fromInt(123);
 print('$a / $b = ${a / b}'); // FormatException: Could not parse BigInt 238909442826288e+21
 ```
 
-Под капотом очень неожиданная схема деления: сначала получаем результат деления
-в виде `double`, дальше частное преобразуется в строку с помощью
-`double.toStringAsFixed`, а строка затем в `BigInt`. Но
-`double.toStringAsFixed` не всегда возвращает результат "asFixed". Когда
-наступает предел погрешности, метод переключается на
-`double.toStringAsExponential`. Автор не учёл это. Впрочем, это хорошо, т.к.
-сразу понятно, что пользоваться этим пакетом не стоит.
+First the result of division is calculated as `double`, then it is converted to
+a string using `double.toStringAsFixed`, and the string is then converted to
+`BigInt`. But `double.toStringAsFixed` does not always return an `asFixed`
+result. When the error limit is reached, the method switches to
+`double.toStringAsExponential`. The author did not notice this feature. But we
+found out faster what is hiding under the hood.
 
-### [big_decimal](https://pub.dev/packages/big_decimal)
+#### [big_decimal](https://pub.dev/packages/big_decimal)
 
-Ещё один пакет с очень хорошей производительностью. Похоже, перенесён с Java:
+This one seems to have been ported over from Java:
 
 > A bugless implementation of BigDecimal in Dart based on Java's BigDecimal.
 
-Но в нём не просто разделить даже 1 на 2:
+But it doesn't just divide 1 by 8 in it:
 
 ```dart
 final a = BigDecimal.one;
-final b = BigDecimal.two;
+final b = BigDecimal.parse('8');
 print('$a / $b = ${a.divide(b)}'); //  Exception: Rounding necessary
 ```
 
-Т.е. по умолчанию числа можно разделить, только указав режим округления. Но
-если мне нужно получить полный результат без округления, а в случае с 1 / 2 это
-возможно, то нужно самостоятельно увеличить scale:
+Numbers can be divided by specifying the rounding mode. But that's not what we
+wanted to do.
 
 ```dart
 final a = BigDecimal.one;
-final scaledA = a.withScale(1);
-final b = BigDecimal.two;
-print('$scaledA / $b = ${scaledA.divide(b)}');
+final b = BigDecimal.parse('8');
+print('$a / $b = ${a.divide(b, roundingMode: RoundingMode.FLOOR)}'); // 1 / 8 = 0
 ```
 
-А не представляю, почему я вообще должен знать что-то о scale, т.е.
-о внутренней реализации класса? И что делать в случае, когда я не знаю, какой
-scale мне нужно указать? Ведь я для того и хочу разделить два числа, чтобы
-посмотреть, что получится. Как мне рассчитать scale для 1 / 1024? А ведь я знаю
-точно, что такое деление возможно и результат точно может быть представлен
-в виде Decimal.
+Or by changing the scale of the numerator:
 
-### Как должно быть?
+```dart
+final a = BigDecimal.parse('1.000');
+final b = BigDecimal.parse('8');
+print('$a / $b = ${a.divide(b)}'); // 1.000 / 8 = 0.125
+```
 
-Чтобы было понятно, и в [decimal](https://pub.dev/packages/decimal),
-и в [decimal2](https://pub.dev/packages/decimal2) подобных проблем нет.
+If we don't guess the scale, we get an error.
 
-Только [decimal](https://pub.dev/packages/decimal) не торопится возвращать
-результат в виде Decimal, т.к. не всякий результат деления может быть
-представлен десятичной дробью:
+That's how "a bugless implementation of BigDecimal" works.
+
+
+<a id="expectations"></a>
+### What's it supposed to be?
+
+Three packages out of four did not satisfy me because of bugs in calculations,
+incomplete functionality (division) or use of `double` under the hood.
+
+The [decimal](https://pub.dev/packages/decimal) and this packages do not have
+the above division problems. No need to calculate `scale` yourself, and no
+`double` under the hood.
+
+[decimal](https://pub.dev/packages/decimal) returns the result as `Rational`
+([rational](https://pub.dev/packages/rational)), since not every division
+result can be represented by a decimal. But it can be easily converted
+to `Decimal`:
 
 ```dart
 final a = Decimal.one;
 final b = Decimal.fromInt(256);
 print('$a / $b = ${a / b}'); // 1 / 256 = 1/256
-```
-
-Результат вернётся в виде `Rational` из пакета
-[rational](https://pub.dev/packages/rational (похоже, того же автора), т.е.
-в виде дроби. Но его можно легко перевести в `Decimal`:
-
-```dart
-final a = Decimal.one;
-final b = Decimal.fromInt(256);
 print('$a / $b = ${(a / b).toDecimal()}'); // 1 / 256 = 0.00390625
 ```
 
-Если же частное нельзя представить в виде десятичного числа, т.е. число имеет
-бесконечное количество знаков после запятой (имеет бесконечную точность), то
-будет выкинуто исключение. Но можно передать в `toDecimal` значение
-`scaleOnInfinitePrecision` для ограничения точности. И тогда число будет
-преобразовано в Decimal с потерей точности.
+If the result cannot be represented as a decimal, i.e. the number has an
+infinite number of decimal places (has infinite precision), an exception will
+be thrown. But if you pass `scaleOnInfinitePrecision` to `toDecimal` to limit
+the precision, the number will be converted to decimal with loss of precision
+and no exception will be thrown.
 
-[decimal2](https://pub.dev/packages/decimal2) поступает иначе и сразу
-возвращает результат:
+```dart
+final a = Decimal.one;
+final b = Decimal.fromInt(3);
+print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
+print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
+```
+
+This package does the opposite and returns the result immediately:
 
 ```dart
 final a = Decimal.one;
@@ -162,11 +181,14 @@ final b = Decimal(256);
 print('$a / $b = ${a / b}'); // 1 / 256 = 0.00390625
 ```
 
-Я решил, что если вы делите десятичные дроби и хотите получить результат тоже
-в виде десятичной дроби, то вы знаете, что делаете, и поэтому промежуточные
-действия вам не нужны. Если результат нельзя получить в виде десятичной дроби,
-будет брошено исключение. Его можно перехватить и обработать, получив нужный
-результат:
+I wanted a package that works with decimal to return the result as decimal by
+default. I'm counting on the fact that whoever is using the division operation
+knows what they are doing, and understands in which cases they can get decimal
+when dividing, and in which cases they will go beyond the capabilities of
+decimal.
+
+If the result cannot be obtained as a decimal, an exception will be thrown. It
+can be caught and handled to get the desired result:
 
 ```dart
 final a = Decimal.one;
@@ -175,121 +197,166 @@ try {
   print('$a / $b = ${a / b}');
 } on DecimalDivideException catch (e) {
   print('${e.dividend} / ${e.divisor} = ${e.fraction}'); // 1 / 3 = 1/3
-  print('${e.dividend} / ${e.divisor} = ${e.division}'); // 1 / 3 = 0 remainder 1
+  print('${e.dividend} / ${e.divisor} = ${e.quotientWithRemainder}'); // 1 / 3 = 0 remainder 1
   print('${e.dividend} / ${e.divisor} = ${e.round(6)}'); // 1 / 3 = 0.333333
 }
 ```
 
-Поход, реализованный в [decimal](https://pub.dev/packages/decimal), удобен тем,
-что позволяет совершить ряд действий, промежуточные результаты которых не могут
-быть представлены в виде десятичной дроби, но конечным итогом всё же ожидается
-именно десятичная дробь. Например: 1 / 3 * 9:
+It is possible to avoid exceptions by using one of the methods:
+`divideToDouble`, `divideToFraction`, `divideWithRemainder`.
+
+This way I tried to avoid different interpretations. If you need the result as
+`double`, say so explicitly:
 
 ```dart
-final r1 = Decimal.fromInt(1) / Decimal.fromInt(3);
-final r2 = r1 * Decimal.fromInt(9).toRational();
-final r3 = r2.toDecimal(); // 9
+print('$a / $b = ${a.divideToDouble(b)}'); // 0.3333333333333333
+print('$a / $b = ${a.divideToFraction(b)}'); // 1/3
+print('$a / $b = ${a.divideWithRemainder(b)}'); // 0 remainder 1
 ```
 
-Пакет, работающий только с десятичными дробями, не сможет так изящно решить
-такой пример. Либо придётся прибегать к округлению и потерять точность:
+The approach implemented in [decimal](https://pub.dev/packages/decimal) is
+convenient because it allows to perform a number of actions, the intermediate
+results of which cannot be represented as a decimal, but the final result is
+still expected to be a decimal. For example: 1 / 3 * 9:
+
+```dart
+final rational = Decimal.fromInt(1) / Decimal.fromInt(3) * Decimal.fromInt(9).toRational();
+final decimal = rational.toDecimal(); // 9
+```
+
+A package that works only with decimals will not be able to solve such
+an example so elegantly. Or you will have to resort to rounding and lose
+precision:
 
 ```
 1 / 3 = 0.333
 0.333 * 9 = 2.997
 ```
 
-Либо использовать дополнительные решения для работы с дробями, например пакет
-[fraction](https://pub.dev/packages/fraction), или тот же
+But you can use additional solutions for working with fractions, such as the
+[fraction](https://pub.dev/packages/fraction), or the already mentioned
 [rational](https://pub.dev/packages/rational).
 
-Но я посчитал, что в пакете, рассчитанном на работу с десятичными числами,
-приоритетом должны быть именно они. Результат деления в виде `double` можно
-получить с помощью `divideToDouble`, дробь можно получить с помощью
-`divideToFraction`, а целое частное с остатком с помощью
-`divideWithRemainder`.
+decimal2 has its own `Fraction` class, which provides basic functions for
+working with fraction.
 
-## Производительность
+```dart
+final a = Fraction(BigInt.from(1), BigInt.from(2));
+final b = Fraction(BigInt.from(1), BigInt.from(3));
+final f1 = a * b;
+final f2 = a / b;
+final f3 = a + b;
+final f4 = a - b;
+print('($a) * ($b) = $f1 -> ${f1.round(6)}'); // (1/2) * (1/3) = 1/6 -> 0.166667
+print('($a) / ($b) = $f2 -> ${f2.toDecimal()}'); // (1/2) / (1/3) = 3/2 -> 1.5
+print('($a) + ($b) = $f3 -> ${f3.round(6)}'); // (1/2) + (1/3) = 5/6 -> 0.833333
+print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
+```
 
-Тесты проводились на Apple M2 Pro 32 Gb. Код тестов написан с помощью
-[benchmark_harness](https://pub.dev/packages/benchmark_harness). Каждый тест
-проводился не менее 2 сек, в течение которых выполнялось упражнение теста
-до достижения времени окончания. В одном упражнении 100 циклов выполнения
-операции. Одна операция совершает ряд однотипных действий с несколькими
-значениями. В таблице вы видете среднее время выполнения одной операции
-в микросекундах. Звездочками отмечены лучшие результаты и близкие к ним
-(до 5% расхождения).
+<a id="package-performance"></a>
+### Package performance
 
-|                       |     decimal | decimal_type |     fixed | big_decimal |    decimal2 |
-|:----------------------|------------:|-------------:|----------:|------------:|-------------:|
-| add                   |  ★ 1.825 µs |     3.344 µs |  2.405 µs |    2.252 µs |  ★ 1.691 µs |
-| multiply-large        |  ★ 0.137 µs |   ★ 0.132 µs |  0.176 µs |  ★ 0.130 µs |  ★ 0.134 µs |
-| multiply-small        |  ★ 0.139 µs |   ★ 0.132 µs |    ERROR¹ |  ★ 0.131 µs |  ★ 0.131 µs |
-| divide-large          |    7.690 µs |       ERROR² |    ERROR³ |   1.644 µs⁴ |  ★ 2.013 µs |
-| divide-small          |  501.365 µs |       ERROR¹ |    ERROR¹ |      ERROR⁵ | ★ 13.075 µs |
-| divide-large-and-view |    7.781 µs |       ERROR² |    ERROR³ |   1.685 µs⁴ |  ★ 2.017 µs |
-| divide-small-and-view |  498.637 µs |       ERROR¹ |    ERROR¹ |      ERROR⁵ | ★ 14.151 µs |
-| raw-view              |   20.798 µs |    25.472 µs | 58.094 µs | ★ 17.784 µs | ★ 16.561 µs |
-| raw-view-zeros        |   81.682 µs |    72.415 µs | 70.514 µs | ★ 16.133 µs | ★ 15.123 µs |
-| prepared-view         | ★ 16.014 µs |    24.989 µs | 58.369 µs | ★ 17.425 µs | ★ 16.556 µs |
-| prepared-view-zeros   |  ★ 1.560 µs |    72.258 µs | 70.501 µs |   15.681 µs |  ★ 1.611 µs |
+I care about performance, so I wrote tests to check packages. When I did this,
+I was not yet aware of the bugs I wrote above. So the result might seem
+strange. It's as if there were only two packages to compare: this and
+[decimal](https://pub.dev/packages/decimal).
 
-¹ The results don't match.
+The tests were performed on Apple M2 Pro 32 Gb. The code of the tests was
+written with the help of [benchmark_harness](https://pub.dev/packages/benchmark_harness).
+Each test was run for at least 2 sec, during which time the test exercise was
+executed until the end time was reached. Each exercise has 100 cycles of
+performing an operation. A single operation performs a series of identical
+actions on multiple values. In the table you see the average time to complete
+one operation in microseconds. Asterisks indicate the best results and close to
+them (up to 10% difference).
 
-² FormatException: Could not parse BigInt 662462759719942e+72.
+Absolute values are not important because they will differ from computer to
+computer, from startup to startup. All that matters is comparing the tests with
+each other.
 
-³ The amount must be less than 10^20.
+Running Tests:
 
-⁴ Результаты не отмечены как лучшие, т.к. пакет не выполняет полноценные
-  операции деления, за счёт чего и получает прирост производительности.
+```
+dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe
+```
 
-⁵ Exception: Rounding necessary.
+|                       |           decimal |     decimal_type |            fixed |      big_decimal | decimal2-decimal |
+|:----------------------|------------------:|-----------------:|-----------------:|-----------------:|-----------------:|
+| add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |       ★ 1.694 µs |
+| multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |       ★ 0.129 µs |
+| multiply-small        |        ★ 0.138 µs |       ★ 0.129 µs |            ERROR |       ★ 0.132 µs |       ★ 0.129 µs |
+| divide-large          |    (▼4x) 7.916 µs |            ERROR |            ERROR |       ★ 1.650 µs |         2.025 µs |
+| divide-small          | (▼38x) 496.494 µs |            ERROR |            ERROR |            ERROR |      ★ 12.969 µs |
+| divide-large-and-view |    (▼4x) 8.479 µs |            ERROR |            ERROR |       ★ 1.840 µs |         2.128 µs |
+| divide-small-and-view | (▼35x) 511.241 µs |            ERROR |            ERROR |            ERROR |      ★ 14.372 µs |
+| raw-view              |         21.045 µs |        26.058 µs |  (▼3x) 61.210 µs |      ★ 18.167 µs |      ★ 17.337 µs |
+| raw-view-zeros        |   (▼5x) 83.212 µs |  (▼4x) 73.963 µs |  (▼4x) 70.724 µs |      ★ 16.521 µs |      ★ 15.681 µs |
+| prepared-view         |       ★ 16.845 µs |        25.988 µs |  (▼3x) 59.159 µs |      ★ 17.779 µs |      ★ 16.689 µs |
+| prepared-view-zeros   |        ★ 1.567 µs | (▼46x) 72.737 µs | (▼44x) 69.415 µs | (▼10x) 16.105 µs |       ★ 1.635 µs |
 
-### Описание тестов
+With this test I did not intend to advertise my package at all. It was only
+important for me to check myself whether I was doing everything right. I saw my
+mistakes, and I corrected them. That's why this test is not very fair: I didn't
+adapt the test to my package, but I “adapted” (i.e. optimized) my package to
+this test. And I did it with the code of the packages I've given here. Even if
+some of them didn't work for me or contain bugs, there are some very good
+solutions in them that I was inspired by.
 
-- add. Сложение чисел:
+#### Description of benchmarks
+
+- add. Adding numbers:
 
   10000000000000000000 + 1000000000000000000 + 100000000000000000 + 10000000000000000 + 1000000000000000 + 100000000000000 + 10000000000000 + 1000000000000 + 100000000000 + 10000000000 + 1000000000 + 100000000 + 10000000 + 1000000 + 100000 + 10000 + 1000 + 100 + 10 + 1 + 0.1 + 0.01 + 0.001 + 0.0001 + 0.00001 + 0.000001 + 0.0000001 + 0.00000001 + 0.000000001 + 0.0000000001 + 0.00000000001 + 0.000000000001 + 0.0000000000001 + 0.00000000000001 + 0.000000000000001 + 0.0000000000000001 + 0.00000000000000001 + 0.000000000000000001 + 0.0000000000000000001 + 0.00000000000000000001 = 11111111111111111111.11111111111111111111
 
-- multiply-large. Умножение больших чисел:
+  A very simple operation. But note that in the case of decimal, it is much
+  more complicated than multiplication.
+
+- multiply-large. Multiplication of large numbers:
 
   123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 = 822526259147102579504761143661535547764137892295514168093701699676416207799736601
 
-- multiply-small. Умножение малых чисел:
+  A simple operation for decimal. It is impossible to make a mistake in it.
+  There is no simpler operation.
+
+- multiply-small. Multiplication of small numbers:
 
   0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 = 0.0000000000000000000822526259147102579504761143661535547764137892295514168093701699676416207799736601
 
-- divide-large. Деление больших чисел:
+  A simple operation, but not all packages are ready to handle numbers that
+  have more than 20 decimal places.
+
+- divide-large. Division of large numbers:
 
   822526259147102579504761143661535547764137892295514168093701699676416207799736601 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 = 1
 
-- divide-small. Деление малых чисел:
+  Division is not the strongest point of most packages. Even integers! Even the
+  result of which is also an integer!
+
+- divide-small. Division of small numbers:
 
   1 / 256 / 256 / 256 / 256 / 256 / 256 / 256 / 256 / 256 = 0.000000000000000000000211758236813575084767080625169910490512847900390625
 
-- divide-large-and-view. Деление больших чисел и преобразование результата
-  в читабельный формат
+  It's a difficult task. It's easy to stumble over.
+  [decimal](https://pub.dev/packages/decimal) solves it, but at what cost! Some
+  packages use the `double` trick and stumble over it. And some don't even try.
 
-  Пакеты могут использовать в своей работе промежуточные результаты, ускоряющие
-  скорость выполнения операций, но не имеющие вид десятичной дроби, понятный
-  пользователю. Поэтому тест divide-large, где осуществляется только деление,
-  может быть далёк от реальной жизни. Этот тест выполняет ту же операцию, что
-  и divide-large, но дополнительно преобразует результат операции (только
-  операции, а не каждой шага в этой операции) в читабельный вид с целью
-  сравнения результатов.
+- divide-large-and-view and divide-small-and-view. Division of numbers and
+  converting the result in a readable format:
 
-- divide-small-and-view. Деление малых чисел и преобразование результата
-  в читабельный формат
+  Packages can use intermediate results in their work, which speed up the speed
+  of operations, but do not have a decimal form understandable to the user.
+  (This is what [decimal](https://pub.dev/packages/decimal) did until version
+  3.2.0). Therefore, the divide-large and divide-small test, where only
+  division is performed, may be far from real life. This tests perform the
+  same operation as divide-large and divide-small, but additionally convert the
+  result of the operation (only the operation, not each step in this operation)
+  into a readable form. (And in this tests [decimal](https://pub.dev/packages/decimal)
+  used to lose a lot of performance before).
 
-  Пакеты могут использовать в своей работе промежуточные результаты, ускоряющие
-  скорость выполнения операций, но не имеющие вид десятичной дроби, понятный
-  пользователю. Поэтому тест divide-small, где осуществляется только деление,
-  может быть далёк от реальной жизни. Этот тест выполняет ту же операцию, что
-  и divide-small, но дополнительно преобразует результат операции (только
-  операции, а не каждой шага в этой операции) в читабельный вид с целью
-  сравнения результатов.
+  I'll be honest, it took me a long time to find a solution that satisfied me
+  in terms of performance.
 
-- raw-view. Преобразование только что созданных чисел в читабельный формат:
+- raw-view. Convert newly created numbers into a readable format:
 
   - 123456789012345678901234567890123456789
   - 1234567890123456789012345678901234567.89
@@ -312,11 +379,11 @@ final r3 = r2.toDecimal(); // 9
   - 123.456789012345678901234567890123456789
   - 1.23456789012345678901234567890123456789
 
-  Обычно это ресурсоёмкая задача, т.к. пакет не успевает сделать какие-либо
-  оптимизации с числом.
+  This is usually a resource-intensive task, as the package does not have time
+  to do any optimizations with the number.
 
-- raw-view-zeros. Преобразование только что созданных чисел с большим
-  количеством начальных или конечных нулей в читабельный формат:
+- raw-view-zeros. Convert newly created numbers with lots of leading and
+  trailing zeros into a readable format:
 
   - 100000000000000000000000000000000000000
   - 10000000000000000000000000000000000
@@ -339,213 +406,294 @@ final r3 = r2.toDecimal(); // 9
   - 0.0000000000000000000000000000000001
   - 0.00000000000000000000000000000000000001
 
-  Преобразование таких чисел обычно значительно отличается от преобразования
-  чисел без нулей, как в raw-view. Каждый из тестов отдельно может дать
-  неверное представление о производительности, поэтому их надо рассматривать
-  вместе.
+  Converting such numbers is technically quite different from converting
+  numbers without zeros in raw-view. Each of the tests (raw-view and
+  raw-vew-zeros) separately can give a wrong idea of performance, so they
+  should be considered only together.
 
-- prepared-view. Преобразование подготовленных чисел (если пакет это
-  поддерживает) в читабельный формат
+- prepared-view. Conversion of prepared numbers (if the package supports it)
+  into a readable format:
 
-  Пакеты могут использовать в своей работе механизмы оптимизации (например,
-  сохранение ранее вычисленных значений). Тест raw-view не позволяет оценить
-  плоды этой оптимизации. Этот же тест даёт такую возможность, выполняя ту же
-  операцию, что и raw-view. Сравните результаты обоих тестов.
+  Packages may use optimization mechanisms in their work (for example, saving
+  previously calculated values). The raw-view test does not allow you to
+  evaluate the fruits of this optimization. This test gives such an opportunity
+  by performing the same operation as raw-view, but adding optimization.
+  Compare the results of both tests.
 
-  Пакеты [decimal_type](https://pub.dev/packages/decimal_type),
-  [fixed](https://pub.dev/packages/fixed),
-  [big_decimal](https://pub.dev/packages/big_decimal) обходятся без
-  оптимизации.
+  Packages [decimal_type](https://pub.dev/packages/decimal_type),
+  [fixed](https://pub.dev/packages/fixed), [big_decimal](https://pub.dev/packages/big_decimal)
+  do without optimization.
 
-- prepared-view-zeros. Преобразование подготовленных чисел (если пакет это
-  поддерживает) с большим количеством начальных или конечных нулей
-  в читабельный формат
+- prepared-view-zeros. Conversion of prepared numbers (if the package supports
+  it) with a large number of initial or final zeros into a readable format:
 
-  Преобразование таких чисел обычно значительно отличается от преобразования
-  чисел без нулей, как в prepared-view. Каждый из тестов отдельно может дать
-  неверное представление о производительности, поэтому их надо рассматривать
-  вместе.
+  See description of previous tests.
 
-  Пакеты могут использовать в своей работе механизмы оптимизации (например,
-  сохранения ранее вычисленных значений). Тест raw-view-zeros не позволяет
-  оценить плоды этой оптимизации. Этот же тест даёт такую возможность,
-  выполняя ту же операцию, что и raw-view-zeros. Сравните результаты обоих
-  тестов.
+In early January 2025, the column with the [decimal](https://pub.dev/packages/decimal)
+looked quite different. The values were two orders of magnitude higher.
+We can only be happy for such improvements.
 
-  Пакеты [decimal_type](https://pub.dev/packages/decimal_type),
-  [fixed](https://pub.dev/packages/fixed),
-  [big_decimal](https://pub.dev/packages/big_decimal) обходятся без
-  оптимизации.
+<a id="decimal-vs-decimal2"></a>
+### [decimal](https://pub.dev/packages/decimal) vs `decimal2`
 
-В начале января 2025 года колонка с пакетом
-[decimal](https://pub.dev/packages/decimal) выглядела совершенно иначе.
-Значения были на два порядка выше. Примерно как сейчас в тесте divide-small.
-Можно только порадоваться за автора пакета и пользователей таким улучшениям.
+The last thing I want to do is compete with the author of
+[decimal](https://pub.dev/packages/decimal), especially when I see how long
+this package has been around and how well supported it is. I don't think I have
+anything overtly new to offer in the usual approach to вecimal. Even using
+different approaches under the hood, the end result will be on the outside, not
+the inside. And it's pretty much the same feature set with pretty much the same
+performance.
 
-## Сравнение [decimal](https://pub.dev/packages/decimal) и [decimal2](https://pub.dev/packages/decimal2)
+But actually the decision to write my own `decimal2` was not only influenced by
+the poor (at the time) performance of [decimal](https://pub.dev/packages/decimal).
+There was another reason. For my task I needed a lightweight decimal, which
+needed a regular `int` instead of `BigInt` to store values under the hood. My
+values fit even in int32. These are the results of training: geoposition,
+distance, altitude gain, pace, heart rate, cadence, power. As an old generation
+programmer, it's morally hard for me to waste resources in places where
+where it's not necessary. Especially I expect a large amount of data and
+calculations with them. And I was surprised to find no ready-made solution on
+[pub.dev](https://pub.dev).
 
-Меньше всего мне хочется конкурировать с автором
-[decimal](https://pub.dev/packages/decimal), особенно когда вижу, как долго
-этот пакет существует. Не думаю, что я могу преложить что-то откровенно новое
-в обычном подходе к Decimal. Даже используя под капотом разные подходы,
-конечный результат будет снаружи, а не внутри. А это практически одинаковый
-набор функций с практически одинаковой производительностью.
+So, `Decimal` was not originally the main purpose of the package. The main goal
+was `ShortDecimal`. `Decimal` was just a natural evolution of the package.
 
-Но на самом деле на решение написать свой
-[decimal2](https://pub.dev/packages/decimal2) повлияла не только плохая (на тот
-момент) производительность [decimal](https://pub.dev/packages/decimal). Была
-ещё одна причина. Для моей задачи мне нужен был легковесный Decimal, которому
-под капотом для хранения значений достаточно было обычного `int` вместо
-`BigInt`. Мои значения умещались даже в int32. Это результаты тренировок:
-геопозиция, дистанция, набор высоты, темп, пульс, каденс, мощность. Мне, как
-программисту старого поколения, морально тяжело расходовать ресурсы там, где
-в этом нет необходимости. Тем более я ожидаю большого объёма и данных,
-и расчётов с ними. И я удивился, не обнаружив на pub.dev готового решения.
+<a id="decimal-vs-short-decimal"></a>
+## `Decimal` vs `ShortDecimal`
 
-Итак, `Decimal` изначально не был основной целью пакета. Главным был
-`ShortDecimal`. `Decimal` стал просто естественным продолжением.
+<a id="short-decimal-limitations"></a>
+## `ShortDecimal` limitations
 
-## ShortDecimal
+`ShortDecimal` has the same functions as `Decimal`, but the values are stored
+in `int` with all the consequences. On the one hand, it is high performance,
+but on the other hand it is a possibility of uncontrolled overflow of a value,
+which will not happen in case of using `BigInt`. You can write code that will
+control overflow, but it will make the algorithms much more complicated and
+slow. The additing is too simple to be burdened with additional checks. Each
+such check will increase the operation's execution time by times.
 
-### ShortDecimal vs Decimal
-
-Все те же функции, что и в `Decimal`, но значения хранятся в `int` со всеми
-вытекающими отсюда последствиями. С одной стороны, это скорость работы, а
-с другой стороны это возможность неконтролируемого переполнения значения,
-которого не будет в случае использования `BigInt`. Можно написать код, который
-будет контролировать переполнение, но это значительно усложнит и замедлит
-алгоритмы. Операция суммирования слишком простая, чтобы её обкладывать
-дополнительными проверками. Каждая такая проверка будет увеличивать время
-выполнения операции в разы.
+Therefore, `ShortDecimal` should only be used with the possibility of overflow
+in mind:
 
 ```dart
 print(ShortDecimal(9223372036854775807) + ShortDecimal.one); // -9223372036854775808
 ```
 
-Единственное, что особенного делает `ShortDecimal`, так это постоянная
-оптимизация получаемого значения, чтобы дольше сохранять возможность не
-выходить за границы `int`. Например, умножение двух чисел: 1.2 * 5. Под капотом
-всё хранится в целочисленной переменной (`int` или `BigInt`) и в параметре,
-указывающем, где находится запятая (обычно называемом `scale`). Скорее всего
-в начале работы 1.2 будет храниться как (12, 1), а 5 как (5, 0).
+The `ShortDecimal` capability bounds are `int` bounds. In native platforms and
+wasm it is int64, in js environment accuracy is promised only up to int53.
+
+For int64, significant digits (base in package terms), i.e. the value without
+leading and trailing zeros, must not be out of the range
+[-9223372036854775808..9223372036854775807].
 
 ```dart
-final a = Decimal.parse('1.2');
-final b = Decimal.parse('5');
-print(a.debugToString()); // Decimal(value: 12, scale: 1)
-print(b.debugToString()); // Decimal(value: 5, scale: 0)
+final a = ShortDecimal(9223372036854775807) >> 40; // ok
+final b = ShortDecimal(9223372036854775807) << 23; // ok
+print(a); // 0.0000000000000000000009223372036854775807
+print(b); // 922337203685477580700000000000000000000000
 ```
 
-Умножение таких чисел достаточно простая операция: основы умножаются, а scale
-складываются. Результат будет: (60, 1). Это и есть 6.0.
+The number itself 922337203685477580700000000000000000000000 goes well beyond
+`int`. But its base (without trailing zeros) fits into int64.
+
+But you also have to work with that number in the same scale:
 
 ```dart
-final c = a * b;
-print(c); // 6
-print(c.debugToString()); // Decimal(value: 60, scale: 1)
+//   922337203685477580700000000000000000000000
+// -                   100000000000000000000000
+// = 922337203685477580600000000000000000000000
+print(b - (ShortDecimal(1) << 23)); // 922337203685477580600000000000000000000000 <- ok
+
+//   922337203685477580700000000000000000000000
+// -                                          1
+// = 922337203685477580699999999999999999999999
+print(b - ShortDecimal(1)); // -200376420520689665 <- overflow
 ```
 
-Но ведь мы могли бы сохранить этот результат как (6, 0)? Верно! В конечном
-итоге для пользователя это будет одним и тем же значением. Что происходит под
-капотом у класса, сохраняется вдали от глаз пользователя.
+Such constraints impose on `ShortDecimal` the need to constantly optimize the
+value resulting from operations on it, in order to keep the ability to stay
+within the `int` boundaries longer. `Decimal` does not need such optimization.
 
-Можно, конечно, после каждой операции приводить значение в норму, т.е.
-к (6, 0), но это дополнительное время, которое в большинстве случаев тратить
-излишне. И там, где используется `BigInt`, в этом нет практической надобности:
-нет слишком большой разницы между (6,0) и (60000000000, 10). А вот в случае
-с тиспользованием `int` мы можем очень быстро дойти до переполнения. Например,
-достаточно всего 18 раз умножить 1.0 на 1.0, т.е. (10, 1) на (10, 1), чтобы
-выйти за границы `int`. И поэтому, чтобы дольше находиться в границах `int`,
-делать упаковку значения после каждой операции. Но в случае с `int` это будет
-всё равно гораздо быстрее, чем `BigInt` без упаковки значений.
-
-### Оптимизация
-
-Когда нужно вернуть пользователю свойства числа, понятные человеческому
-восприятию, например, количество значащих цифр после запятой, то без упаковки
-числа не обойтись. А уже имея упакованное число, можно некоторые операции,
-например, преобразование числа в строку, делать существенно быстрее. В этой
-упаковке числа и состоит оптимизация, за счёт которой некоторые тесты
-выполняются гораздо быстрее, в которых работа производится с уже упакованным
-числом, а некоторые, наоборот, гораздо медленнее, когда упаковка не успевает
-принести пользу.
-
-В `Decimal` я попытался найти баланс: упаковывать число только там, где это
-необходимо, а в других местах использовать его, если оно есть, и обходиться без
-него, если его нет. При этом вынес наружу метод `optimize`, который позволит
-вручную упаковать число для оптимизации производительности, когда алгоритм
-этого не делает. Этот метод можно вызывать безопасно много раз. В реальности
-он упакует значение только один раз.
-
-Метод `optimize` явно относится к реализации, а не к бизнес-логике. Мне не
-очень нравится его наличие, но я не нашёл лучшего решения, т.к. не смог за
-пользователя решить, в каком случае лучше использовать упаковку числа, а в
-каком её лучше избежать. Но я хотя бы назвал метод `optimize`, а не `pack` или
-`rescale`.
-
-В следующем примере оптимизация значительно ускоряет преобразование числа
-в строку:
-
+For example, multiplying two numbers: 1.2 * 5. Under the hood, everything is
+stored in an integer variable (`base`) and a parameter indicating where the
+decimal point is located (usually called `scale`). 1.2 would be stored as
+(base: 12, scale: 1) and 5 as (base: 5, scale: 0).
 
 ```dart
-final v = Decimal(1000000000000000000, shiftRight: 18);
+final d1 = Decimal.parse('1.2');
+final d2 = Decimal.parse('5');
+print(d1.debugToString()); // Decimal(base: 12, scale: 1)
+print(d2.debugToString()); // Decimal(base: 5, scale: 0)
+
+final sd1 = ShortDecimal.parse('1.2');
+final sd2 = ShortDecimal.parse('5');
+print(sd1.debugToString()); // ShortDecimal(base: 12, scale: 1)
+print(sd2.debugToString()); // ShortDecimal(base: 5, scale: 0)
+```
+
+Multiplication of such numbers is quite a simple operation: the bases are
+multiplied and the scales are added. The result will be: (base: 60, scale: 1).
+This is 6. And `Decimal` doesn't need to reduce it to (base: 6, scale: 0). But
+for `ShortDecimal` it is vital.
+
+```dart
+final d3 = d1 * d2;
+print(d3); // 6
+print(d3.debugToString()); // Decimal(base: 60, scale: 1)
+
+final sd3 = sd1 * sd2;
+print(sd3); // 6
+print(sd3.debugToString()); // ShortDecimal(base: 6, scale: 0)
+```
+
+`Decimal`, of course, could after each operation bring the value to normal,
+i.e. to (base: 6, scale: 0), but this is additional time, which in most cases
+is unnecessary. And where `BigInt` is used, there is no practical need for
+this: there is not too much difference between (base: 6, scale: 0) and
+(base: 60000000000, scale: 10). But in the case of `int` we can reach overflow
+very quickly. For example, it is enough to multiply 1.0 by 1.0, i.e.
+(base: 10, scale: 1) by (base: 10, scale: 1), only 18 times to go beyond the
+`int` boundary. Even though it's only 1!
+
+```dart
+var a = Decimal.parse('1.0');
+for (var i = 0; i < 18; i++) {
+  a *= Decimal.parse('1.0');
+}
+print(a.debugToString()); // Decimal(base: 10000000000000000000, scale: 19)
+print(a); // 1
+
+final i = 10000000000000000000; // The integer literal 10000000000000000000 can't be represented in 64 bits.
+```
+
+That's why you should pack the value after each operation to stay within `int`
+boundaries longer. But you should not worry about performance. In the case of
+`int` it will be much faster than `BigInt` without packing.
+
+```dart
+var a = ShortDecimal.parse('1.0');
+for (var i = 0; i < 18; i++) {
+  a *= ShortDecimal.parse('1.0');
+}
+print(a.debugToString()); // ShortDecimal(base: 1, scale: 0)
+print(a); // 1
+```
+
+<a id="short-decimal-performance"></a>
+### Performance
+
+|                       |     package decimal |         Decimal | ShortDecimal |
+|:----------------------|--------------------:|----------------:|-------------:|
+| add                   |      (▼4x) 0.713 µs |  (▼4x) 0.646 µs |   ★ 0.155 µs |
+| multiply-large        |      (▼4x) 0.121 µs |  (▼3x) 0.115 µs |   ★ 0.030 µs |
+| multiply-small        |      (▼4x) 0.120 µs |  (▼3x) 0.114 µs |   ★ 0.030 µs |
+| divide-large          |    (▼103x) 6.455 µs | (▼26x) 1.683 µs |   ★ 0.063 µs |
+| divide-small          | (▼1196x) 114.617 µs | (▼71x) 6.834 µs |   ★ 0.096 µs |
+| divide-large-and-view |    (▼103x) 6.664 µs | (▼26x) 1.686 µs |   ★ 0.065 µs |
+| divide-small-and-view |  (▼339x) 116.035 µs | (▼21x) 7.376 µs |   ★ 0.342 µs |
+| raw-view              |     (▼4x) 10.474 µs |  (▼3x) 6.882 µs |   ★ 2.137 µs |
+| raw-view-zeros        |    (▼30x) 37.261 µs |  (▼5x) 6.966 µs |   ★ 1.232 µs |
+| prepared-view         |      (▼3x) 6.354 µs |  (▼3x) 6.640 µs |   ★ 2.082 µs |
+| prepared-view-zeros   |          ★ 1.274 µs |        1.339 µs |   ★ 1.186 µs |
+
+For a description of the tests, see [Package performance](#package-performance).
+
+The `Decimal` and `ShortDecimal` use the same algorithms. The difference in
+performance is the difference between `BigInt` and `int`.
+
+Chances are, you will rarely use the division operation in your application.
+You probably won't have a large number of decimal calculations either. In this
+case, the difference 3-5x can be neglected. The use of `Decimal` in both
+packages will most likely not lead to significant performance losses in the
+whole application. That's why you can choose `Decimal` in
+[decimal](https://pub.dev/packages/decimal) as well as `Decimal` in `decimal2`.
+
+But if you need both performance and maximum memory saving, choose
+`ShortDecimal`, but do not forget about its limitations.
+
+<a id="decimal-optimization"></a>
+### `Decimal` optimization
+
+When it is necessary to return to the user the properties of a number,
+understandable to human perception, for example, the number of significant
+digits after the decimal point, it is impossible to do without packing the
+number. And having a packed number, you can do some operations, for example,
+converting a number into a string, much faster. This packing of a number is
+what optimization consists in, due to which some tests are executed much faster
+and some, on the contrary, much slower, when optimization costs do not pay off
+in time.
+
+In `Decimal` I tried to find a balance: pack a number only where it is needed,
+and use it only if it is there, and do without it if it is not. But I added
+an `optimize` method that will allow you to manually pack a number to optimize
+performance when the algorithm doesn't do it itself. This method can be called
+safely many times. In reality, it will only pack the value once.
+
+The `optimize` method is clearly refers to internal implementation, not
+business logic. And I don't really like its presence, but I haven't found
+a better solution, since I couldn't decide for the user in which case it's
+better to use number packing and in which case it's better to avoid it. All I
+could do to keep the implementation from sticking out so obviously was to call
+the method `optimize` rather than `pack` or `rescale`. The user doesn't need to
+know about packing and scaling a value, nor does the user need to know about
+`base` and `scale` at all.
+
+In the following example, the optimization significantly speeds up the
+conversion of a number to a string:
+
+```dart
+final v = Decimal(1000000000000000000) >> 18; // = 1
 
 final sw = Stopwatch()..start();
 for (var i = 0; i < 10000000; i++) {
-  v.toString();
+  v.toString(); // "1"
 }
 sw.stop();
-print(sw.elapsed); // 0:00:02.406469
+print(sw.elapsed); // 0:00:02.445964
+
+v.optimize();
 
 sw
   ..reset()
   ..start();
 for (var i = 0; i < 10000000; i++) {
-  // Это оптимизация, так как мы много раз используем одно и тоже значение.
-  // В реальности оптимизация выполнится только один раз. Остальное время мы
-  // вхолостую будем запускать метод. Я специально поместил его внутрь цикла,
-  // чтобы показать, что многократное его использование на одном и том же числе
-  // не принесёт значительного вреда.
-  v.optimize();
-  v.toString();
+  v.toString(); // "1"
 }
 sw.stop();
-print(sw.elapsed); // 00:00:00.061205
+print(sw.elapsed); // 0:00:00.048106
 ```
 
-Но если нам будут поступать каждый раз новые числа, и мы будем вместе с каждым
-преобразованием в строку заниматься "оптимизацией", то потеряем
-в производительности. В то время как отсутствие неоправданной "оптимизации"
-сохранило бы ресурсы. Именно поэтому я не сделал её обязательной внутри
-`toString`.
+But if we get new numbers each time, and we do optimization along with each
+conversion to a string, we will lose performance. Whereas the absence of
+unjustified optimization would save resources. That's why I didn't make it
+mandatory inside `toString`.
 
 ```dart
-var v = Decimal(1000000000000000000, shiftRight: 18);
+var v = Decimal(1000000000000000000) >> 18; // = 1
 
 final sw = Stopwatch()..start();
 for (var i = 0; i < 10000000; i++) {
-  // Имитируем ситуацию поступления новых чисел, создавая копию числа. Пакеты
-  // не предоставляют отдельного метода для создания копий, поэтому используем
-  // лайфхак с двойным отрицанием. Отрицание гарантированно (если только это
-  // не ноль) создаст нам копию. Второе отрицание вернёт обратно знак.
-  v = -(-v);
-  v.toString();
+  // Simulate the situation when new numbers arrive.
+  v = -v;
+  v.toString(); // "1" or "-1"
 }
 sw.stop();
-print(sw.elapsed); // 0:00:02.523939
+print(sw.elapsed); // 0:00:02.568405
 
 sw
   ..reset()
   ..start();
 for (var i = 0; i < 10000000; i++) {
-  v = -(-v);
-  // Если нам нужно только один раз вывести числа и больше мы нигде их
-  // не будем использовать, то такая "оптимизация" будет излишней.
-  // Оптимизация всё равно останется оптимизацией, но мы заплатим за неё
-  // слишком дорого.
+  v = -v; // "1" or "-1"
+  // If we only need to output numbers once and will not use them anywhere
+  // else, this optimization is unnecessary. Optimization will still be
+  // optimization, but we will pay too much for it.
   v.optimize();
-  v.toString(); // 0:00:15.592658
+  v.toString(); // 0:00:15.578125
 }
 sw.stop();
 print(sw.elapsed);
 ```
+
+`ShortDecimal` does not need to optimize since it optimizes the value in each
+operation.

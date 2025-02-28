@@ -1,4 +1,2 @@
-export 'src/decimal.dart';
-export 'src/division.dart';
-export 'src/fraction.dart';
-export 'src/short_decimal.dart';
+export 'src/decimal/decimal.dart';
+export 'src/short_decimal/short_decimal.dart';

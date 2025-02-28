@@ -8,7 +8,7 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
-  ansi_escape_codes: ^1.4.1
+  ansi_escape_codes: ^2.0.3
   benchmark_harness: ^2.3.1
   big_decimal: ^0.5.0
   decimal: ^3.2.1

@@ -5,20 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "benchmark (withou arguments)",
+            "name": "benchmark (without arguments)",
             "request": "launch",
             "type": "dart",
             "program": "example/bin/benchmark.dart",
-        },
-        {
-            "name": "benchmark all",
-            "request": "launch",
-            "type": "dart",
-            "program": "example/bin/benchmark.dart",
-            // "args": ["all"],
-            // "args": ["decimal", "decimal2", "divide-small"],
-            "args": ["view-big-int", "decimal", "decimal2"],
-            // "args": ["divide-small-int"],
         },
     ]
 }
