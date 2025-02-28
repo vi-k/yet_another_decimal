@@ -44,8 +44,8 @@ void printUsage() {
   print('> ${accent('dart benchmark.dart divide')}');
 
   print('');
-  print('All tests for all packages excluding "decimals"');
-  print('> ${accent('dart benchmark.dart -decimals')}');
+  print('All tests for all packages excluding "yet_another_decimal"');
+  print('> ${accent('dart benchmark.dart -yet_another_decimal')}');
 }
 
 void main(List<String> arguments) {

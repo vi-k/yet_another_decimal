@@ -1,7 +1,6 @@
 name: example
-description: Example for decimals.
+description: Example for yet_another_decimal.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
 publish_to: none
 
 environment:
@@ -13,10 +12,10 @@ dependencies:
   big_decimal: ^0.5.0
   decimal: ^3.2.1
   decimal_type: ^0.0.2
-  decimals:
-    path: ..
   fixed: ^5.3.2
   format: ^1.6.0
+  yet_another_decimal:
+    path: ..
 
 dev_dependencies:
   lints: ^5.0.0

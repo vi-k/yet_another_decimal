@@ -1,14 +1,14 @@
-import 'package:decimals/decimals.dart';
+import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 import '../operations.dart';
 import '../packages.dart';
 import 'my_benchmark_base.dart';
 
-final class DecimalsShortTest extends MyBenchmarkBase {
+final class YetAnotherDecimalShortTest extends MyBenchmarkBase {
   final List<ShortDecimal> values;
   final List<String> _convertToStringResult;
 
-  DecimalsShortTest(
+  YetAnotherDecimalShortTest(
     List<(int, int)> list,
     Op operation,
     Object? expectedExerciseResult,
@@ -23,7 +23,7 @@ final class DecimalsShortTest extends MyBenchmarkBase {
         ).toList(growable: false),
         _convertToStringResult = List<String>.filled(list.length, ''),
         super(
-          Package.decimalsShort,
+          Package.yetAnotherDecimalShort,
           operation,
           expectedExerciseResult,
         );

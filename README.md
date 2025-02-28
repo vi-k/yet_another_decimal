@@ -1,4 +1,4 @@
-# Decimals
+# Yet another decimal
 
 It's yet another package for fixed point decimals.
 
@@ -12,7 +12,7 @@ It's yet another package for fixed point decimals.
 
     1.3. [Package performance](#package-performance)
 
-    1.4. [decimal vs decimals](#decimal-vs-decimals)
+    1.4. [decimal vs yet_another_decimal](#decimal-vs-yet_another_decimal)
 
 2. [`Decimal` vs `ShortDecimal`](#decimal-vs-short-decimal)
 
@@ -36,7 +36,7 @@ that work with decimals.
 A wonderful package that works correctly with decimals. It exists since 2014
 and is constantly updated. In one of the latest updates (3.2.0), performance
 has been significantly improved. Before that, speed was the weak point of this
-package. This was one of the reasons why [decimals](https://pub.dev/packages/decimals)
+package. This was one of the reasons why [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
 appeared, since I started writing it before 3.2.0. However, I would have
 written it anyway. More about it below.
 
@@ -144,7 +144,8 @@ That's how "a bugless implementation of BigDecimal" works.
 Three packages out of four did not satisfy me because of bugs in calculations,
 incomplete functionality (division) or use of `double` under the hood.
 
-The [decimal](https://pub.dev/packages/decimal) and [decimals](https://pub.dev/packages/decimals)
+The [decimal](https://pub.dev/packages/decimal) and
+[yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
 does not have the above division problems. No need to calculate `scale`
 yourself, and no `double` under the hood.
 
@@ -173,7 +174,7 @@ print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
 print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
 ```
 
-[decimals](https://pub.dev/packages/decimals) does the opposite and returns the
+[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) does the opposite and returns the
 result immediately:
 
 ```dart
@@ -238,8 +239,8 @@ But you can use additional solutions for working with fractions, such as the
 [fraction](https://pub.dev/packages/fraction), or the already mentioned
 [rational](https://pub.dev/packages/rational).
 
-[decimals](https://pub.dev/packages/decimals) has its own `Fraction` class,
-which provides basic functions for working with fraction.
+[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) has its own
+`Fraction` class, which provides basic functions for working with fraction.
 
 ```dart
 final a = Fraction(BigInt.from(1), BigInt.from(2));
@@ -260,7 +261,8 @@ print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
 I care about performance, so I wrote tests to check packages. When I did this,
 I was not yet aware of the bugs I wrote above. So the result might seem
 strange. It's as if there were only two packages to compare:
-[decimal](https://pub.dev/packages/decimal) and [decimals](https://pub.dev/packages/decimals).
+[decimal](https://pub.dev/packages/decimal) and
+[yet_another_decimal](https://pub.dev/packages/deciyet_another_decimalmals).
 
 The tests were performed on Apple M2 Pro 32 Gb. The code of the tests was
 written with the help of [benchmark_harness](https://pub.dev/packages/benchmark_harness).
@@ -281,19 +283,19 @@ each other.
 dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe
 ```
 
-|                       |           decimal |     decimal_type |            fixed |      big_decimal |    decimals |
-|:----------------------|------------------:|-----------------:|-----------------:|-----------------:|------------:|
-| add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |  ★ 1.694 µs |
-| multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |  ★ 0.129 µs |
-| multiply-small        |        ★ 0.138 µs |       ★ 0.129 µs |            ERROR |       ★ 0.132 µs |  ★ 0.129 µs |
-| divide-large          |    (▼4x) 7.916 µs |            ERROR |            ERROR |       ★ 1.650 µs |    2.025 µs |
-| divide-small          | (▼38x) 496.494 µs |            ERROR |            ERROR |            ERROR | ★ 12.969 µs |
-| divide-large-and-view |    (▼4x) 8.479 µs |            ERROR |            ERROR |       ★ 1.840 µs |    2.128 µs |
-| divide-small-and-view | (▼35x) 511.241 µs |            ERROR |            ERROR |            ERROR | ★ 14.372 µs |
-| raw-view              |         21.045 µs |        26.058 µs |  (▼3x) 61.210 µs |      ★ 18.167 µs | ★ 17.337 µs |
-| raw-view-zeros        |   (▼5x) 83.212 µs |  (▼4x) 73.963 µs |  (▼4x) 70.724 µs |      ★ 16.521 µs | ★ 15.681 µs |
-| prepared-view         |       ★ 16.845 µs |        25.988 µs |  (▼3x) 59.159 µs |      ★ 17.779 µs | ★ 16.689 µs |
-| prepared-view-zeros   |        ★ 1.567 µs | (▼46x) 72.737 µs | (▼44x) 69.415 µs | (▼10x) 16.105 µs |  ★ 1.635 µs |
+|                       |           decimal |     decimal_type |            fixed |      big_decimal | yet_another_decimal |
+|:----------------------|------------------:|-----------------:|-----------------:|-----------------:|--------------------:|
+| add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |          ★ 1.694 µs |
+| multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |          ★ 0.129 µs |
+| multiply-small        |        ★ 0.138 µs |       ★ 0.129 µs |            ERROR |       ★ 0.132 µs |          ★ 0.129 µs |
+| divide-large          |    (▼4x) 7.916 µs |            ERROR |            ERROR |       ★ 1.650 µs |            2.025 µs |
+| divide-small          | (▼38x) 496.494 µs |            ERROR |            ERROR |            ERROR |         ★ 12.969 µs |
+| divide-large-and-view |    (▼4x) 8.479 µs |            ERROR |            ERROR |       ★ 1.840 µs |            2.128 µs |
+| divide-small-and-view | (▼35x) 511.241 µs |            ERROR |            ERROR |            ERROR |         ★ 14.372 µs |
+| raw-view              |         21.045 µs |        26.058 µs |  (▼3x) 61.210 µs |      ★ 18.167 µs |         ★ 17.337 µs |
+| raw-view-zeros        |   (▼5x) 83.212 µs |  (▼4x) 73.963 µs |  (▼4x) 70.724 µs |      ★ 16.521 µs |         ★ 15.681 µs |
+| prepared-view         |       ★ 16.845 µs |        25.988 µs |  (▼3x) 59.159 µs |      ★ 17.779 µs |         ★ 16.689 µs |
+| prepared-view-zeros   |        ★ 1.567 µs | (▼46x) 72.737 µs | (▼44x) 69.415 µs | (▼10x) 16.105 µs |          ★ 1.635 µs |
 
 With this test I did not intend to advertise my package at all. It was only
 important for me to check myself whether I was doing everything right. I saw my
@@ -452,8 +454,8 @@ of initial or final zeros into a readable format:
 
 See description of previous tests.
 
-<a id="decimal-vs-decimals"></a>
-### [decimal](https://pub.dev/packages/decimal) vs [decimals](https://pub.dev/packages/decimals)
+<a id="decimal-vs-yet_another_decimal"></a>
+### [decimal](https://pub.dev/packages/decimal) vs [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
 
 The last thing I want to do is compete with the author of
 [decimal](https://pub.dev/packages/decimal), especially when I see how long
@@ -463,15 +465,17 @@ different approaches under the hood, the end result will be on the outside, not
 the inside. And it's pretty much the same feature set with pretty much the same
 performance.
 
-But actually the decision to write my own [decimals](https://pub.dev/packages/decimals)
-was not only influenced by the poor (at the time) performance of [decimal](https://pub.dev/packages/decimal).
-There was another reason. For my task I needed a lightweight decimal, which
-needed a regular `int` instead of `BigInt` to store values under the hood. My
-values fit even in int32. These are the results of training: geoposition,
-distance, altitude gain, pace, heart rate, cadence, power. As an old generation
-programmer, it's morally hard for me to waste resources in places where it's
-not necessary. Especially I expect a large amount of data and calculations with
-them. And I was surprised to find no ready-made solution on [pub.dev](https://pub.dev).
+But actually the decision to write my own
+[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) was not
+only influenced by the poor (at the time) performance of
+[decimal](https://pub.dev/packages/decimal). There was another reason. For my
+task I needed a lightweight decimal, which needed a regular `int` instead of
+`BigInt` to store values under the hood. My values fit even in int32. These are
+the results of training: geoposition, distance, altitude gain, pace, heart
+rate, cadence, power. As an old generation programmer, it's morally hard for me
+to waste resources in places where it's not necessary. Especially I expect
+a large amount of data and calculations with them. And I was surprised to find
+no ready-made solution on [pub.dev](https://pub.dev).
 
 So, `Decimal` was not originally the main purpose of the package. The main goal
 was `ShortDecimal`. `Decimal` was just a natural evolution of the package.
@@ -600,19 +604,19 @@ print(a); // 1
 <a id="short-decimal-performance"></a>
 ### Performance
 
-|                       |             decimal | decimals Decimal | decimals ShortDecimal |
-|:----------------------|--------------------:|-----------------:|----------------------:|
-| add                   |      (▼4x) 0.713 µs |   (▼4x) 0.646 µs |            ★ 0.155 µs |
-| multiply-large        |      (▼4x) 0.121 µs |   (▼3x) 0.115 µs |            ★ 0.030 µs |
-| multiply-small        |      (▼4x) 0.120 µs |   (▼3x) 0.114 µs |            ★ 0.030 µs |
-| divide-large          |    (▼103x) 6.455 µs |  (▼26x) 1.683 µs |            ★ 0.063 µs |
-| divide-small          | (▼1196x) 114.617 µs |  (▼71x) 6.834 µs |            ★ 0.096 µs |
-| divide-large-and-view |    (▼103x) 6.664 µs |  (▼26x) 1.686 µs |            ★ 0.065 µs |
-| divide-small-and-view |  (▼339x) 116.035 µs |  (▼21x) 7.376 µs |            ★ 0.342 µs |
-| raw-view              |     (▼4x) 10.474 µs |   (▼3x) 6.882 µs |            ★ 2.137 µs |
-| raw-view-zeros        |    (▼30x) 37.261 µs |   (▼5x) 6.966 µs |            ★ 1.232 µs |
-| prepared-view         |      (▼3x) 6.354 µs |   (▼3x) 6.640 µs |            ★ 2.082 µs |
-| prepared-view-zeros   |          ★ 1.274 µs |         1.339 µs |            ★ 1.186 µs |
+|                       |             decimal | yet_another_decimal Decimal | yet_another_decimal ShortDecimal |
+|:----------------------|--------------------:|----------------------------:|---------------------------------:|
+| add                   |      (▼4x) 0.713 µs |              (▼4x) 0.646 µs |                       ★ 0.155 µs |
+| multiply-large        |      (▼4x) 0.121 µs |              (▼3x) 0.115 µs |                       ★ 0.030 µs |
+| multiply-small        |      (▼4x) 0.120 µs |              (▼3x) 0.114 µs |                       ★ 0.030 µs |
+| divide-large          |    (▼103x) 6.455 µs |             (▼26x) 1.683 µs |                       ★ 0.063 µs |
+| divide-small          | (▼1196x) 114.617 µs |             (▼71x) 6.834 µs |                       ★ 0.096 µs |
+| divide-large-and-view |    (▼103x) 6.664 µs |             (▼26x) 1.686 µs |                       ★ 0.065 µs |
+| divide-small-and-view |  (▼339x) 116.035 µs |             (▼21x) 7.376 µs |                       ★ 0.342 µs |
+| raw-view              |     (▼4x) 10.474 µs |              (▼3x) 6.882 µs |                       ★ 2.137 µs |
+| raw-view-zeros        |    (▼30x) 37.261 µs |              (▼5x) 6.966 µs |                       ★ 1.232 µs |
+| prepared-view         |      (▼3x) 6.354 µs |              (▼3x) 6.640 µs |                       ★ 2.082 µs |
+| prepared-view-zeros   |          ★ 1.274 µs |                    1.339 µs |                       ★ 1.186 µs |
 
 *For a description of the tests, see [Package performance](#package-performance).*
 
@@ -625,7 +629,7 @@ case, the difference 3-5x can be neglected. The use of `Decimal` in both
 packages will most likely not lead to significant performance losses in the
 whole application. That's why you can choose `Decimal` in
 [decimal](https://pub.dev/packages/decimal) as well as `Decimal` in
-[decimals](https://pub.dev/packages/decimals).
+[yet_another_decimal](https://pub.dev/packages/yet_another_decimal).
 
 But if you need both performance and maximum memory saving, choose
 `ShortDecimal`, but do not forget about its limitations.

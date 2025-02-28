@@ -1,7 +1,7 @@
-name: decimals
+name: yet_another_decimal
 description: Yet another package for fixed point decimals.
 version: 1.0.0
-homepage: https://github.com/vi-k/decimals
+homepage: https://github.com/vi-k/yet_another_decimal
 
 environment:
   sdk: ^3.6.0

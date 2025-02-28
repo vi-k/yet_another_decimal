@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_js_rounded_ints
 
-import 'package:decimals/decimals.dart';
 import 'package:test/test.dart';
+import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 void expectDecimal(
   Decimal d,
