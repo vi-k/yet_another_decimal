@@ -275,7 +275,7 @@ Absolute values are not important because they will differ from computer to
 computer, from startup to startup. All that matters is comparing the tests with
 each other.
 
-Running Tests:
+*Running Tests:*
 
 ```
 dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe
@@ -614,7 +614,7 @@ print(a); // 1
 | prepared-view         |      (▼3x) 6.354 µs |   (▼3x) 6.640 µs |            ★ 2.082 µs |
 | prepared-view-zeros   |          ★ 1.274 µs |         1.339 µs |            ★ 1.186 µs |
 
-For a description of the tests, see [Package performance](#package-performance).
+*For a description of the tests, see [Package performance](#package-performance).*
 
 The `Decimal` and `ShortDecimal` use the same algorithms. The difference in
 performance is the difference between `BigInt` and `int`.
