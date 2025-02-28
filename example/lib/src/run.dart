@@ -2,15 +2,15 @@ import 'dart:math';
 
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
 import 'package:ansi_escape_codes/extensions.dart';
-import 'package:decimal2/decimal2.dart';
+import 'package:decimals/decimals.dart';
 import 'package:example/src/tests/big_decimal_test.dart';
 import 'package:format/format.dart';
 
 import 'operations.dart';
 import 'packages.dart';
 import 'tests.dart';
-import 'tests/decimal2_short_test.dart';
-import 'tests/decimal2_test.dart';
+import 'tests/decimals_short_test.dart';
+import 'tests/decimals_test.dart';
 import 'tests/decimal_test.dart';
 import 'tests/decimal_type_test.dart';
 import 'tests/fixed_test.dart';
@@ -76,11 +76,11 @@ final _bigIntPackages = <Package, CreateBigIntTestCallback>{
   Package.fixed: FixedTest.new,
   Package.decimalType: DecimalTypeTest.new,
   Package.bigDecimal: BigDecimalTest.new,
-  Package.decimal2: Decimal2Test.new,
+  Package.decimals: DecimalsTest.new,
 };
 
 final _intPackages = <Package, CreateIntTestCallback>{
-  Package.decimal2Short: Decimal2ShortTest.new,
+  Package.decimalsShort: DecimalsShortTest.new,
 };
 
 void _printPackages(Set<Package> packages) {

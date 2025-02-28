@@ -1,29 +1,25 @@
-import 'package:decimal2/decimal2.dart';
+import 'package:decimals/decimals.dart';
 
 import '../operations.dart';
 import '../packages.dart';
 import 'my_benchmark_base.dart';
 
-final class Decimal2ShortTest extends MyBenchmarkBase {
-  final List<ShortDecimal> values;
+final class DecimalsTest extends MyBenchmarkBase {
+  final List<Decimal> values;
   final List<String> _convertToStringResult;
 
-  Decimal2ShortTest(
-    List<(int, int)> list,
+  DecimalsTest(
+    List<(BigInt, int)> list,
     Op operation,
     Object? expectedExerciseResult,
-  )   : values = list.map(
-          (e) {
-            final scale = e.$2;
-
-            return scale < 0
-                ? ShortDecimal(e.$1, shiftLeft: -scale)
-                : ShortDecimal(e.$1, shiftRight: scale);
-          },
-        ).toList(growable: false),
+  )   : values = list
+            .map(
+              (e) => Decimal.fromBigInt(e.$1, shiftRight: e.$2),
+            )
+            .toList(growable: false),
         _convertToStringResult = List<String>.filled(list.length, ''),
         super(
-          Package.decimal2Short,
+          Package.decimals,
           operation,
           expectedExerciseResult,
         );
@@ -85,7 +81,11 @@ final class Decimal2ShortTest extends MyBenchmarkBase {
   }
 
   @override
-  void prepareValues() {}
+  void prepareValues() {
+    for (final v in values) {
+      v.optimize();
+    }
+  }
 
   @override
   List<String> preparedView() {

@@ -1,7 +1,7 @@
-name: decimal2
-description: Decimals.
+name: decimals
+description: Yet another package for fixed point decimals.
 version: 1.0.0
-homepage: https://github.com/vi-k/decimal2
+homepage: https://github.com/vi-k/decimals
 
 environment:
   sdk: ^3.6.0

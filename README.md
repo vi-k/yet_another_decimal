@@ -12,7 +12,7 @@ It's yet another package for fixed point decimals.
 
     1.3. [Package performance](#package-performance)
 
-    1.4. [decimal vs decimal2](#decimal-vs-decimal2)
+    1.4. [decimal vs decimals](#decimal-vs-decimals)
 
 2. [`Decimal` vs `ShortDecimal`](#decimal-vs-short-decimal)
 
@@ -36,7 +36,7 @@ that work with decimals.
 A wonderful package that works correctly with decimals. It exists since 2014
 and is constantly updated. In one of the latest updates (3.2.0), performance
 has been significantly improved. Before that, speed was the weak point of this
-package. This was one of the reasons why [decimal2](https://pub.dev/packages/decimal2)
+package. This was one of the reasons why [decimals](https://pub.dev/packages/decimals)
 appeared, since I started writing it before 3.2.0. However, I would have
 written it anyway. More about it below.
 
@@ -144,7 +144,7 @@ That's how "a bugless implementation of BigDecimal" works.
 Three packages out of four did not satisfy me because of bugs in calculations,
 incomplete functionality (division) or use of `double` under the hood.
 
-The [decimal](https://pub.dev/packages/decimal) and [decimal2](https://pub.dev/packages/decimal2)
+The [decimal](https://pub.dev/packages/decimal) and [decimals](https://pub.dev/packages/decimals)
 does not have the above division problems. No need to calculate `scale`
 yourself, and no `double` under the hood.
 
@@ -173,7 +173,7 @@ print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
 print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
 ```
 
-[decimal2](https://pub.dev/packages/decimal2) does the opposite and returns the
+[decimals](https://pub.dev/packages/decimals) does the opposite and returns the
 result immediately:
 
 ```dart
@@ -238,7 +238,7 @@ But you can use additional solutions for working with fractions, such as the
 [fraction](https://pub.dev/packages/fraction), or the already mentioned
 [rational](https://pub.dev/packages/rational).
 
-[decimal2](https://pub.dev/packages/decimal2) has its own `Fraction` class,
+[decimals](https://pub.dev/packages/decimals) has its own `Fraction` class,
 which provides basic functions for working with fraction.
 
 ```dart
@@ -260,7 +260,7 @@ print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
 I care about performance, so I wrote tests to check packages. When I did this,
 I was not yet aware of the bugs I wrote above. So the result might seem
 strange. It's as if there were only two packages to compare:
-[decimal](https://pub.dev/packages/decimal) and [decimal2](https://pub.dev/packages/decimal2).
+[decimal](https://pub.dev/packages/decimal) and [decimals](https://pub.dev/packages/decimals).
 
 The tests were performed on Apple M2 Pro 32 Gb. The code of the tests was
 written with the help of [benchmark_harness](https://pub.dev/packages/benchmark_harness).
@@ -281,7 +281,7 @@ each other.
 dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe
 ```
 
-|                       |           decimal |     decimal_type |            fixed |      big_decimal |    decimal2 |
+|                       |           decimal |     decimal_type |            fixed |      big_decimal |    decimals |
 |:----------------------|------------------:|-----------------:|-----------------:|-----------------:|------------:|
 | add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |  ★ 1.694 µs |
 | multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |  ★ 0.129 µs |
@@ -452,8 +452,8 @@ of initial or final zeros into a readable format:
 
 See description of previous tests.
 
-<a id="decimal-vs-decimal2"></a>
-### [decimal](https://pub.dev/packages/decimal) vs [decimal2](https://pub.dev/packages/decimal2)
+<a id="decimal-vs-decimals"></a>
+### [decimal](https://pub.dev/packages/decimal) vs [decimals](https://pub.dev/packages/decimals)
 
 The last thing I want to do is compete with the author of
 [decimal](https://pub.dev/packages/decimal), especially when I see how long
@@ -463,7 +463,7 @@ different approaches under the hood, the end result will be on the outside, not
 the inside. And it's pretty much the same feature set with pretty much the same
 performance.
 
-But actually the decision to write my own [decimal2](https://pub.dev/packages/decimal2)
+But actually the decision to write my own [decimals](https://pub.dev/packages/decimals)
 was not only influenced by the poor (at the time) performance of [decimal](https://pub.dev/packages/decimal).
 There was another reason. For my task I needed a lightweight decimal, which
 needed a regular `int` instead of `BigInt` to store values under the hood. My
@@ -600,7 +600,7 @@ print(a); // 1
 <a id="short-decimal-performance"></a>
 ### Performance
 
-|                       |             decimal | decimal2 Decimal | decimal2 ShortDecimal |
+|                       |             decimal | decimals Decimal | decimals ShortDecimal |
 |:----------------------|--------------------:|-----------------:|----------------------:|
 | add                   |      (▼4x) 0.713 µs |   (▼4x) 0.646 µs |            ★ 0.155 µs |
 | multiply-large        |      (▼4x) 0.121 µs |   (▼3x) 0.115 µs |            ★ 0.030 µs |
@@ -625,7 +625,7 @@ case, the difference 3-5x can be neglected. The use of `Decimal` in both
 packages will most likely not lead to significant performance losses in the
 whole application. That's why you can choose `Decimal` in
 [decimal](https://pub.dev/packages/decimal) as well as `Decimal` in
-[decimal2](https://pub.dev/packages/decimal2).
+[decimals](https://pub.dev/packages/decimals).
 
 But if you need both performance and maximum memory saving, choose
 `ShortDecimal`, but do not forget about its limitations.

@@ -3,8 +3,8 @@ enum Package {
   decimalType('decimal_type', 'Decimal'),
   fixed('fixed', 'Fixed'),
   bigDecimal('big_decimal', 'BigDecimal'),
-  decimal2('decimal2-decimal', 'Decimal', {'decimal2'}),
-  decimal2Short('decimal2-short-decimal', 'ShortDecimal', {'decimal2'}, true);
+  decimals('decimals-decimal', 'Decimal', {'decimals'}),
+  decimalsShort('decimals-short-decimal', 'ShortDecimal', {'decimals'}, true);
 
   final String id;
   final String type;
