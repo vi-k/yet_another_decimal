@@ -458,7 +458,7 @@ See description of previous tests.
 The last thing I want to do is compete with the author of
 [decimal](https://pub.dev/packages/decimal), especially when I see how long
 this package has been around and how well supported it is. I don't think I have
-anything overtly new to offer in the usual approach to вecimal. Even using
+anything overtly new to offer in the usual approach to decimal. Even using
 different approaches under the hood, the end result will be on the outside, not
 the inside. And it's pretty much the same feature set with pretty much the same
 performance.
@@ -469,10 +469,9 @@ There was another reason. For my task I needed a lightweight decimal, which
 needed a regular `int` instead of `BigInt` to store values under the hood. My
 values fit even in int32. These are the results of training: geoposition,
 distance, altitude gain, pace, heart rate, cadence, power. As an old generation
-programmer, it's morally hard for me to waste resources in places where
-where it's not necessary. Especially I expect a large amount of data and
-calculations with them. And I was surprised to find no ready-made solution on
-[pub.dev](https://pub.dev).
+programmer, it's morally hard for me to waste resources in places where it's
+not necessary. Especially I expect a large amount of data and calculations with
+them. And I was surprised to find no ready-made solution on [pub.dev](https://pub.dev).
 
 So, `Decimal` was not originally the main purpose of the package. The main goal
 was `ShortDecimal`. `Decimal` was just a natural evolution of the package.
@@ -519,12 +518,12 @@ But you also have to work with that number in the same scale:
 
 ```dart
 //   922337203685477580700000000000000000000000
-// -                   100000000000000000000000
+//                   - 100000000000000000000000
 // = 922337203685477580600000000000000000000000
 print(b - (ShortDecimal(1) << 23)); // 922337203685477580600000000000000000000000 <- ok
 
 //   922337203685477580700000000000000000000000
-// -                                          1
+//                                          - 1
 // = 922337203685477580699999999999999999999999
 print(b - ShortDecimal(1)); // -200376420520689665 <- overflow
 ```
@@ -539,15 +538,15 @@ decimal point is located (usually called `scale`). 1.2 would be stored as
 (base: 12, scale: 1) and 5 as (base: 5, scale: 0).
 
 ```dart
-final d1 = Decimal.parse('1.2');
-final d2 = Decimal.parse('5');
-print(d1.debugToString()); // Decimal(base: 12, scale: 1)
-print(d2.debugToString()); // Decimal(base: 5, scale: 0)
+final a = Decimal.parse('1.2');
+final b = Decimal.parse('5');
+print(a.debugToString()); // Decimal(base: 12, scale: 1)
+print(b.debugToString()); // Decimal(base: 5, scale: 0)
 
-final sd1 = ShortDecimal.parse('1.2');
-final sd2 = ShortDecimal.parse('5');
-print(sd1.debugToString()); // ShortDecimal(base: 12, scale: 1)
-print(sd2.debugToString()); // ShortDecimal(base: 5, scale: 0)
+final c = ShortDecimal.parse('1.2');
+final d = ShortDecimal.parse('5');
+print(c.debugToString()); // ShortDecimal(base: 12, scale: 1)
+print(d.debugToString()); // ShortDecimal(base: 5, scale: 0)
 ```
 
 Multiplication of such numbers is quite a simple operation: the bases are
@@ -556,13 +555,13 @@ This is 6. And `Decimal` doesn't need to reduce it to (base: 6, scale: 0). But
 for `ShortDecimal` it is vital.
 
 ```dart
-final d3 = d1 * d2;
-print(d3); // 6
-print(d3.debugToString()); // Decimal(base: 60, scale: 1)
+final r1 = a * b;
+print(r1); // 6
+print(r1.debugToString()); // Decimal(base: 60, scale: 1)
 
-final sd3 = sd1 * sd2;
-print(sd3); // 6
-print(sd3.debugToString()); // ShortDecimal(base: 6, scale: 0)
+final r2 = c * d;
+print(r2); // 6
+print(r2.debugToString()); // ShortDecimal(base: 6, scale: 0)
 ```
 
 `Decimal`, of course, could after each operation bring the value to normal,
@@ -601,19 +600,19 @@ print(a); // 1
 <a id="short-decimal-performance"></a>
 ### Performance
 
-|                       |     package decimal |         Decimal | ShortDecimal |
-|:----------------------|--------------------:|----------------:|-------------:|
-| add                   |      (▼4x) 0.713 µs |  (▼4x) 0.646 µs |   ★ 0.155 µs |
-| multiply-large        |      (▼4x) 0.121 µs |  (▼3x) 0.115 µs |   ★ 0.030 µs |
-| multiply-small        |      (▼4x) 0.120 µs |  (▼3x) 0.114 µs |   ★ 0.030 µs |
-| divide-large          |    (▼103x) 6.455 µs | (▼26x) 1.683 µs |   ★ 0.063 µs |
-| divide-small          | (▼1196x) 114.617 µs | (▼71x) 6.834 µs |   ★ 0.096 µs |
-| divide-large-and-view |    (▼103x) 6.664 µs | (▼26x) 1.686 µs |   ★ 0.065 µs |
-| divide-small-and-view |  (▼339x) 116.035 µs | (▼21x) 7.376 µs |   ★ 0.342 µs |
-| raw-view              |     (▼4x) 10.474 µs |  (▼3x) 6.882 µs |   ★ 2.137 µs |
-| raw-view-zeros        |    (▼30x) 37.261 µs |  (▼5x) 6.966 µs |   ★ 1.232 µs |
-| prepared-view         |      (▼3x) 6.354 µs |  (▼3x) 6.640 µs |   ★ 2.082 µs |
-| prepared-view-zeros   |          ★ 1.274 µs |        1.339 µs |   ★ 1.186 µs |
+|                       |             decimal | decimal2 Decimal | decimal2 ShortDecimal |
+|:----------------------|--------------------:|-----------------:|----------------------:|
+| add                   |      (▼4x) 0.713 µs |   (▼4x) 0.646 µs |            ★ 0.155 µs |
+| multiply-large        |      (▼4x) 0.121 µs |   (▼3x) 0.115 µs |            ★ 0.030 µs |
+| multiply-small        |      (▼4x) 0.120 µs |   (▼3x) 0.114 µs |            ★ 0.030 µs |
+| divide-large          |    (▼103x) 6.455 µs |  (▼26x) 1.683 µs |            ★ 0.063 µs |
+| divide-small          | (▼1196x) 114.617 µs |  (▼71x) 6.834 µs |            ★ 0.096 µs |
+| divide-large-and-view |    (▼103x) 6.664 µs |  (▼26x) 1.686 µs |            ★ 0.065 µs |
+| divide-small-and-view |  (▼339x) 116.035 µs |  (▼21x) 7.376 µs |            ★ 0.342 µs |
+| raw-view              |     (▼4x) 10.474 µs |   (▼3x) 6.882 µs |            ★ 2.137 µs |
+| raw-view-zeros        |    (▼30x) 37.261 µs |   (▼5x) 6.966 µs |            ★ 1.232 µs |
+| prepared-view         |      (▼3x) 6.354 µs |   (▼3x) 6.640 µs |            ★ 2.082 µs |
+| prepared-view-zeros   |          ★ 1.274 µs |         1.339 µs |            ★ 1.186 µs |
 
 For a description of the tests, see [Package performance](#package-performance).
 
