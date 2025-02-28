@@ -259,8 +259,8 @@ print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
 
 I care about performance, so I wrote tests to check packages. When I did this,
 I was not yet aware of the bugs I wrote above. So the result might seem
-strange. It's as if there were only two packages to compare: this and
-[decimal](https://pub.dev/packages/decimal).
+strange. It's as if there were only two packages to compare:
+[decimal](https://pub.dev/packages/decimal) and [decimal2](https://pub.dev/packages/decimal2).
 
 The tests were performed on Apple M2 Pro 32 Gb. The code of the tests was
 written with the help of [benchmark_harness](https://pub.dev/packages/benchmark_harness).
@@ -281,19 +281,19 @@ Running Tests:
 dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe
 ```
 
-|                       |           decimal |     decimal_type |            fixed |      big_decimal | decimal2-decimal |
-|:----------------------|------------------:|-----------------:|-----------------:|-----------------:|-----------------:|
-| add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |       ★ 1.694 µs |
-| multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |       ★ 0.129 µs |
-| multiply-small        |        ★ 0.138 µs |       ★ 0.129 µs |            ERROR |       ★ 0.132 µs |       ★ 0.129 µs |
-| divide-large          |    (▼4x) 7.916 µs |            ERROR |            ERROR |       ★ 1.650 µs |         2.025 µs |
-| divide-small          | (▼38x) 496.494 µs |            ERROR |            ERROR |            ERROR |      ★ 12.969 µs |
-| divide-large-and-view |    (▼4x) 8.479 µs |            ERROR |            ERROR |       ★ 1.840 µs |         2.128 µs |
-| divide-small-and-view | (▼35x) 511.241 µs |            ERROR |            ERROR |            ERROR |      ★ 14.372 µs |
-| raw-view              |         21.045 µs |        26.058 µs |  (▼3x) 61.210 µs |      ★ 18.167 µs |      ★ 17.337 µs |
-| raw-view-zeros        |   (▼5x) 83.212 µs |  (▼4x) 73.963 µs |  (▼4x) 70.724 µs |      ★ 16.521 µs |      ★ 15.681 µs |
-| prepared-view         |       ★ 16.845 µs |        25.988 µs |  (▼3x) 59.159 µs |      ★ 17.779 µs |      ★ 16.689 µs |
-| prepared-view-zeros   |        ★ 1.567 µs | (▼46x) 72.737 µs | (▼44x) 69.415 µs | (▼10x) 16.105 µs |       ★ 1.635 µs |
+|                       |           decimal |     decimal_type |            fixed |      big_decimal |    decimal2 |
+|:----------------------|------------------:|-----------------:|-----------------:|-----------------:|------------:|
+| add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |  ★ 1.694 µs |
+| multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |  ★ 0.129 µs |
+| multiply-small        |        ★ 0.138 µs |       ★ 0.129 µs |            ERROR |       ★ 0.132 µs |  ★ 0.129 µs |
+| divide-large          |    (▼4x) 7.916 µs |            ERROR |            ERROR |       ★ 1.650 µs |    2.025 µs |
+| divide-small          | (▼38x) 496.494 µs |            ERROR |            ERROR |            ERROR | ★ 12.969 µs |
+| divide-large-and-view |    (▼4x) 8.479 µs |            ERROR |            ERROR |       ★ 1.840 µs |    2.128 µs |
+| divide-small-and-view | (▼35x) 511.241 µs |            ERROR |            ERROR |            ERROR | ★ 14.372 µs |
+| raw-view              |         21.045 µs |        26.058 µs |  (▼3x) 61.210 µs |      ★ 18.167 µs | ★ 17.337 µs |
+| raw-view-zeros        |   (▼5x) 83.212 µs |  (▼4x) 73.963 µs |  (▼4x) 70.724 µs |      ★ 16.521 µs | ★ 15.681 µs |
+| prepared-view         |       ★ 16.845 µs |        25.988 µs |  (▼3x) 59.159 µs |      ★ 17.779 µs | ★ 16.689 µs |
+| prepared-view-zeros   |        ★ 1.567 µs | (▼46x) 72.737 µs | (▼44x) 69.415 µs | (▼10x) 16.105 µs |  ★ 1.635 µs |
 
 With this test I did not intend to advertise my package at all. It was only
 important for me to check myself whether I was doing everything right. I saw my
@@ -303,136 +303,154 @@ this test. And I did it with the code of the packages I've given here. Even if
 some of them didn't work for me or contain bugs, there are some very good
 solutions in them that I was inspired by.
 
-#### Description of benchmarks
-
-- add. Adding numbers:
-
-  10000000000000000000 + 1000000000000000000 + 100000000000000000 + 10000000000000000 + 1000000000000000 + 100000000000000 + 10000000000000 + 1000000000000 + 100000000000 + 10000000000 + 1000000000 + 100000000 + 10000000 + 1000000 + 100000 + 10000 + 1000 + 100 + 10 + 1 + 0.1 + 0.01 + 0.001 + 0.0001 + 0.00001 + 0.000001 + 0.0000001 + 0.00000001 + 0.000000001 + 0.0000000001 + 0.00000000001 + 0.000000000001 + 0.0000000000001 + 0.00000000000001 + 0.000000000000001 + 0.0000000000000001 + 0.00000000000000001 + 0.000000000000000001 + 0.0000000000000000001 + 0.00000000000000000001 = 11111111111111111111.11111111111111111111
-
-  A very simple operation. But note that in the case of decimal, it is much
-  more complicated than multiplication.
-
-- multiply-large. Multiplication of large numbers:
-
-  123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 = 822526259147102579504761143661535547764137892295514168093701699676416207799736601
-
-  A simple operation for decimal. It is impossible to make a mistake in it.
-  There is no simpler operation.
-
-- multiply-small. Multiplication of small numbers:
-
-  0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 = 0.0000000000000000000822526259147102579504761143661535547764137892295514168093701699676416207799736601
-
-  A simple operation, but not all packages are ready to handle numbers that
-  have more than 20 decimal places.
-
-- divide-large. Division of large numbers:
-
-  822526259147102579504761143661535547764137892295514168093701699676416207799736601 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 = 1
-
-  Division is not the strongest point of most packages. Even integers! Even the
-  result of which is also an integer!
-
-- divide-small. Division of small numbers:
-
-  1 / 256 / 256 / 256 / 256 / 256 / 256 / 256 / 256 / 256 = 0.000000000000000000000211758236813575084767080625169910490512847900390625
-
-  It's a difficult task. It's easy to stumble over.
-  [decimal](https://pub.dev/packages/decimal) solves it, but at what cost! Some
-  packages use the `double` trick and stumble over it. And some don't even try.
-
-- divide-large-and-view and divide-small-and-view. Division of numbers and
-  converting the result in a readable format:
-
-  Packages can use intermediate results in their work, which speed up the speed
-  of operations, but do not have a decimal form understandable to the user.
-  (This is what [decimal](https://pub.dev/packages/decimal) did until version
-  3.2.0). Therefore, the divide-large and divide-small test, where only
-  division is performed, may be far from real life. This tests perform the
-  same operation as divide-large and divide-small, but additionally convert the
-  result of the operation (only the operation, not each step in this operation)
-  into a readable form. (And in this tests [decimal](https://pub.dev/packages/decimal)
-  used to lose a lot of performance before).
-
-  I'll be honest, it took me a long time to find a solution that satisfied me
-  in terms of performance.
-
-- raw-view. Convert newly created numbers into a readable format:
-
-  - 123456789012345678901234567890123456789
-  - 1234567890123456789012345678901234567.89
-  - 12345678901234567890123456789012345.6789
-  - 123456789012345678901234567890123.456789
-  - 1234567890123456789012345678901.23456789
-  - 12345678901234567890123456789.0123456789
-  - 123456789012345678901234567.890123456789
-  - 1234567890123456789012345.67890123456789
-  - 12345678901234567890123.4567890123456789
-  - 123456789012345678901.234567890123456789
-  - 1234567890123456789.01234567890123456789
-  - 12345678901234567.8901234567890123456789
-  - 123456789012345.678901234567890123456789
-  - 1234567890123.45678901234567890123456789
-  - 12345678901.2345678901234567890123456789
-  - 123456789.012345678901234567890123456789
-  - 1234567.89012345678901234567890123456789
-  - 12345.6789012345678901234567890123456789
-  - 123.456789012345678901234567890123456789
-  - 1.23456789012345678901234567890123456789
-
-  This is usually a resource-intensive task, as the package does not have time
-  to do any optimizations with the number.
-
-- raw-view-zeros. Convert newly created numbers with lots of leading and
-  trailing zeros into a readable format:
-
-  - 100000000000000000000000000000000000000
-  - 10000000000000000000000000000000000
-  - 1000000000000000000000000000000
-  - 100000000000000000000000000
-  - 10000000000000000000000
-  - 1000000000000000000
-  - 100000000000000
-  - 10000000000
-  - 1000000
-  - 100
-  - 0.01
-  - 0.000001
-  - 0.0000000001
-  - 0.00000000000001
-  - 0.000000000000000001
-  - 0.0000000000000000000001
-  - 0.00000000000000000000000001
-  - 0.000000000000000000000000000001
-  - 0.0000000000000000000000000000000001
-  - 0.00000000000000000000000000000000000001
-
-  Converting such numbers is technically quite different from converting
-  numbers without zeros in raw-view. Each of the tests (raw-view and
-  raw-vew-zeros) separately can give a wrong idea of performance, so they
-  should be considered only together.
-
-- prepared-view. Conversion of prepared numbers (if the package supports it)
-  into a readable format:
-
-  Packages may use optimization mechanisms in their work (for example, saving
-  previously calculated values). The raw-view test does not allow you to
-  evaluate the fruits of this optimization. This test gives such an opportunity
-  by performing the same operation as raw-view, but adding optimization.
-  Compare the results of both tests.
-
-  Packages [decimal_type](https://pub.dev/packages/decimal_type),
-  [fixed](https://pub.dev/packages/fixed), [big_decimal](https://pub.dev/packages/big_decimal)
-  do without optimization.
-
-- prepared-view-zeros. Conversion of prepared numbers (if the package supports
-  it) with a large number of initial or final zeros into a readable format:
-
-  See description of previous tests.
-
 In early January 2025, the column with the [decimal](https://pub.dev/packages/decimal)
 looked quite different. The values were two orders of magnitude higher.
 We can only be happy for such improvements.
+
+#### Description of benchmarks
+
+##### add
+
+Adding numbers:
+
+10000000000000000000 + 1000000000000000000 + 100000000000000000 + 10000000000000000 + 1000000000000000 + 100000000000000 + 10000000000000 + 1000000000000 + 100000000000 + 10000000000 + 1000000000 + 100000000 + 10000000 + 1000000 + 100000 + 10000 + 1000 + 100 + 10 + 1 + 0.1 + 0.01 + 0.001 + 0.0001 + 0.00001 + 0.000001 + 0.0000001 + 0.00000001 + 0.000000001 + 0.0000000001 + 0.00000000001 + 0.000000000001 + 0.0000000000001 + 0.00000000000001 + 0.000000000000001 + 0.0000000000000001 + 0.00000000000000001 + 0.000000000000000001 + 0.0000000000000000001 + 0.00000000000000000001 = 11111111111111111111.11111111111111111111
+
+A very simple operation. But note that in the case of decimal, it is much more
+complicated than multiplication.
+
+##### multiply-large
+
+Multiplication of large numbers:
+
+123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 * 123456789 = 822526259147102579504761143661535547764137892295514168093701699676416207799736601
+
+A simple operation for decimal. It is impossible to make a mistake in it. There
+is no simpler operation.
+
+##### multiply-small
+
+Multiplication of small numbers:
+
+0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 * 0.0123456789 = 0.0000000000000000000822526259147102579504761143661535547764137892295514168093701699676416207799736601
+
+A simple operation, but not all packages are ready to handle numbers that have
+more than 20 decimal places.
+
+##### divide-large
+
+Division of large numbers:
+
+822526259147102579504761143661535547764137892295514168093701699676416207799736601 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 / 123456789 = 1
+
+Division is not the strongest point of most packages. Even integers! Even the
+result of which is also an integer!
+
+##### divide-small
+
+Division of small numbers:
+
+1 / 256 / 256 / 256 / 256 / 256 / 256 / 256 / 256 / 256 = 0.000000000000000000000211758236813575084767080625169910490512847900390625
+
+It's a difficult task. It's easy to stumble over. [decimal](https://pub.dev/packages/decimal)
+solves it, but at what cost! Some packages use the `double` trick and stumble
+over it. And some don't even try.
+
+##### divide-large-and-view and divide-small-and-view
+
+Division of numbers and converting the result in a readable format.
+
+Packages can use intermediate results in their work, which speed up the speed
+of operations, but do not have a decimal form understandable to the user. (This
+is what [decimal](https://pub.dev/packages/decimal) did until version 3.2.0).
+Therefore, the divide-large and divide-small test, where only division is
+performed, may be far from real life. This tests perform the same operation as
+divide-large and divide-small, but additionally convert the result of the
+operation (only the operation, not each step in this operation) into a readable
+form. (And in this tests [decimal](https://pub.dev/packages/decimal) used to
+lose a lot of performance before).
+
+I'll be honest, it took me a long time to find a solution that satisfied me in
+terms of performance.
+
+##### raw-view
+
+Convert newly created numbers into a readable format:
+
+- 123456789012345678901234567890123456789
+- 1234567890123456789012345678901234567.89
+- 12345678901234567890123456789012345.6789
+- 123456789012345678901234567890123.456789
+- 1234567890123456789012345678901.23456789
+- 12345678901234567890123456789.0123456789
+- 123456789012345678901234567.890123456789
+- 1234567890123456789012345.67890123456789
+- 12345678901234567890123.4567890123456789
+- 123456789012345678901.234567890123456789
+- 1234567890123456789.01234567890123456789
+- 12345678901234567.8901234567890123456789
+- 123456789012345.678901234567890123456789
+- 1234567890123.45678901234567890123456789
+- 12345678901.2345678901234567890123456789
+- 123456789.012345678901234567890123456789
+- 1234567.89012345678901234567890123456789
+- 12345.6789012345678901234567890123456789
+- 123.456789012345678901234567890123456789
+- 1.23456789012345678901234567890123456789
+
+This is usually a resource-intensive task, as the package does not have time to
+do any optimizations with the number.
+
+##### raw-view-zeros
+
+Convert newly created numbers with lots of leading and trailing zeros into
+a readable format:
+
+- 100000000000000000000000000000000000000
+- 10000000000000000000000000000000000
+- 1000000000000000000000000000000
+- 100000000000000000000000000
+- 10000000000000000000000
+- 1000000000000000000
+- 100000000000000
+- 10000000000
+- 1000000
+- 100
+- 0.01
+- 0.000001
+- 0.0000000001
+- 0.00000000000001
+- 0.000000000000000001
+- 0.0000000000000000000001
+- 0.00000000000000000000000001
+- 0.000000000000000000000000000001
+- 0.0000000000000000000000000000000001
+- 0.00000000000000000000000000000000000001
+
+Converting such numbers is technically quite different from converting numbers
+without zeros in raw-view. Each of the tests (raw-view and raw-vew-zeros)
+separately can give a wrong idea of performance, so they should be considered
+only together.
+
+##### prepared-view
+
+Conversion of prepared numbers (if the package supports it) into a readable
+format.
+
+Packages may use optimization mechanisms in their work (for example, saving
+previously calculated values). The raw-view test does not allow you to evaluate
+the fruits of this optimization. This test gives such an opportunity by
+performing the same operation as raw-view, but adding optimization. Compare the
+results of both tests.
+
+Packages [decimal_type](https://pub.dev/packages/decimal_type), [fixed](https://pub.dev/packages/fixed),
+[big_decimal](https://pub.dev/packages/big_decimal) do without optimization.
+
+##### prepared-view-zeros
+
+Conversion of prepared numbers (if the package supports it) with a large number
+of initial or final zeros into a readable format:
+
+See description of previous tests.
 
 <a id="decimal-vs-decimal2"></a>
 ### [decimal](https://pub.dev/packages/decimal) vs [decimal2](https://pub.dev/packages/decimal2)
