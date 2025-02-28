@@ -36,9 +36,9 @@ that work with decimals.
 A wonderful package that works correctly with decimals. It exists since 2014
 and is constantly updated. In one of the latest updates (3.2.0), performance
 has been significantly improved. Before that, speed was the weak point of this
-package. This was one of the reasons why
-[decimal2](https://pub.dev/packages/decimal2) appeared, since I started writing
-it before 3.2.0. However, I would have written it anyway. More about it below.
+package. This was one of the reasons why decimal2 appeared, since I started
+writing it before 3.2.0. However, I would have written it anyway. More about it
+below.
 
 #### [fixed](https://pub.dev/packages/fixed)
 
@@ -144,7 +144,7 @@ That's how "a bugless implementation of BigDecimal" works.
 Three packages out of four did not satisfy me because of bugs in calculations,
 incomplete functionality (division) or use of `double` under the hood.
 
-The [decimal](https://pub.dev/packages/decimal) and `decimal2` does not have
+The [decimal](https://pub.dev/packages/decimal) and decimal2 does not have
 the above division problems. No need to calculate `scale` yourself, and no
 `double` under the hood.
 
@@ -173,7 +173,7 @@ print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
 print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
 ```
 
-`decimal2` does the opposite and returns the result immediately:
+decimal2 does the opposite and returns the result immediately:
 
 ```dart
 final a = Decimal.one;
@@ -434,7 +434,7 @@ looked quite different. The values were two orders of magnitude higher.
 We can only be happy for such improvements.
 
 <a id="decimal-vs-decimal2"></a>
-### [decimal](https://pub.dev/packages/decimal) vs `decimal2`
+### [decimal](https://pub.dev/packages/decimal) vs decimal2
 
 The last thing I want to do is compete with the author of
 [decimal](https://pub.dev/packages/decimal), especially when I see how long
@@ -444,7 +444,7 @@ different approaches under the hood, the end result will be on the outside, not
 the inside. And it's pretty much the same feature set with pretty much the same
 performance.
 
-But actually the decision to write my own `decimal2` was not only influenced by
+But actually the decision to write my own decimal2 was not only influenced by
 the poor (at the time) performance of [decimal](https://pub.dev/packages/decimal).
 There was another reason. For my task I needed a lightweight decimal, which
 needed a regular `int` instead of `BigInt` to store values under the hood. My
@@ -606,7 +606,7 @@ You probably won't have a large number of decimal calculations either. In this
 case, the difference 3-5x can be neglected. The use of `Decimal` in both
 packages will most likely not lead to significant performance losses in the
 whole application. That's why you can choose `Decimal` in
-[decimal](https://pub.dev/packages/decimal) as well as `Decimal` in `decimal2`.
+[decimal](https://pub.dev/packages/decimal) as well as `Decimal` in decimal2.
 
 But if you need both performance and maximum memory saving, choose
 `ShortDecimal`, but do not forget about its limitations.
