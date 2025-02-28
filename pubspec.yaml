@@ -1,7 +1,7 @@
 name: decimal2
 description: Decimals.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+homepage: https://github.com/vi-k/decimal2
 
 environment:
   sdk: ^3.6.0
