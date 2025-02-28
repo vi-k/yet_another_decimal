@@ -12,7 +12,7 @@ It's yet another package for fixed point decimals.
 
     1.3. [Package performance](#package-performance)
 
-    1.4. [`decimal` vs `decimal2`](#decimal-vs-decimal2)
+    1.4. [decimal vs decimal2](#decimal-vs-decimal2)
 
 2. [`Decimal` vs `ShortDecimal`](#decimal-vs-short-decimal)
 
@@ -80,8 +80,8 @@ print(b / a); // 111111111111111120 (!)
 ```
 
 The reason for the error is that double has limited precision, and in this
-example we have gone beyond the limits of that precision. But fixed-point
-Deciamls are used to avoid errors in floating-point operations, not the other
+example we have gone beyond the limits of that precision. But fixed point
+decimals are used to avoid errors in floating-point operations, not the other
 way around. In my opinion, this is a very bad solution.
 
 #### [decimal_type](https://pub.dev/packages/decimal_type)
@@ -97,7 +97,7 @@ print('$a / $b = ${a / b}'); // FormatException: Could not parse BigInt 23890944
 
 First the result of division is calculated as `double`, then it is converted to
 a string using `double.toStringAsFixed`, and the string is then converted to
-`BigInt`. But `double.toStringAsFixed` does not always return an `asFixed`
+`BigInt`. But `double.toStringAsFixed` does not always return an "asFixed"
 result. When the error limit is reached, the method switches to
 `double.toStringAsExponential`. The author did not notice this feature. But we
 found out faster what is hiding under the hood.
@@ -144,7 +144,7 @@ That's how "a bugless implementation of BigDecimal" works.
 Three packages out of four did not satisfy me because of bugs in calculations,
 incomplete functionality (division) or use of `double` under the hood.
 
-The [decimal](https://pub.dev/packages/decimal) and this packages do not have
+The [decimal](https://pub.dev/packages/decimal) and `decimal2` does not have
 the above division problems. No need to calculate `scale` yourself, and no
 `double` under the hood.
 
@@ -173,7 +173,7 @@ print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
 print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
 ```
 
-This package does the opposite and returns the result immediately:
+`decimal2` does the opposite and returns the result immediately:
 
 ```dart
 final a = Decimal.one;
