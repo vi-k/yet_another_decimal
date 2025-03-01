@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
 import 'package:ansi_escape_codes/extensions.dart';
+import 'package:example/src/tests/big_double_test.dart';
 import 'package:format/format.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
@@ -77,6 +78,7 @@ final _bigIntPackages = <Package, CreateBigIntTestCallback>{
   Package.decimalType: DecimalTypeTest.new,
   Package.bigDecimal: BigDecimalTest.new,
   Package.yetAnotherDecimal: YetAnotherDecimalTest.new,
+  Package.bigDouble: BigDoubleTest.new,
 };
 
 final _intPackages = <Package, CreateIntTestCallback>{

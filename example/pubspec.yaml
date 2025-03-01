@@ -10,6 +10,7 @@ dependencies:
   ansi_escape_codes: ^2.0.3
   benchmark_harness: ^2.3.1
   big_decimal: ^0.5.0
+  big_double: ^1.0.2
   decimal: ^3.2.1
   decimal_type: ^0.0.2
   fixed: ^5.3.2

@@ -90,7 +90,7 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         '${isWarning ? accentWarning('WARNING') : accentError('ERROR')}'
         '$reset$description';
 
-    if (!isWarning) {
+    if (!isWarning && !package.ignoreMatchingErrors) {
       error = "The results don't match";
     }
   }
@@ -196,13 +196,15 @@ extension on String {
     end++;
   }
 
-  if (end == actual.length && actual.length < expected.length) {
-    return (expectedReturn, isWarning ? warning(actual) : error(actual));
-  }
+  final absent = actual.length >= expected.length
+      ? ''
+      : '•' * (expected.length - actual.length);
 
   final rest = actual.substring(end);
   return (
     expectedReturn,
-    '${actual.substring(0, end)}${isWarning ? warning(rest) : error(rest)}'
+    '${actual.substring(0, end)}'
+        '${isWarning ? warning(rest) : error(rest)}'
+        '${isWarning ? warning(absent) : error(absent)}'
   );
 }

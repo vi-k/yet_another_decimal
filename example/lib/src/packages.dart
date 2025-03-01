@@ -6,26 +6,34 @@ enum Package {
   yetAnotherDecimal(
     'yet_another_decimal-decimal',
     'Decimal',
-    {'yet_another_decimal'},
+    tags: {'yet_another_decimal'},
   ),
   yetAnotherDecimalShort(
     'yet_another_decimal-short-decimal',
     'ShortDecimal',
-    {'yet_another_decimal'},
-    true,
+    tags: {'yet_another_decimal'},
+    excludeFromComparision: true,
+  ),
+  bigDouble(
+    'big_double',
+    'BigDouble',
+    excludeFromComparision: true,
+    ignoreMatchingErrors: true,
   );
 
   final String id;
   final String type;
   final Set<String> tags;
   final bool excludeFromComparision;
+  final bool ignoreMatchingErrors;
 
   const Package(
     this.id,
-    this.type, [
+    this.type, {
     this.tags = const {},
     this.excludeFromComparision = false,
-  ]);
+    this.ignoreMatchingErrors = false,
+  });
 
   static Package? byId(String id) {
     for (final value in values) {
