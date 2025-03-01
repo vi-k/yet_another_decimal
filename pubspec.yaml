@@ -1,7 +1,10 @@
 name: yet_another_decimal
-description: Yet another package for fixed point decimals.
-version: 1.0.1
+description: Yet another package for working with decimals without loss of precision, including two versions - one for large numbers, based on BigInt, and a fast version, based on int.
+version: 1.0.2
 homepage: https://github.com/vi-k/yet_another_decimal
+
+topics:
+ - decimal
 
 environment:
   sdk: ^3.6.0

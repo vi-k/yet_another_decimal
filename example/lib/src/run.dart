@@ -2,13 +2,13 @@ import 'dart:math';
 
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
 import 'package:ansi_escape_codes/extensions.dart';
-import 'package:example/src/tests/big_decimal_test.dart';
 import 'package:format/format.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 import 'operations.dart';
 import 'packages.dart';
 import 'tests.dart';
+import 'tests/big_decimal_test.dart';
 import 'tests/decimal_test.dart';
 import 'tests/decimal_type_test.dart';
 import 'tests/fixed_test.dart';
