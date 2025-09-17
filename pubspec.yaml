@@ -1,17 +1,17 @@
 name: yet_another_decimal
 description: Yet another package for working with decimals without loss of precision, including two versions - one for large numbers, based on BigInt, and a fast version, based on int.
-version: 1.0.2
+version: 1.1.0
 homepage: https://github.com/vi-k/yet_another_decimal
 
 topics:
  - decimal
 
 environment:
-  sdk: ^3.6.0
+  sdk: ^3.9.0
 
 dependencies:
-  meta: ^1.16.0
+  meta: ^1.17.0
 
 dev_dependencies:
-  lints: ^5.0.0
-  test: ^1.24.0
+  lints: ^6.0.0
+  test: ^1.26.3

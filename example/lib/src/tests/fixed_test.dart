@@ -14,7 +14,7 @@ final class FixedTest extends MyBenchmarkBase {
     Object? expectedExerciseResult,
   )   : values = list
             .map(
-              (e) => Fixed.fromBigInt(e.$1, scale: e.$2),
+              (e) => Fixed.fromBigInt(e.$1, decimalDigits: e.$2),
             )
             .toList(growable: false),
         _convertToStringResult = List<String>.filled(list.length, ''),

@@ -466,23 +466,29 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   String toString() {
     final base = this.base;
     final scale = this.scale;
+    final string = base.toString();
     if (scale == 0 || base == 0) {
-      return base.toString();
+      return string;
     }
 
-    final sign = base.isNegative ? '-' : '';
-    final number = base.abs().toString();
+    // Calculate the sign and string representation of the absolute value.
+    //
+    // We don't use `abs()` because of the problem:
+    // -(-9223372036854775808) == -9223372036854775808
+    final (sign, abs) = string.codeUnitAt(0) == _charCodeMinus
+        ? ('-', string.substring(1))
+        : ('', string);
 
     if (scale < 0) {
-      return '$sign$number${'0' * -scale}';
+      return '$sign$abs${'0' * -scale}';
     }
 
-    if (number.length <= scale) {
-      return '${sign}0.${number.padLeft(scale, '0')}';
+    if (abs.length <= scale) {
+      return '${sign}0.${abs.padLeft(scale, '0')}';
     }
 
-    return '$sign${number.substring(0, number.length - scale)}'
-        '.${number.substring(number.length - scale)}';
+    return '$sign${abs.substring(0, abs.length - scale)}'
+        '.${abs.substring(abs.length - scale)}';
   }
 
   /// Returns a string representation of this decimal using new

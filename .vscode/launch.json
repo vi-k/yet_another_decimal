@@ -10,5 +10,18 @@
             "type": "dart",
             "program": "example/bin/benchmark.dart",
         },
+        {
+            "name": "benchmark all",
+            "request": "launch",
+            "type": "dart",
+            "program": "example/bin/benchmark.dart",
+            "args": ["all"]
+        },
+        {
+            "name": "format",
+            "request": "launch",
+            "type": "dart",
+            "program": "example/bin/format.dart",
+        },
     ]
 }

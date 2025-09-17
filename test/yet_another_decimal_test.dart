@@ -63,11 +63,7 @@ void expectShortDivision(ShortDivision division, String str) {
   expect(division.toString(), str);
 }
 
-void expectDivide(
-  Decimal dividend,
-  Decimal divisor,
-  String str,
-) {
+void expectDivide(Decimal dividend, Decimal divisor, String str) {
   final d = Division(dividend, divisor);
 
   expect(d.toString(), str);
@@ -87,18 +83,10 @@ void expectShortDivide(
 
   expect(d.toString(), str);
 
-  expect(
-    ShortDecimal(d.quotient) * divisor + d.remainder == dividend,
-    isTrue,
-  );
+  expect(ShortDecimal(d.quotient) * divisor + d.remainder == dividend, isTrue);
 }
 
-void expectDouble(
-  double a,
-  double b,
-  String str, {
-  bool isValid = true,
-}) {
+void expectDouble(double a, double b, String str, {bool isValid = true}) {
   if (isValid) {
     expect(a, b);
     expect(a.toString(), str);
@@ -583,54 +571,42 @@ void main() {
       test('BigInt', () {
         // BigInt
         expectDecimal(
-          Decimal.parse(
-            '1234567890123456789012345678901234567890',
-          ),
+          Decimal.parse('1234567890123456789012345678901234567890'),
           '1234567890123456789012345678901234567890',
           base: BigInt.parse('1234567890123456789012345678901234567890'),
           scale: 0,
           fractionDigits: 0,
         );
         expectDecimal(
-          Decimal.parse(
-            '123456789012345678901234567890.1234567890',
-          ),
+          Decimal.parse('123456789012345678901234567890.1234567890'),
           '123456789012345678901234567890.123456789',
           base: BigInt.parse('1234567890123456789012345678901234567890'),
           scale: 10,
           fractionDigits: 9,
         );
         expectDecimal(
-          Decimal.parse(
-            '12345678901234567890.12345678901234567890',
-          ),
+          Decimal.parse('12345678901234567890.12345678901234567890'),
           '12345678901234567890.1234567890123456789',
           base: BigInt.parse('1234567890123456789012345678901234567890'),
           scale: 20,
           fractionDigits: 19,
         );
         expectDecimal(
-          Decimal.parse(
-            '1234567890.123456789012345678901234567890',
-          ),
+          Decimal.parse('1234567890.123456789012345678901234567890'),
           '1234567890.12345678901234567890123456789',
           base: BigInt.parse('1234567890123456789012345678901234567890'),
           scale: 30,
           fractionDigits: 29,
         );
         expectDecimal(
-          Decimal.parse(
-            '0.1234567890123456789012345678901234567890',
-          ),
+          Decimal.parse('0.1234567890123456789012345678901234567890'),
           '0.123456789012345678901234567890123456789',
           base: BigInt.parse('1234567890123456789012345678901234567890'),
           scale: 40,
           fractionDigits: 39,
         );
         expectDecimal(
-          Decimal.parse(
-            '0.00000000001234567890123456789012345678901234567890',
-          ),
+          Decimal.parse('0.00000000001234567890123456789012345678901234567890'),
           '0.0000000000123456789012345678901234567890123456789',
           base: BigInt.parse('1234567890123456789012345678901234567890'),
           scale: 50,
@@ -638,45 +614,35 @@ void main() {
         );
 
         expectDecimal(
-          Decimal.parse(
-            '-1234567890123456789012345678901234567890',
-          ),
+          Decimal.parse('-1234567890123456789012345678901234567890'),
           '-1234567890123456789012345678901234567890',
           base: BigInt.parse('-1234567890123456789012345678901234567890'),
           scale: 0,
           fractionDigits: 0,
         );
         expectDecimal(
-          Decimal.parse(
-            '-123456789012345678901234567890.1234567890',
-          ),
+          Decimal.parse('-123456789012345678901234567890.1234567890'),
           '-123456789012345678901234567890.123456789',
           base: BigInt.parse('-1234567890123456789012345678901234567890'),
           scale: 10,
           fractionDigits: 9,
         );
         expectDecimal(
-          Decimal.parse(
-            '-12345678901234567890.12345678901234567890',
-          ),
+          Decimal.parse('-12345678901234567890.12345678901234567890'),
           '-12345678901234567890.1234567890123456789',
           base: BigInt.parse('-1234567890123456789012345678901234567890'),
           scale: 20,
           fractionDigits: 19,
         );
         expectDecimal(
-          Decimal.parse(
-            '-1234567890.123456789012345678901234567890',
-          ),
+          Decimal.parse('-1234567890.123456789012345678901234567890'),
           '-1234567890.12345678901234567890123456789',
           base: BigInt.parse('-1234567890123456789012345678901234567890'),
           scale: 30,
           fractionDigits: 29,
         );
         expectDecimal(
-          Decimal.parse(
-            '-0.1234567890123456789012345678901234567890',
-          ),
+          Decimal.parse('-0.1234567890123456789012345678901234567890'),
           '-0.123456789012345678901234567890123456789',
           base: BigInt.parse('-1234567890123456789012345678901234567890'),
           scale: 40,
@@ -1169,8 +1135,10 @@ void main() {
 
           expect((-1.1).truncate(), -1);
           expectDecimal(
-            DecimalDivideException.forTest(Decimal(-11), Decimal(10))
-                .truncate(),
+            DecimalDivideException.forTest(
+              Decimal(-11),
+              Decimal(10),
+            ).truncate(),
             '-1',
           );
         });
@@ -1248,8 +1216,10 @@ void main() {
 
           expect((-1.1).truncate(), -1);
           expectDecimal(
-            DecimalDivideException.forTest(Decimal(-19), Decimal(10))
-                .truncate(),
+            DecimalDivideException.forTest(
+              Decimal(-19),
+              Decimal(10),
+            ).truncate(),
             '-1',
           );
         });
@@ -1727,34 +1697,40 @@ void main() {
 
       test('compareTo', () {
         expect(
-          Decimal.parse('2.000000000000000000004')
-              .compareTo(Decimal.parse('2.000000000000000000009')),
+          Decimal.parse(
+            '2.000000000000000000004',
+          ).compareTo(Decimal.parse('2.000000000000000000009')),
           -1,
         );
         expect(
-          Decimal.parse('2.000000000000000000004')
-              .compareTo(Decimal.parse('2.000000000000000000001')),
+          Decimal.parse(
+            '2.000000000000000000004',
+          ).compareTo(Decimal.parse('2.000000000000000000001')),
           1,
         );
         expect(
-          Decimal.parse('2.000000000000000000004')
-              .compareTo(Decimal.parse('2.000000000000000000004')),
+          Decimal.parse(
+            '2.000000000000000000004',
+          ).compareTo(Decimal.parse('2.000000000000000000004')),
           0,
         );
 
         expect(
-          Decimal.parse('-2.000000000000000000004')
-              .compareTo(Decimal.parse('-2.000000000000000000009')),
+          Decimal.parse(
+            '-2.000000000000000000004',
+          ).compareTo(Decimal.parse('-2.000000000000000000009')),
           1,
         );
         expect(
-          Decimal.parse('-2.000000000000000000004')
-              .compareTo(Decimal.parse('-2.000000000000000000001')),
+          Decimal.parse(
+            '-2.000000000000000000004',
+          ).compareTo(Decimal.parse('-2.000000000000000000001')),
           -1,
         );
         expect(
-          Decimal.parse('-2.000000000000000000004')
-              .compareTo(Decimal.parse('-2.000000000000000000004')),
+          Decimal.parse(
+            '-2.000000000000000000004',
+          ).compareTo(Decimal.parse('-2.000000000000000000004')),
           0,
         );
 
@@ -1980,13 +1956,7 @@ void main() {
         expect(Decimal(0).toStringAsFixed(2), '0.00');
 
         final v = Decimal(0, shiftRight: 2);
-        expectDecimal(
-          v,
-          '0',
-          base: BigInt.zero,
-          scale: 2,
-          fractionDigits: 0,
-        );
+        expectDecimal(v, '0', base: BigInt.zero, scale: 2, fractionDigits: 0);
         expect(v.toStringAsFixed(0), '0');
         expect(v.toStringAsFixed(1), '0.0');
         expect(v.toStringAsFixed(2), '0.00');
@@ -2755,6 +2725,22 @@ void main() {
           scale: 12,
           fractionDigits: 12,
         );
+
+        expectShortDecimal(
+          ShortDecimal.parse('-9223372036854775808'),
+          '-9223372036854775808',
+          base: -9223372036854775808,
+          scale: 0,
+          fractionDigits: 0,
+        );
+
+        expectShortDecimal(
+          ShortDecimal.parse('-922337203685477580.8'),
+          '-922337203685477580.8',
+          base: -9223372036854775808,
+          scale: 1,
+          fractionDigits: 1,
+        );
       });
     });
 
@@ -2875,10 +2861,7 @@ void main() {
 
       final values = List<ShortDecimal>.generate(
         16,
-        (index) => ShortDecimal(
-          10000000,
-          shiftRight: index,
-        ),
+        (index) => ShortDecimal(10000000, shiftRight: index),
         growable: false,
       );
       value = values[0];
@@ -4262,9 +4245,9 @@ void main() {
     });
 
     test('to Decimal', () {
-      var f = ShortDecimal.parse('1.2').divideToFraction(
-        ShortDecimal.parse('2.1'),
-      );
+      var f = ShortDecimal.parse(
+        '1.2',
+      ).divideToFraction(ShortDecimal.parse('2.1'));
       expectShortFraction(f, '4/7');
 
       expectShortDecimal(f.floor(), '0');
@@ -4283,8 +4266,9 @@ void main() {
       expectShortDecimal(f.truncate(1), '0.5');
       expectShortDecimal(f.truncate(2), '0.57');
 
-      f = ShortDecimal.parse('-1.2')
-          .divideToFraction(ShortDecimal.parse('2.1'));
+      f = ShortDecimal.parse(
+        '-1.2',
+      ).divideToFraction(ShortDecimal.parse('2.1'));
       expectShortFraction(f, '-4/7');
 
       expectShortDecimal(f.floor(), '-1');

@@ -409,34 +409,34 @@ final class Decimal implements Comparable<Decimal> {
     }
 
     final sign = base.isNegative ? '-' : '';
-    var number = base.abs().toString();
+    var abs = base.abs().toString();
 
     // Remove trailing zeros.
     if (packed == null && scale > 0) {
-      var last = number.length - 1;
-      if (number.codeUnitAt(last) == _char0) {
+      var last = abs.length - 1;
+      if (abs.codeUnitAt(last) == _char0) {
         do {
           scale--;
           last--;
-        } while (scale > 0 && number.codeUnitAt(last) == _char0);
-        number = number.substring(0, last + 1);
+        } while (scale > 0 && abs.codeUnitAt(last) == _char0);
+        abs = abs.substring(0, last + 1);
       }
 
       if (scale == 0) {
-        return '$sign$number';
+        return '$sign$abs';
       }
     }
 
     if (scale < 0) {
-      return '$sign$number${'0' * -scale}';
+      return '$sign$abs${'0' * -scale}';
     }
 
-    if (number.length <= scale) {
-      return '${sign}0.${number.padLeft(scale, '0')}';
+    if (abs.length <= scale) {
+      return '${sign}0.${abs.padLeft(scale, '0')}';
     }
 
-    return '$sign${number.substring(0, number.length - scale)}'
-        '.${number.substring(number.length - scale)}';
+    return '$sign${abs.substring(0, abs.length - scale)}'
+        '.${abs.substring(abs.length - scale)}';
   }
 
   /// Returns a string representation of this decimal using new
