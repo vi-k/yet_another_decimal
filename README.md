@@ -6,29 +6,27 @@ It's yet another package for fixed point decimals.
 
 1. [Why?](#why)
 
-    1.1. [What packages are already in place?](#packages)
+    1.1. [What packages are already in place?](#what-packages-are-already-in-place)
 
-    1.2. [What's it supposed to be?](#expectations)
+    1.2. [What's it supposed to be?](#whats-it-supposed-to-be)
 
     1.3. [Package performance](#package-performance)
 
-    1.4. [decimal vs yet_another_decimal](#decimal-vs-yet_another_decimal)
+    1.4. [decimal vs yet_another_decimal](#decimalhttpspubdevpackagesdecimal-vs-yet_another_decimalhttpspubdevpackagesyet_another_decimal)
 
-2. [`Decimal` vs `ShortDecimal`](#decimal-vs-short-decimal)
+2. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
 
-    2.1. [`ShortDecimal` limitations](#short-decimal-limitations)
+    2.1. [`ShortDecimal` limitations](#shortdecimal-limitations)
 
-    2.2. [Performance](#short-decimal-performance)
+    2.2. [Performance](#performance)
 
     2.3. [`Decimal` optimization](#decimal-optimization)
 
-<a id="why"></a>
 ## Why?
 
 As of February 2025, there are several packages on [pub.dev](https://pub.dev)
 that work with decimals.
 
-<a id="packages"></a>
 ### What packages are already in place?
 
 #### [decimal](https://pub.dev/packages/decimal)
@@ -138,7 +136,6 @@ If we don't guess the scale, we get an error.
 That's how "a bugless implementation of BigDecimal" works.
 
 
-<a id="expectations"></a>
 ### What's it supposed to be?
 
 Three packages out of four did not satisfy me because of bugs in calculations,
@@ -255,7 +252,6 @@ print('($a) + ($b) = $f3 -> ${f3.round(6)}'); // (1/2) + (1/3) = 5/6 -> 0.833333
 print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
 ```
 
-<a id="package-performance"></a>
 ### Package performance
 
 I care about performance, so I wrote tests to check packages. When I did this,
@@ -454,7 +450,6 @@ of initial or final zeros into a readable format:
 
 See description of previous tests.
 
-<a id="decimal-vs-yet_another_decimal"></a>
 ### [decimal](https://pub.dev/packages/decimal) vs [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
 
 The last thing I want to do is compete with the author of
@@ -480,10 +475,8 @@ no ready-made solution on [pub.dev](https://pub.dev).
 So, `Decimal` was not originally the main purpose of the package. The main goal
 was `ShortDecimal`. `Decimal` was just a natural evolution of the package.
 
-<a id="decimal-vs-short-decimal"></a>
 ## `Decimal` vs `ShortDecimal`
 
-<a id="short-decimal-limitations"></a>
 ## `ShortDecimal` limitations
 
 `ShortDecimal` has the same functions as `Decimal`, but the values are stored
@@ -601,7 +594,6 @@ print(a.debugToString()); // ShortDecimal(base: 1, scale: 0)
 print(a); // 1
 ```
 
-<a id="short-decimal-performance"></a>
 ### Performance
 
 |                       |             decimal | yet_another_decimal Decimal | yet_another_decimal ShortDecimal |
@@ -634,7 +626,6 @@ whole application. That's why you can choose `Decimal` in
 But if you need both performance and maximum memory saving, choose
 `ShortDecimal`, but do not forget about its limitations.
 
-<a id="decimal-optimization"></a>
 ### `Decimal` optimization
 
 When it is necessary to return to the user the properties of a number,

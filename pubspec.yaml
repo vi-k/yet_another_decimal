@@ -1,6 +1,6 @@
 name: yet_another_decimal
 description: Yet another package for working with decimals without loss of precision, including two versions - one for large numbers, based on BigInt, and a fast version, based on int.
-version: 1.1.0
+version: 1.1.1
 homepage: https://github.com/vi-k/yet_another_decimal
 
 topics:
