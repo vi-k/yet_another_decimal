@@ -46,10 +46,8 @@ final class Decimal implements Comparable<Decimal> {
   /// Decimal(1, shiftRight: 1); // 0.1
   /// Decimal(1, shiftRight: 2); // 0.01
   /// ```
-  Decimal(
-    int base, {
-    int shiftRight = 0,
-  }) : this.fromBigInt(BigInt.from(base), shiftRight: shiftRight);
+  Decimal(int base, {int shiftRight = 0})
+    : this.fromBigInt(BigInt.from(base), shiftRight: shiftRight);
 
   /// Returns [Decimal] from `BigInt` [base].
   ///
@@ -61,11 +59,9 @@ final class Decimal implements Comparable<Decimal> {
   /// Decimal.fromBigInt(BigInt.one, shiftRight: 1); // 0.1
   /// Decimal.fromBigInt(BigInt.one, shiftRight: 2); // 0.01
   /// ```
-  Decimal.fromBigInt(
-    this.base, {
-    int shiftRight = 0,
-  })  : assert(shiftRight >= 0, 'shiftRight must be positive'),
-        scale = shiftRight;
+  Decimal.fromBigInt(this.base, {int shiftRight = 0})
+    : assert(shiftRight >= 0, 'shiftRight must be positive'),
+      scale = shiftRight;
 
   /// Parse the [string] to [Decimal].
   ///
@@ -139,10 +135,8 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Multiplies this decimal by [other].
-  Decimal operator *(Decimal other) => Decimal._asIs(
-        base * other.base,
-        scale + other.scale,
-      );
+  Decimal operator *(Decimal other) =>
+      Decimal._asIs(base * other.base, scale + other.scale);
 
   /// Divides this decimal by [other].
   Decimal operator /(Decimal other) {
@@ -290,36 +284,32 @@ final class Decimal implements Comparable<Decimal> {
 
   /// Rounds the decimal towards negative infinity to [fractionDigits].
   Decimal floor([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) => isNegative && base % divisor != BigInt.zero
-            ? result - BigInt.one
-            : result,
-      );
+    fractionDigits,
+    (result, divisor) => isNegative && base % divisor != BigInt.zero
+        ? result - BigInt.one
+        : result,
+  );
 
   /// Rounds to the closest decimal with [fractionDigits].
-  Decimal round([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) {
-          final remainder = base.remainder(divisor).abs();
-          return remainder >= divisor - remainder
-              ? result + BigInt.from(base.sign)
-              : result;
-        },
-      );
+  Decimal round([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, (result, divisor) {
+        final remainder = base.remainder(divisor).abs();
+        return remainder >= divisor - remainder
+            ? result + BigInt.from(base.sign)
+            : result;
+      });
 
   /// Rounds the decimal towards infinity to [fractionDigits].
   Decimal ceil([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) => !isNegative && base % divisor != BigInt.zero
-            ? result + BigInt.one
-            : result,
-      );
+    fractionDigits,
+    (result, divisor) => !isNegative && base % divisor != BigInt.zero
+        ? result + BigInt.one
+        : result,
+  );
 
   /// Rounds the decimal towards zero to [fractionDigits].
-  Decimal truncate([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) => result,
-      );
+  Decimal truncate([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, (result, divisor) => result);
 
   /// Returns this decimal clamped to be in the range [lowerLimit]-[upperLimit].
   ///
@@ -333,8 +323,8 @@ final class Decimal implements Comparable<Decimal> {
     return this < lowerLimit
         ? lowerLimit
         : this > upperLimit
-            ? upperLimit
-            : this;
+        ? upperLimit
+        : this;
   }
 
   /// Returns this decimal to the power of [exponent].
@@ -497,19 +487,19 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   Decimal get _requirePacked => _packed ??= () {
-        var base = this.base;
-        if (base == BigInt.zero) {
-          return Decimal._asIs(base, 0);
-        }
+    var base = this.base;
+    if (base == BigInt.zero) {
+      return Decimal._asIs(base, 0);
+    }
 
-        var scale = this.scale;
-        while (base % _bigInt10 == BigInt.zero) {
-          base ~/= _bigInt10;
-          scale--;
-        }
+    var scale = this.scale;
+    while (base % _bigInt10 == BigInt.zero) {
+      base ~/= _bigInt10;
+      scale--;
+    }
 
-        return Decimal._asIs(base, scale);
-      }();
+    return Decimal._asIs(base, scale);
+  }();
 
   /// Aligning decimals by decimal point.
   (BigInt, BigInt, int) _align(Decimal other) {
@@ -565,7 +555,8 @@ final class DecimalDivideException implements Exception {
       fraction.truncate(fractionDigits);
 
   @override
-  String toString() => '$DecimalDivideException:'
+  String toString() =>
+      '$DecimalDivideException:'
       ' The result of division cannot be represented as $Decimal:'
       '\n$dividend / $divisor = $quotientWithRemainder'
       '\n$dividend / $divisor = $fraction';

@@ -51,11 +51,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// Decimal(1, shiftLeft: 1); // 10
   /// Decimal(1, shiftLeft: 2); // 100
   /// ```
-  factory ShortDecimal(
-    int base, {
-    int shiftLeft = 0,
-    int shiftRight = 0,
-  }) {
+  factory ShortDecimal(int base, {int shiftLeft = 0, int shiftRight = 0}) {
     assert(
       shiftLeft == 0 || shiftRight == 0,
       'Use either `shiftLeft` or `shiftRight`',
@@ -153,10 +149,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
 
       return end == 1 && lastCharCode == _charCodeMinus
           ? zero
-          : ShortDecimal._asIs(
-              int.parse(string.substring(0, end)),
-              scale,
-            );
+          : ShortDecimal._asIs(int.parse(string.substring(0, end)), scale);
     } on FormatException {
       return null;
     }
@@ -201,10 +194,8 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Multiplies this decimal by [other].
-  ShortDecimal operator *(ShortDecimal other) => ShortDecimal._pack(
-        base * other.base,
-        scale + other.scale,
-      );
+  ShortDecimal operator *(ShortDecimal other) =>
+      ShortDecimal._pack(base * other.base, scale + other.scale);
 
   /// Divides this decimal by [other].
   ShortDecimal operator /(ShortDecimal other) {
@@ -361,32 +352,28 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
 
   /// Rounds the decimal towards negative infinity to [fractionDigits].
   ShortDecimal floor([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) =>
-            isNegative && base % divisor != 0 ? result - 1 : result,
-      );
+    fractionDigits,
+    (result, divisor) =>
+        isNegative && base % divisor != 0 ? result - 1 : result,
+  );
 
   /// Rounds to the closest decimal with [fractionDigits].
-  ShortDecimal round([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) {
-          final remainder = base.remainder(divisor).abs();
-          return remainder >= divisor - remainder ? result + base.sign : result;
-        },
-      );
+  ShortDecimal round([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, (result, divisor) {
+        final remainder = base.remainder(divisor).abs();
+        return remainder >= divisor - remainder ? result + base.sign : result;
+      });
 
   /// Rounds the decimal towards infinity to [fractionDigits].
   ShortDecimal ceil([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) =>
-            !isNegative && base % divisor != 0 ? result + 1 : result,
-      );
+    fractionDigits,
+    (result, divisor) =>
+        !isNegative && base % divisor != 0 ? result + 1 : result,
+  );
 
   /// Rounds the decimal towards zero to [fractionDigits].
-  ShortDecimal truncate([int fractionDigits = 0]) => _dropFraction(
-        fractionDigits,
-        (result, divisor) => result,
-      );
+  ShortDecimal truncate([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, (result, divisor) => result);
 
   /// Returns this decimal clamped to be in the range [lowerLimit]-[upperLimit].
   ///
@@ -400,8 +387,8 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     return this < lowerLimit
         ? lowerLimit
         : this > upperLimit
-            ? upperLimit
-            : this;
+        ? upperLimit
+        : this;
   }
 
   /// Returns this decimal to the power of [exponent].
@@ -600,7 +587,8 @@ final class ShortDecimalDivideException implements Exception {
       fraction.truncate(fractionDigits);
 
   @override
-  String toString() => '$ShortDecimalDivideException:'
+  String toString() =>
+      '$ShortDecimalDivideException:'
       ' The result of division cannot be represented as $ShortDecimal:'
       // '\n$dividend / $divisor = $quotientWithRemainder'
       '\n$dividend / $divisor = $fraction';

@@ -17,10 +17,7 @@ final class ShortDivision {
 
     return ShortDivision._(
       a ~/ b,
-      ShortDecimal(
-        a.remainder(b),
-        shiftRight: scale,
-      ),
+      ShortDecimal(a.remainder(b), shiftRight: scale),
     );
   }
 

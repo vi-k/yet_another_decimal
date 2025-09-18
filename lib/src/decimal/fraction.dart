@@ -38,31 +38,27 @@ final class Fraction {
   }
 
   Fraction._asIs(this.numerator, this.denominator)
-      : assert(denominator > BigInt.zero, 'The denominator must be > 0');
+    : assert(denominator > BigInt.zero, 'The denominator must be > 0');
 
   bool get isNegative => numerator.isNegative;
 
   int get sign => numerator.sign;
 
-  Fraction operator *(Fraction other) => Fraction(
-        numerator * other.numerator,
-        denominator * other.denominator,
-      );
+  Fraction operator *(Fraction other) =>
+      Fraction(numerator * other.numerator, denominator * other.denominator);
 
-  Fraction operator /(Fraction other) => Fraction(
-        numerator * other.denominator,
-        denominator * other.numerator,
-      );
+  Fraction operator /(Fraction other) =>
+      Fraction(numerator * other.denominator, denominator * other.numerator);
 
   Fraction operator +(Fraction other) => Fraction(
-        numerator * other.denominator + other.numerator * denominator,
-        denominator * other.denominator,
-      );
+    numerator * other.denominator + other.numerator * denominator,
+    denominator * other.denominator,
+  );
 
   Fraction operator -(Fraction other) => Fraction(
-        numerator * other.denominator - other.numerator * denominator,
-        denominator * other.denominator,
-      );
+    numerator * other.denominator - other.numerator * denominator,
+    denominator * other.denominator,
+  );
 
   Decimal toDecimal() =>
       Decimal.fromBigInt(numerator) / Decimal.fromBigInt(denominator);

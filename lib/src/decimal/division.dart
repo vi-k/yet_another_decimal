@@ -17,10 +17,7 @@ final class Division {
 
     return Division._(
       a ~/ b,
-      Decimal.fromBigInt(
-        a.remainder(b),
-        shiftRight: scale,
-      ),
+      Decimal.fromBigInt(a.remainder(b), shiftRight: scale),
     );
   }
 

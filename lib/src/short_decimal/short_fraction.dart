@@ -38,31 +38,31 @@ final class ShortFraction {
   }
 
   const ShortFraction._(this.numerator, this.denominator)
-      : assert(denominator > 0, 'The denominator must be > 0');
+    : assert(denominator > 0, 'The denominator must be > 0');
 
   bool get isNegative => numerator.isNegative;
 
   int get sign => numerator.sign;
 
   ShortFraction operator *(ShortFraction other) => ShortFraction(
-        numerator * other.numerator,
-        denominator * other.denominator,
-      );
+    numerator * other.numerator,
+    denominator * other.denominator,
+  );
 
   ShortFraction operator /(ShortFraction other) => ShortFraction(
-        numerator * other.denominator,
-        denominator * other.numerator,
-      );
+    numerator * other.denominator,
+    denominator * other.numerator,
+  );
 
   ShortFraction operator +(ShortFraction other) => ShortFraction(
-        numerator * other.denominator + other.numerator * denominator,
-        denominator * other.denominator,
-      );
+    numerator * other.denominator + other.numerator * denominator,
+    denominator * other.denominator,
+  );
 
   ShortFraction operator -(ShortFraction other) => ShortFraction(
-        numerator * other.denominator - other.numerator * denominator,
-        denominator * other.denominator,
-      );
+    numerator * other.denominator - other.numerator * denominator,
+    denominator * other.denominator,
+  );
 
   ShortDecimal floor([int fractionDigits = 0]) {
     final scaledNumerator = numerator * ShortDecimal._pow10(fractionDigits);
