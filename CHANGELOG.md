@@ -1,4 +1,4 @@
-## 1.1.0-1.1.1
+## 1.1.0-1.1.2
 
 - Update dependencies.
 - Fix links in README.
