@@ -66,21 +66,61 @@ warning и error. `dart analyze` должен проходить без новы
 
 ## Тесты
 
-Всё в одном файле `test/yet_another_decimal_test.dart`. Структура групп
-повторяет структуру типов: `Decimal`, `Fraction`, `Division`, `ShortDecimal`,
-`ShortFraction`, `ShortDivision`.
+Раскладка — по семействам и темам, файл на тему:
 
-- Проверять через хелперы из шапки файла (`expectDecimal`,
+```
+test/support/expect.dart          хелперы expectDecimal и прочие
+test/support/reference.dart       эталонная модель и генератор
+test/decimal/                     parse, arithmetic, divide, compare,
+test/short_decimal/               convert, format, fraction, division
+test/property_test.dart           законы против эталонной модели
+test/competitors_test.dart        сверка с пакетом `decimal`
+test/defects_test.dart            воспроизводители известных дефектов
+```
+
+Правила:
+
+- Проверять через хелперы из `test/support/expect.dart` (`expectDecimal`,
   `expectShortDecimal`, `expectFraction`, `expectDivision`, `expectDivide`,
-  `expectDouble`), а не голым `expect`. Хелперы заодно проверяют внутреннее
-  представление — передавать `base`, `scale`, `fractionDigits` там, где форма
-  хранения существенна.
+  `expectDouble`), а не голым `expect`.
+- **Внутреннее представление сверять только там, где оно и есть предмет
+  проверки:** `parse`, `toString`, `toStringAsFixed`, `optimize`. В арифметике
+  `base` и `scale` не передавать: форма результата там артефакт алгоритма, и
+  оптимизация законно даёт другую форму при том же значении. `fractionDigits` —
+  свойство значения, а не формы, его передавать можно везде.
+- **Табличные случаи разворачивать наружу `test`,** чтобы каждый стал
+  отдельным тестом с именем:
+
+  ```dart
+  for (final p in [...]) {
+    test('$p', () { ... });
+  }
+  ```
+
+  Цикл внутри одного `test` скрывает все случаи после упавшего. Исключение —
+  циклы, где случаи не независимы (накопление суммы, перебор масштабов одного
+  значения): там добавлять `reason`.
 - Новую операцию покрывать в обоих семействах.
 - Для `ShortDecimal` отдельно покрывать граничные значения `int`.
 - Где `double` теряет точность, а пакет — нет, фиксировать это через
   `expectDouble(..., isValid: false)`.
+- Тест на известный дефект пишется с **правильным** ожиданием и помечается
+  `skip: 'ДN: …'`. Красных тестов в `main` нет; снятие `skip` — критерий
+  готовности правки.
 
-Запуск: `dart test`.
+Язык в тестах: имена групп и тестов — как у соседей по файлу (в перенесённых
+из старого монолита — по-английски, в написанных с нуля — по-русски).
+Пояснения к файлу целиком (`///` в шапке) и к неочевидным ожиданиям —
+по-русски: их читает владелец.
+
+Запуск: `dart test`. Покрытие:
+
+```bash
+dart test --coverage=.coverage
+dart pub global run coverage:format_coverage --lcov --in=.coverage \
+  --out=.coverage/lcov.info --report-on=lib \
+  --packages=.dart_tool/package_config.json
+```
 
 ## Бенчмарки
 
