@@ -1,0 +1,9 @@
+# Everything from .gitignore.
+.dart_tool/
+pubspec.lock
+
+# Working documents for AI agents and the owner — not part of the package.
+AGENTS.md
+CLAUDE.md
+docs/
+.vscode/
