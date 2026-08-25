@@ -14,66 +14,205 @@ import '../support/expect.dart';
 void main() {
   group('ShortDecimal', () {
     group('parse', () {
-      test('0', () {
-        for (final p in [
-          (ShortDecimal.parse('0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('0.0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('.0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('00000.00000'), '0', 0, 0, 0),
-          (ShortDecimal.parse(' 0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('0 '), '0', 0, 0, 0),
-          (ShortDecimal.parse(' 0 '), '0', 0, 0, 0),
-          (ShortDecimal.parse(' 0.0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('0.0 '), '0', 0, 0, 0),
-          (ShortDecimal.parse(' 0.0 '), '0', 0, 0, 0),
-          (ShortDecimal(0) >> 10, '0', 0, 0, 0),
-          (ShortDecimal(0) << 10, '0', 0, 0, 0),
-          (ShortDecimal.parse('-0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('-0.0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('-.0'), '0', 0, 0, 0),
-          (ShortDecimal.parse('-00000.00000'), '0', 0, 0, 0),
-        ]) {
+      group('0', () {
+        test('0', () {
           expectShortDecimal(
-            p.$1,
-            p.$2,
-            base: p.$3,
-            scale: p.$4,
-            fractionDigits: p.$5,
+            ShortDecimal.parse('0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
           );
-        }
+        });
 
-        expect(
-          () => ShortDecimal.parse('0.'),
-          throwsA(
-            predicate(
-              (error) =>
-                  error is FormatException &&
-                  error.message == 'Could not parse $ShortDecimal: 0.',
-            ),
-          ),
-        );
+        test('0.0', () {
+          expectShortDecimal(
+            ShortDecimal.parse('0.0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
 
-        expect(
-          () => ShortDecimal.parse('0.0.'),
-          throwsA(
-            predicate(
-              (error) =>
-                  error is FormatException &&
-                  error.message == 'Could not parse $ShortDecimal: 0.0.',
-            ),
-          ),
-        );
+        test('.0', () {
+          expectShortDecimal(
+            ShortDecimal.parse('.0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
 
-        expect(
-          () => ShortDecimal.parse('0..0'),
-          throwsA(
-            predicate(
-              (error) =>
-                  error is FormatException &&
-                  error.message == 'Could not parse $ShortDecimal: 0..0',
+        test('00000.00000', () {
+          expectShortDecimal(
+            ShortDecimal.parse('00000.00000'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0', () {
+          expectShortDecimal(
+            ShortDecimal.parse(' 0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('0 ', () {
+          expectShortDecimal(
+            ShortDecimal.parse('0 '),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0 ', () {
+          expectShortDecimal(
+            ShortDecimal.parse(' 0 '),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0.0', () {
+          expectShortDecimal(
+            ShortDecimal.parse(' 0.0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('0.0 ', () {
+          expectShortDecimal(
+            ShortDecimal.parse('0.0 '),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0.0 ', () {
+          expectShortDecimal(
+            ShortDecimal.parse(' 0.0 '),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('ShortDecimal(0) >> 10', () {
+          expectShortDecimal(
+            ShortDecimal(0) >> 10,
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('ShortDecimal(0) << 10', () {
+          expectShortDecimal(
+            ShortDecimal(0) << 10,
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-0', () {
+          expectShortDecimal(
+            ShortDecimal.parse('-0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-0.0', () {
+          expectShortDecimal(
+            ShortDecimal.parse('-0.0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-.0', () {
+          expectShortDecimal(
+            ShortDecimal.parse('-.0'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-00000.00000', () {
+          expectShortDecimal(
+            ShortDecimal.parse('-00000.00000'),
+            '0',
+            base: 0,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('0. throws', () {
+          expect(
+            () => ShortDecimal.parse('0.'),
+            throwsA(
+              predicate(
+                (error) =>
+                    error is FormatException &&
+                    error.message == 'Could not parse $ShortDecimal: 0.',
+              ),
             ),
-          ),
-        );
+          );
+        });
+
+        test('0.0. throws', () {
+          expect(
+            () => ShortDecimal.parse('0.0.'),
+            throwsA(
+              predicate(
+                (error) =>
+                    error is FormatException &&
+                    error.message == 'Could not parse $ShortDecimal: 0.0.',
+              ),
+            ),
+          );
+        });
+
+        test('0..0 throws', () {
+          expect(
+            () => ShortDecimal.parse('0..0'),
+            throwsA(
+              predicate(
+                (error) =>
+                    error is FormatException &&
+                    error.message == 'Could not parse $ShortDecimal: 0..0',
+              ),
+            ),
+          );
+        });
       });
 
       test('1', () {

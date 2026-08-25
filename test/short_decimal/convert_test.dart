@@ -17,8 +17,6 @@ void main() {
       expectShortDecimal(
         ShortDecimal.parse('1234567890.123456789'),
         '1234567890.123456789',
-        base: 1234567890123456789,
-        scale: 9,
         fractionDigits: 9,
       );
       expect(ShortDecimal.parse('1234567890.123456789').toInt(), 1234567890);
@@ -155,23 +153,54 @@ void main() {
         isValid: false,
       );
     });
-    test('isInteger', () {
-      for (final p in [
-        (ShortDecimal(0), isTrue),
-        (ShortDecimal(0) >> 10, isTrue),
-        (ShortDecimal(2), isTrue),
-        (ShortDecimal(2) >> 1, isFalse),
-        (ShortDecimal(-2), isTrue),
-        (ShortDecimal(-2) >> 1, isFalse),
-        (ShortDecimal(1111111111111111110), isTrue),
-        (ShortDecimal(1111111111111111110) >> 1, isTrue),
-        (ShortDecimal(1111111111111111110) >> 2, isFalse),
-        (ShortDecimal(-1111111111111111110), isTrue),
-        (ShortDecimal(-1111111111111111110) >> 1, isTrue),
-        (ShortDecimal(-1111111111111111110) >> 2, isFalse),
-      ]) {
-        expect(p.$1.isInteger, p.$2);
-      }
+    group('isInteger', () {
+      test('ShortDecimal(0)', () {
+        expect(ShortDecimal(0).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(0) >> 10', () {
+        expect((ShortDecimal(0) >> 10).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(2)', () {
+        expect(ShortDecimal(2).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(2) >> 1', () {
+        expect((ShortDecimal(2) >> 1).isInteger, isFalse);
+      });
+
+      test('ShortDecimal(-2)', () {
+        expect(ShortDecimal(-2).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(-2) >> 1', () {
+        expect((ShortDecimal(-2) >> 1).isInteger, isFalse);
+      });
+
+      test('ShortDecimal(1111111111111111110)', () {
+        expect(ShortDecimal(1111111111111111110).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(1111111111111111110) >> 1', () {
+        expect((ShortDecimal(1111111111111111110) >> 1).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(1111111111111111110) >> 2', () {
+        expect((ShortDecimal(1111111111111111110) >> 2).isInteger, isFalse);
+      });
+
+      test('ShortDecimal(-1111111111111111110)', () {
+        expect(ShortDecimal(-1111111111111111110).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(-1111111111111111110) >> 1', () {
+        expect((ShortDecimal(-1111111111111111110) >> 1).isInteger, isTrue);
+      });
+
+      test('ShortDecimal(-1111111111111111110) >> 2', () {
+        expect((ShortDecimal(-1111111111111111110) >> 2).isInteger, isFalse);
+      });
     });
   });
 }

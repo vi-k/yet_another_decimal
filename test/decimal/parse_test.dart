@@ -12,66 +12,205 @@ import '../support/expect.dart';
 void main() {
   group('Decimal', () {
     group('parse', () {
-      test('0', () {
-        for (final p in [
-          (Decimal.parse('0'), '0', BigInt.zero, 0, 0),
-          (Decimal.parse('0.0'), '0', BigInt.zero, 1, 0),
-          (Decimal.parse('.0'), '0', BigInt.zero, 1, 0),
-          (Decimal.parse('00000.00000'), '0', BigInt.zero, 5, 0),
-          (Decimal.parse(' 0'), '0', BigInt.zero, 0, 0),
-          (Decimal.parse('0 '), '0', BigInt.zero, 0, 0),
-          (Decimal.parse(' 0 '), '0', BigInt.zero, 0, 0),
-          (Decimal.parse(' 0.0'), '0', BigInt.zero, 1, 0),
-          (Decimal.parse('0.0 '), '0', BigInt.zero, 1, 0),
-          (Decimal.parse(' 0.0 '), '0', BigInt.zero, 1, 0),
-          (Decimal(0) >> 10, '0', BigInt.zero, 10, 0),
-          (Decimal(0) << 10, '0', BigInt.zero, -10, 0),
-          (Decimal.parse('-0'), '0', BigInt.zero, 0, 0),
-          (Decimal.parse('-0.0'), '0', BigInt.zero, 1, 0),
-          (Decimal.parse('-.0'), '0', BigInt.zero, 1, 0),
-          (Decimal.parse('-00000.00000'), '0', BigInt.zero, 5, 0),
-        ]) {
+      group('0', () {
+        test('0', () {
           expectDecimal(
-            p.$1,
-            p.$2,
-            base: p.$3,
-            scale: p.$4,
-            fractionDigits: p.$5,
+            Decimal.parse('0'),
+            '0',
+            base: BigInt.zero,
+            scale: 0,
+            fractionDigits: 0,
           );
-        }
+        });
 
-        expect(
-          () => Decimal.parse('0.'),
-          throwsA(
-            predicate(
-              (error) =>
-                  error is FormatException &&
-                  error.message == 'Could not parse $Decimal: 0.',
-            ),
-          ),
-        );
+        test('0.0', () {
+          expectDecimal(
+            Decimal.parse('0.0'),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
 
-        expect(
-          () => Decimal.parse('0.0.'),
-          throwsA(
-            predicate(
-              (error) =>
-                  error is FormatException &&
-                  error.message == 'Could not parse $Decimal: 0.0.',
-            ),
-          ),
-        );
+        test('.0', () {
+          expectDecimal(
+            Decimal.parse('.0'),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
 
-        expect(
-          () => Decimal.parse('0..0'),
-          throwsA(
-            predicate(
-              (error) =>
-                  error is FormatException &&
-                  error.message == 'Could not parse $Decimal: 0..0',
+        test('00000.00000', () {
+          expectDecimal(
+            Decimal.parse('00000.00000'),
+            '0',
+            base: BigInt.zero,
+            scale: 5,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0', () {
+          expectDecimal(
+            Decimal.parse(' 0'),
+            '0',
+            base: BigInt.zero,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('0 ', () {
+          expectDecimal(
+            Decimal.parse('0 '),
+            '0',
+            base: BigInt.zero,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0 ', () {
+          expectDecimal(
+            Decimal.parse(' 0 '),
+            '0',
+            base: BigInt.zero,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0.0', () {
+          expectDecimal(
+            Decimal.parse(' 0.0'),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
+
+        test('0.0 ', () {
+          expectDecimal(
+            Decimal.parse('0.0 '),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
+
+        test(' 0.0 ', () {
+          expectDecimal(
+            Decimal.parse(' 0.0 '),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
+
+        test('Decimal(0) >> 10', () {
+          expectDecimal(
+            Decimal(0) >> 10,
+            '0',
+            base: BigInt.zero,
+            scale: 10,
+            fractionDigits: 0,
+          );
+        });
+
+        test('Decimal(0) << 10', () {
+          expectDecimal(
+            Decimal(0) << 10,
+            '0',
+            base: BigInt.zero,
+            scale: -10,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-0', () {
+          expectDecimal(
+            Decimal.parse('-0'),
+            '0',
+            base: BigInt.zero,
+            scale: 0,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-0.0', () {
+          expectDecimal(
+            Decimal.parse('-0.0'),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-.0', () {
+          expectDecimal(
+            Decimal.parse('-.0'),
+            '0',
+            base: BigInt.zero,
+            scale: 1,
+            fractionDigits: 0,
+          );
+        });
+
+        test('-00000.00000', () {
+          expectDecimal(
+            Decimal.parse('-00000.00000'),
+            '0',
+            base: BigInt.zero,
+            scale: 5,
+            fractionDigits: 0,
+          );
+        });
+
+        test('0. throws', () {
+          expect(
+            () => Decimal.parse('0.'),
+            throwsA(
+              predicate(
+                (error) =>
+                    error is FormatException &&
+                    error.message == 'Could not parse $Decimal: 0.',
+              ),
             ),
-          ),
-        );
+          );
+        });
+
+        test('0.0. throws', () {
+          expect(
+            () => Decimal.parse('0.0.'),
+            throwsA(
+              predicate(
+                (error) =>
+                    error is FormatException &&
+                    error.message == 'Could not parse $Decimal: 0.0.',
+              ),
+            ),
+          );
+        });
+
+        test('0..0 throws', () {
+          expect(
+            () => Decimal.parse('0..0'),
+            throwsA(
+              predicate(
+                (error) =>
+                    error is FormatException &&
+                    error.message == 'Could not parse $Decimal: 0..0',
+              ),
+            ),
+          );
+        });
       });
 
       test('1', () {

@@ -153,23 +153,57 @@ void main() {
         isValid: false,
       );
     });
-    test('isInteger', () {
-      for (final p in [
-        (Decimal(0), isTrue),
-        (Decimal(0) >> 10, isTrue),
-        (Decimal(2), isTrue),
-        (Decimal(2) >> 1, isFalse),
-        (Decimal(-2), isTrue),
-        (Decimal(-2) >> 1, isFalse),
-        (Decimal.parse('12345678901234567890'), isTrue),
-        (Decimal.parse('12345678901234567890') >> 1, isTrue),
-        (Decimal.parse('12345678901234567890') >> 2, isFalse),
-        (Decimal.parse('-12345678901234567890'), isTrue),
-        (Decimal.parse('-12345678901234567890') >> 1, isTrue),
-        (Decimal.parse('-12345678901234567890') >> 2, isFalse),
-      ]) {
-        expect(p.$1.isInteger, p.$2);
-      }
+    group('isInteger', () {
+      test('Decimal(0)', () {
+        expect(Decimal(0).isInteger, isTrue);
+      });
+
+      test('Decimal(0) >> 10', () {
+        expect((Decimal(0) >> 10).isInteger, isTrue);
+      });
+
+      test('Decimal(2)', () {
+        expect(Decimal(2).isInteger, isTrue);
+      });
+
+      test('Decimal(2) >> 1', () {
+        expect((Decimal(2) >> 1).isInteger, isFalse);
+      });
+
+      test('Decimal(-2)', () {
+        expect(Decimal(-2).isInteger, isTrue);
+      });
+
+      test('Decimal(-2) >> 1', () {
+        expect((Decimal(-2) >> 1).isInteger, isFalse);
+      });
+
+      test('12345678901234567890', () {
+        expect(Decimal.parse('12345678901234567890').isInteger, isTrue);
+      });
+
+      test('12345678901234567890 >> 1', () {
+        expect((Decimal.parse('12345678901234567890') >> 1).isInteger, isTrue);
+      });
+
+      test('12345678901234567890 >> 2', () {
+        expect((Decimal.parse('12345678901234567890') >> 2).isInteger, isFalse);
+      });
+
+      test('-12345678901234567890', () {
+        expect(Decimal.parse('-12345678901234567890').isInteger, isTrue);
+      });
+
+      test('-12345678901234567890 >> 1', () {
+        expect((Decimal.parse('-12345678901234567890') >> 1).isInteger, isTrue);
+      });
+
+      test('-12345678901234567890 >> 2', () {
+        expect(
+          (Decimal.parse('-12345678901234567890') >> 2).isInteger,
+          isFalse,
+        );
+      });
     });
   });
 }

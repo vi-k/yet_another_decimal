@@ -145,40 +145,77 @@ void main() {
         );
       });
     });
-    test('clamp', () {
-      for (final p in [
-        (Decimal(5), Decimal(3), Decimal(7), '5'),
-        (Decimal(3), Decimal(3), Decimal(7), '3'),
-        (Decimal(1), Decimal(3), Decimal(7), '3'),
-        (Decimal(7), Decimal(3), Decimal(7), '7'),
-        (Decimal(9), Decimal(3), Decimal(7), '7'),
-        (Decimal(-5), Decimal(-7), Decimal(-3), '-5'),
-        (Decimal(-3), Decimal(-7), Decimal(-3), '-3'),
-        (Decimal(-1), Decimal(-7), Decimal(-3), '-3'),
-        (Decimal(-7), Decimal(-7), Decimal(-3), '-7'),
-        (Decimal(-9), Decimal(-7), Decimal(-3), '-7'),
-        (Decimal(500), Decimal(4) << 2, Decimal(6) << 2, '500'),
-        (
-          Decimal(5) >> 2,
-          Decimal.parse('0.0400'),
-          Decimal.parse('0.060000'),
-          '0.05',
-        ),
-      ]) {
-        expectDecimal(p.$1.clamp(p.$2, p.$3), p.$4);
-      }
+    group('clamp', () {
+      test('Decimal(5) in [Decimal(3), Decimal(7)]', () {
+        expectDecimal(Decimal(5).clamp(Decimal(3), Decimal(7)), '5');
+      });
 
-      expect(
-        () => Decimal(0).clamp(Decimal(2), Decimal(1)),
-        throwsA(
-          predicate(
-            (error) =>
-                error is ArgumentError &&
-                error.message ==
-                    'The lowerLimit must be no greater than upperLimit',
+      test('Decimal(3) in [Decimal(3), Decimal(7)]', () {
+        expectDecimal(Decimal(3).clamp(Decimal(3), Decimal(7)), '3');
+      });
+
+      test('Decimal(1) in [Decimal(3), Decimal(7)]', () {
+        expectDecimal(Decimal(1).clamp(Decimal(3), Decimal(7)), '3');
+      });
+
+      test('Decimal(7) in [Decimal(3), Decimal(7)]', () {
+        expectDecimal(Decimal(7).clamp(Decimal(3), Decimal(7)), '7');
+      });
+
+      test('Decimal(9) in [Decimal(3), Decimal(7)]', () {
+        expectDecimal(Decimal(9).clamp(Decimal(3), Decimal(7)), '7');
+      });
+
+      test('Decimal(-5) in [Decimal(-7), Decimal(-3)]', () {
+        expectDecimal(Decimal(-5).clamp(Decimal(-7), Decimal(-3)), '-5');
+      });
+
+      test('Decimal(-3) in [Decimal(-7), Decimal(-3)]', () {
+        expectDecimal(Decimal(-3).clamp(Decimal(-7), Decimal(-3)), '-3');
+      });
+
+      test('Decimal(-1) in [Decimal(-7), Decimal(-3)]', () {
+        expectDecimal(Decimal(-1).clamp(Decimal(-7), Decimal(-3)), '-3');
+      });
+
+      test('Decimal(-7) in [Decimal(-7), Decimal(-3)]', () {
+        expectDecimal(Decimal(-7).clamp(Decimal(-7), Decimal(-3)), '-7');
+      });
+
+      test('Decimal(-9) in [Decimal(-7), Decimal(-3)]', () {
+        expectDecimal(Decimal(-9).clamp(Decimal(-7), Decimal(-3)), '-7');
+      });
+
+      test('Decimal(500) in [Decimal(4) << 2, Decimal(6) << 2]', () {
+        expectDecimal(
+          Decimal(500).clamp(Decimal(4) << 2, Decimal(6) << 2),
+          '500',
+        );
+      });
+
+      test('Decimal(5) >> 2 in [0.0400, 0.060000]', () {
+        expectDecimal(
+          (Decimal(5) >> 2).clamp(
+            Decimal.parse('0.0400'),
+            Decimal.parse('0.060000'),
           ),
-        ),
-      );
+          '0.05',
+        );
+      });
+
+      test('lowerLimit greater than upperLimit', () {
+        expect(
+          () => Decimal(0).clamp(Decimal(2), Decimal(1)),
+          throwsA(
+            predicate(
+              (error) =>
+                  error is ArgumentError &&
+                  error.message ==
+                      'The lowerLimit must be no greater than upperLimit',
+            ),
+          ),
+        );
+      });
     });
   });
 }

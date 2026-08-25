@@ -11,75 +11,346 @@ import '../support/expect.dart';
 
 void main() {
   group('Decimal', () {
-    test('toString', () {
-      for (final p in [
-        (Decimal(0), '0', BigInt.from(0), 0, 0),
-        (Decimal(0) >> 1, '0', BigInt.from(0), 1, 0),
-        (Decimal(0) >> 2, '0', BigInt.from(0), 2, 0),
-        (Decimal(0) >> 3, '0', BigInt.from(0), 3, 0),
-        (Decimal(1), '1', BigInt.from(1), 0, 0),
-        (Decimal(1) >> 1, '0.1', BigInt.from(1), 1, 1),
-        (Decimal(1) >> 2, '0.01', BigInt.from(1), 2, 2),
-        (Decimal(1) >> 3, '0.001', BigInt.from(1), 3, 3),
-        (Decimal(10), '10', BigInt.from(10), 0, 0),
-        (Decimal(1) << 1, '10', BigInt.from(1), -1, 0),
-        (Decimal(100), '100', BigInt.from(100), 0, 0),
-        (Decimal(1) << 2, '100', BigInt.from(1), -2, 0),
-        (Decimal(1000), '1000', BigInt.from(1000), 0, 0),
-        (Decimal(1) << 3, '1000', BigInt.from(1), -3, 0),
-        (Decimal(1000) >> 1, '100', BigInt.from(1000), 1, 0),
-        (Decimal(1000) >> 2, '10', BigInt.from(1000), 2, 0),
-        (Decimal(1000) >> 3, '1', BigInt.from(1000), 3, 0),
-        (Decimal(1000) >> 4, '0.1', BigInt.from(1000), 4, 1),
-        (Decimal(1000) >> 5, '0.01', BigInt.from(1000), 5, 2),
-        (Decimal(1000) >> 6, '0.001', BigInt.from(1000), 6, 3),
-        (Decimal(1234567890), '1234567890', BigInt.from(1234567890), 0, 0),
-        (Decimal(1234567890) >> 1, '123456789', BigInt.from(1234567890), 1, 0),
-        (Decimal(1234567890) >> 2, '12345678.9', BigInt.from(1234567890), 2, 1),
-        (Decimal(1234567890) >> 3, '1234567.89', BigInt.from(1234567890), 3, 2),
-        (Decimal(1234567890) >> 4, '123456.789', BigInt.from(1234567890), 4, 3),
-        (Decimal(1234567890) >> 5, '12345.6789', BigInt.from(1234567890), 5, 4),
-        (Decimal(1234567890) >> 6, '1234.56789', BigInt.from(1234567890), 6, 5),
-        (Decimal(1234567890) >> 7, '123.456789', BigInt.from(1234567890), 7, 6),
-        (Decimal(1234567890) >> 8, '12.3456789', BigInt.from(1234567890), 8, 7),
-        (Decimal(1234567890) >> 9, '1.23456789', BigInt.from(1234567890), 9, 8),
-        (
+    group('toString', () {
+      test('Decimal(0)', () {
+        expectDecimal(
+          Decimal(0),
+          '0',
+          base: BigInt.from(0),
+          scale: 0,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(0) >> 1', () {
+        expectDecimal(
+          Decimal(0) >> 1,
+          '0',
+          base: BigInt.from(0),
+          scale: 1,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(0) >> 2', () {
+        expectDecimal(
+          Decimal(0) >> 2,
+          '0',
+          base: BigInt.from(0),
+          scale: 2,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(0) >> 3', () {
+        expectDecimal(
+          Decimal(0) >> 3,
+          '0',
+          base: BigInt.from(0),
+          scale: 3,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1)', () {
+        expectDecimal(
+          Decimal(1),
+          '1',
+          base: BigInt.from(1),
+          scale: 0,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1) >> 1', () {
+        expectDecimal(
+          Decimal(1) >> 1,
+          '0.1',
+          base: BigInt.from(1),
+          scale: 1,
+          fractionDigits: 1,
+        );
+      });
+
+      test('Decimal(1) >> 2', () {
+        expectDecimal(
+          Decimal(1) >> 2,
+          '0.01',
+          base: BigInt.from(1),
+          scale: 2,
+          fractionDigits: 2,
+        );
+      });
+
+      test('Decimal(1) >> 3', () {
+        expectDecimal(
+          Decimal(1) >> 3,
+          '0.001',
+          base: BigInt.from(1),
+          scale: 3,
+          fractionDigits: 3,
+        );
+      });
+
+      test('Decimal(10)', () {
+        expectDecimal(
+          Decimal(10),
+          '10',
+          base: BigInt.from(10),
+          scale: 0,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1) << 1', () {
+        expectDecimal(
+          Decimal(1) << 1,
+          '10',
+          base: BigInt.from(1),
+          scale: -1,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(100)', () {
+        expectDecimal(
+          Decimal(100),
+          '100',
+          base: BigInt.from(100),
+          scale: 0,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1) << 2', () {
+        expectDecimal(
+          Decimal(1) << 2,
+          '100',
+          base: BigInt.from(1),
+          scale: -2,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1000)', () {
+        expectDecimal(
+          Decimal(1000),
+          '1000',
+          base: BigInt.from(1000),
+          scale: 0,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1) << 3', () {
+        expectDecimal(
+          Decimal(1) << 3,
+          '1000',
+          base: BigInt.from(1),
+          scale: -3,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1000) >> 1', () {
+        expectDecimal(
+          Decimal(1000) >> 1,
+          '100',
+          base: BigInt.from(1000),
+          scale: 1,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1000) >> 2', () {
+        expectDecimal(
+          Decimal(1000) >> 2,
+          '10',
+          base: BigInt.from(1000),
+          scale: 2,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1000) >> 3', () {
+        expectDecimal(
+          Decimal(1000) >> 3,
+          '1',
+          base: BigInt.from(1000),
+          scale: 3,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1000) >> 4', () {
+        expectDecimal(
+          Decimal(1000) >> 4,
+          '0.1',
+          base: BigInt.from(1000),
+          scale: 4,
+          fractionDigits: 1,
+        );
+      });
+
+      test('Decimal(1000) >> 5', () {
+        expectDecimal(
+          Decimal(1000) >> 5,
+          '0.01',
+          base: BigInt.from(1000),
+          scale: 5,
+          fractionDigits: 2,
+        );
+      });
+
+      test('Decimal(1000) >> 6', () {
+        expectDecimal(
+          Decimal(1000) >> 6,
+          '0.001',
+          base: BigInt.from(1000),
+          scale: 6,
+          fractionDigits: 3,
+        );
+      });
+
+      test('Decimal(1234567890)', () {
+        expectDecimal(
+          Decimal(1234567890),
+          '1234567890',
+          base: BigInt.from(1234567890),
+          scale: 0,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1234567890) >> 1', () {
+        expectDecimal(
+          Decimal(1234567890) >> 1,
+          '123456789',
+          base: BigInt.from(1234567890),
+          scale: 1,
+          fractionDigits: 0,
+        );
+      });
+
+      test('Decimal(1234567890) >> 2', () {
+        expectDecimal(
+          Decimal(1234567890) >> 2,
+          '12345678.9',
+          base: BigInt.from(1234567890),
+          scale: 2,
+          fractionDigits: 1,
+        );
+      });
+
+      test('Decimal(1234567890) >> 3', () {
+        expectDecimal(
+          Decimal(1234567890) >> 3,
+          '1234567.89',
+          base: BigInt.from(1234567890),
+          scale: 3,
+          fractionDigits: 2,
+        );
+      });
+
+      test('Decimal(1234567890) >> 4', () {
+        expectDecimal(
+          Decimal(1234567890) >> 4,
+          '123456.789',
+          base: BigInt.from(1234567890),
+          scale: 4,
+          fractionDigits: 3,
+        );
+      });
+
+      test('Decimal(1234567890) >> 5', () {
+        expectDecimal(
+          Decimal(1234567890) >> 5,
+          '12345.6789',
+          base: BigInt.from(1234567890),
+          scale: 5,
+          fractionDigits: 4,
+        );
+      });
+
+      test('Decimal(1234567890) >> 6', () {
+        expectDecimal(
+          Decimal(1234567890) >> 6,
+          '1234.56789',
+          base: BigInt.from(1234567890),
+          scale: 6,
+          fractionDigits: 5,
+        );
+      });
+
+      test('Decimal(1234567890) >> 7', () {
+        expectDecimal(
+          Decimal(1234567890) >> 7,
+          '123.456789',
+          base: BigInt.from(1234567890),
+          scale: 7,
+          fractionDigits: 6,
+        );
+      });
+
+      test('Decimal(1234567890) >> 8', () {
+        expectDecimal(
+          Decimal(1234567890) >> 8,
+          '12.3456789',
+          base: BigInt.from(1234567890),
+          scale: 8,
+          fractionDigits: 7,
+        );
+      });
+
+      test('Decimal(1234567890) >> 9', () {
+        expectDecimal(
+          Decimal(1234567890) >> 9,
+          '1.23456789',
+          base: BigInt.from(1234567890),
+          scale: 9,
+          fractionDigits: 8,
+        );
+      });
+
+      test('Decimal(1234567890) >> 10', () {
+        expectDecimal(
           Decimal(1234567890) >> 10,
           '0.123456789',
-          BigInt.from(1234567890),
-          10,
-          9,
-        ),
-        (
+          base: BigInt.from(1234567890),
+          scale: 10,
+          fractionDigits: 9,
+        );
+      });
+
+      test('Decimal(1234567890) >> 11', () {
+        expectDecimal(
           Decimal(1234567890) >> 11,
           '0.0123456789',
-          BigInt.from(1234567890),
-          11,
-          10,
-        ),
-        (
+          base: BigInt.from(1234567890),
+          scale: 11,
+          fractionDigits: 10,
+        );
+      });
+
+      test('Decimal(1234567890) >> 12', () {
+        expectDecimal(
           Decimal(1234567890) >> 12,
           '0.00123456789',
-          BigInt.from(1234567890),
-          12,
-          11,
-        ),
-        (
+          base: BigInt.from(1234567890),
+          scale: 12,
+          fractionDigits: 11,
+        );
+      });
+
+      test('Decimal(1234567890) >> 13', () {
+        expectDecimal(
           Decimal(1234567890) >> 13,
           '0.000123456789',
-          BigInt.from(1234567890),
-          13,
-          12,
-        ),
-      ]) {
-        expectDecimal(
-          p.$1,
-          p.$2,
-          base: p.$3,
-          scale: p.$4,
-          fractionDigits: p.$5,
+          base: BigInt.from(1234567890),
+          scale: 13,
+          fractionDigits: 12,
         );
-      }
+      });
     });
     group('toStringAsFixed', () {
       test('0', () {
@@ -237,6 +508,57 @@ void main() {
           v2.toStringAsFixed(30),
           '-12345678901234567890.123456789012345678900000000000',
         );
+      });
+    });
+
+    // `optimize` fills the internal cache of the normalized representation.
+    // Nothing observable may change: neither the value, nor the stored form,
+    // nor the result of a repeated call.
+    group('optimize', () {
+      for (final source in [
+        '0',
+        '0.000',
+        '1',
+        '1.100',
+        '-1.100',
+        '1000',
+        '12345678901234567890.1234567890',
+      ]) {
+        test(source, () {
+          final value = Decimal.parse(source);
+          final base = value.base;
+          final scale = value.scale;
+          final fractionDigits = value.fractionDigits;
+          final str = value.toString();
+
+          value.optimize();
+          expectDecimal(
+            value,
+            str,
+            base: base,
+            scale: scale,
+            fractionDigits: fractionDigits,
+          );
+
+          value.optimize();
+          expectDecimal(
+            value,
+            str,
+            base: base,
+            scale: scale,
+            fractionDigits: fractionDigits,
+          );
+        });
+      }
+
+      test('optimized equals not optimized', () {
+        final optimized = Decimal(1000) >> 5;
+        final asIs = Decimal(1000) >> 5;
+        optimized.optimize();
+
+        expect(optimized == asIs, isTrue);
+        expect(optimized.hashCode == asIs.hashCode, isTrue);
+        expect(optimized.compareTo(asIs), 0);
       });
     });
   });
