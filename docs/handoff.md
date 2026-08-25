@@ -8,9 +8,11 @@
 
 ## Чем занимаемся
 
-Ничего в работе. Только что закончена первичная настройка проекта под работу
-с ИИ-агентами: `AGENTS.md`, `CLAUDE.md`, `docs/`. Отчёт —
-`docs/records/2026-08-25[1]-ai-onboarding-report.md`.
+Ничего в работе. Сделаны: первичная настройка проекта под работу с
+ИИ-агентами (`AGENTS.md`, `CLAUDE.md`, `docs/`) и починка секции `exclude` в
+обоих `analysis_options.yaml`. Отчёты —
+`docs/records/2026-08-25[1]-ai-onboarding-report.md` и
+`docs/records/2026-08-25[2]-analysis-options-report.md`.
 
 Следующий шаг определяет владелец. В `docs/backlog.md` шесть его записей,
 самая крупная — dartdoc для публичного API.
@@ -27,17 +29,11 @@
 |:--|:--|
 | `dart test` | 60 тестов, все проходят |
 | `dart format --output=none --set-exit-if-changed .` | чисто, 25 файлов |
-| `dart analyze` | 3 замечания, все ниже |
+| `dart analyze` | 1 замечание, ниже |
 
-Замечания `dart analyze` — фоновые, ни одно не относится к логике пакета:
-
-1. `analysis_options.yaml:6:5` — `invalid_section_format` для секции
-   `exclude`. Анализатор ждёт список, в файле — карта `'путь': true`. То же
-   самое в `example/analysis_options.yaml:6:5`. Из-за этого секция `exclude`
-   сейчас **не действует**; на результат не влияет, потому что перечисленных
-   в ней каталогов (`web/`, `build/`, `assets/`) в проекте нет.
-2. `example/lib/src/utils/output.dart:3:25` — `use_named_constants`, предложено
-   взять `Color256.gray12` вместо конструктора.
+`example/lib/src/utils/output.dart:3:25` — `use_named_constants`, предложено
+взять `Color256.gray12` вместо конструктора. Единственное замечание на весь
+проект, в `lib/` чисто.
 
 ## Известные пробелы
 
