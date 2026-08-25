@@ -13,5 +13,7 @@ dependencies:
   meta: ^1.17.0
 
 dev_dependencies:
+  # Reference implementation the test suite cross-checks against.
+  decimal: ^3.2.6
   lints: ^6.0.0
   test: ^1.26.3
