@@ -374,5 +374,128 @@ void main() {
         );
       });
     });
+
+    group('toStringAsFixed', () {
+      test('0', () {
+        expect(0.0.toStringAsFixed(0), '0');
+        expect(ShortDecimal(0).toStringAsFixed(0), '0');
+
+        expect(0.0.toStringAsFixed(1), '0.0');
+        expect(ShortDecimal(0).toStringAsFixed(1), '0.0');
+
+        expect(0.0.toStringAsFixed(2), '0.00');
+        expect(ShortDecimal(0).toStringAsFixed(2), '0.00');
+
+        // В отличие от Decimal, здесь нормализация немедленная: ноль всегда
+        // хранится как (0, 0), масштаба у него не остаётся.
+        final v = ShortDecimal(0, shiftRight: 2);
+        expectShortDecimal(v, '0', base: 0, scale: 0, fractionDigits: 0);
+        expect(v.toStringAsFixed(0), '0');
+        expect(v.toStringAsFixed(1), '0.0');
+        expect(v.toStringAsFixed(2), '0.00');
+      });
+
+      test('small', () {
+        // +n
+        var v1 = 3.75;
+        var v2 = ShortDecimal.parse('3.75');
+        var v3 = ShortDecimal(37500, shiftRight: 4);
+        expectShortDecimal(v3, '3.75', base: 375, scale: 2, fractionDigits: 2);
+
+        expect(v1.toStringAsFixed(0), '4');
+        expect(v2.toStringAsFixed(0), '4');
+        expect(v3.toStringAsFixed(0), '4');
+
+        expect(v1.toStringAsFixed(1), '3.8');
+        expect(v2.toStringAsFixed(1), '3.8');
+        expect(v3.toStringAsFixed(1), '3.8');
+
+        expect(v1.toStringAsFixed(2), '3.75');
+        expect(v2.toStringAsFixed(2), '3.75');
+        expect(v3.toStringAsFixed(2), '3.75');
+
+        expect(v1.toStringAsFixed(3), '3.750');
+        expect(v2.toStringAsFixed(3), '3.750');
+        expect(v3.toStringAsFixed(3), '3.750');
+
+        // -n
+        v1 = -3.75;
+        v2 = ShortDecimal.parse('-3.75');
+        v3 = ShortDecimal(-37500, shiftRight: 4);
+        expectShortDecimal(
+          v3,
+          '-3.75',
+          base: -375,
+          scale: 2,
+          fractionDigits: 2,
+        );
+
+        expect(v1.toStringAsFixed(0), '-4');
+        expect(v2.toStringAsFixed(0), '-4');
+        expect(v3.toStringAsFixed(0), '-4');
+
+        expect(v1.toStringAsFixed(1), '-3.8');
+        expect(v2.toStringAsFixed(1), '-3.8');
+        expect(v3.toStringAsFixed(1), '-3.8');
+
+        expect(v1.toStringAsFixed(2), '-3.75');
+        expect(v2.toStringAsFixed(2), '-3.75');
+        expect(v3.toStringAsFixed(2), '-3.75');
+
+        expect(v1.toStringAsFixed(3), '-3.750');
+        expect(v2.toStringAsFixed(3), '-3.750');
+        expect(v3.toStringAsFixed(3), '-3.750');
+      });
+
+      test('big', () {
+        // Предел здесь — int64, поэтому значение короче, чем у Decimal:
+        // база 123456789123456789 — восемнадцать знаков.
+        // +n
+        var v1 = ShortDecimal.parse('123456789.123456789');
+        var v2 = ShortDecimal(1234567891234567890, shiftRight: 10);
+        expectShortDecimal(
+          v2,
+          '123456789.123456789',
+          base: 123456789123456789,
+          scale: 9,
+          fractionDigits: 9,
+        );
+
+        expect(v1.toStringAsFixed(0), '123456789');
+        expect(v2.toStringAsFixed(0), '123456789');
+
+        expect(v1.toStringAsFixed(5), '123456789.12346');
+        expect(v2.toStringAsFixed(5), '123456789.12346');
+
+        expect(v1.toStringAsFixed(9), '123456789.123456789');
+        expect(v2.toStringAsFixed(9), '123456789.123456789');
+
+        expect(v1.toStringAsFixed(12), '123456789.123456789000');
+        expect(v2.toStringAsFixed(12), '123456789.123456789000');
+
+        // -n
+        v1 = ShortDecimal.parse('-123456789.123456789');
+        v2 = ShortDecimal(-1234567891234567890, shiftRight: 10);
+        expectShortDecimal(
+          v2,
+          '-123456789.123456789',
+          base: -123456789123456789,
+          scale: 9,
+          fractionDigits: 9,
+        );
+
+        expect(v1.toStringAsFixed(0), '-123456789');
+        expect(v2.toStringAsFixed(0), '-123456789');
+
+        expect(v1.toStringAsFixed(5), '-123456789.12346');
+        expect(v2.toStringAsFixed(5), '-123456789.12346');
+
+        expect(v1.toStringAsFixed(9), '-123456789.123456789');
+        expect(v2.toStringAsFixed(9), '-123456789.123456789');
+
+        expect(v1.toStringAsFixed(12), '-123456789.123456789000');
+        expect(v2.toStringAsFixed(12), '-123456789.123456789000');
+      });
+    });
   });
 }
