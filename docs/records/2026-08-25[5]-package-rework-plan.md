@@ -127,8 +127,10 @@
 
 Всё аддитивно, ничего не ломается.
 
-1. `abstract interface class DecimalApi<T extends DecimalApi<T>>`, оба семейства
-   его реализуют.
+1. `abstract interface class FixedPoint<T extends FixedPoint<T>>` в
+   `lib/src/fixed_point.dart`, оба семейства его реализуют. В 1.2.0 наружу не
+   экспортируется. Имя выбрано с расчётом на то, что когда-нибудь он может
+   стать публичным супертипом в роли `num` для `int` и `double`.
 2. Тест симметрии: сверка наборов публичных членов плюс явный список осознанных
    расхождений.
 3. `lib/src/bridge.dart` — `ShortDecimal.toDecimal()` и
