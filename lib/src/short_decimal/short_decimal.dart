@@ -302,32 +302,16 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Whether this decimal is smaller than [other].
-  bool operator <(ShortDecimal other) {
-    final (a, b, _) = _align(other);
-
-    return a < b;
-  }
+  bool operator <(ShortDecimal other) => _compare(other) < 0;
 
   /// Whether this decimal is smaller than or equal to [other].
-  bool operator <=(ShortDecimal other) {
-    final (a, b, _) = _align(other);
-
-    return a <= b;
-  }
+  bool operator <=(ShortDecimal other) => _compare(other) <= 0;
 
   /// Whether this decimal is greater than [other].
-  bool operator >(ShortDecimal other) {
-    final (a, b, _) = _align(other);
-
-    return a > b;
-  }
+  bool operator >(ShortDecimal other) => _compare(other) > 0;
 
   /// Whether this decimal is greater than or equal to [other].
-  bool operator >=(ShortDecimal other) {
-    final (a, b, _) = _align(other);
-
-    return a >= b;
-  }
+  bool operator >=(ShortDecimal other) => _compare(other) >= 0;
 
   /// Shifts a decimal relative to the decimal point to the left.
   ///
@@ -377,25 +361,46 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     fractionDigits,
     (result, divisor) =>
         isNegative && base % divisor != 0 ? result - 1 : result,
+    onDivisorOverflow: (_) => isNegative ? -1 : 0,
   );
 
   /// Rounds to the closest decimal with [fractionDigits].
-  ShortDecimal round([int fractionDigits = 0]) =>
-      _dropFraction(fractionDigits, (result, divisor) {
-        final remainder = base.remainder(divisor).abs();
-        return remainder >= divisor - remainder ? result + base.sign : result;
-      });
+  ShortDecimal round([int fractionDigits = 0]) => _dropFraction(
+    fractionDigits,
+    (result, divisor) {
+      final remainder = base.remainder(divisor).abs();
+      return remainder >= divisor - remainder ? result + base.sign : result;
+    },
+    onDivisorOverflow: (exponent) {
+      // Half of the divisor still fits into int64 at the exponent of 19 only:
+      // 10^19 / 2 is 5·10^18 while int64 holds about 9.22·10^18. Above that
+      // every base is closer to zero than to the divisor.
+      if (exponent > _maxPow10Exponent + 1) {
+        return 0;
+      }
+
+      // The same as |base| >= 5·10^18, written without a number that a
+      // JavaScript one cannot hold.
+      final halves = base ~/ _pow10Table[_maxPow10Exponent];
+
+      return halves >= 5 || halves <= -5 ? base.sign : 0;
+    },
+  );
 
   /// Rounds the decimal towards infinity to [fractionDigits].
   ShortDecimal ceil([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) =>
         !isNegative && base % divisor != 0 ? result + 1 : result,
+    onDivisorOverflow: (_) => !isNegative && base != 0 ? 1 : 0,
   );
 
   /// Rounds the decimal towards zero to [fractionDigits].
-  ShortDecimal truncate([int fractionDigits = 0]) =>
-      _dropFraction(fractionDigits, (result, divisor) => result);
+  ShortDecimal truncate([int fractionDigits = 0]) => _dropFraction(
+    fractionDigits,
+    (result, divisor) => result,
+    onDivisorOverflow: (_) => 0,
+  );
 
   /// Returns this decimal clamped to be in the range [lowerLimit]-[upperLimit].
   ///
@@ -438,11 +443,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// Returns a negative number if this is less than other, zero if they are
   /// equal, and a positive number if this is greater than other.
   @override
-  int compareTo(ShortDecimal other) {
-    final (a, b, _) = _align(other);
-
-    return a.compareTo(b).sign;
-  }
+  int compareTo(ShortDecimal other) => _compare(other);
 
   /// Whether this decimal is equal to [other].
   @override
@@ -452,9 +453,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     }
 
     if (other is ShortDecimal) {
-      final (a, b, _) = _align(other);
-
-      return a == b;
+      return _compare(other) == 0;
     }
 
     return false;
@@ -548,9 +547,85 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     }
   }
 
+  /// Ten to the power of [exponent].
+  ///
+  /// Only the powers that fit into int64 are tabulated: 10^19 already wraps
+  /// around into a negative number, and `math.pow` reports that silently.
+  /// Callers that can be given a bigger exponent have to handle it themselves
+  /// — see [_compareScaled] and [_dropFraction].
   static int _pow10(int exponent) {
     assert(exponent >= 0, "exponent can't be negative");
-    return math.pow(10, exponent) as int;
+
+    // TODO(vi.k): ShortFraction is the last caller that can overflow here.
+    return exponent <= _maxPow10Exponent
+        ? _pow10Table[exponent]
+        : math.pow(10, exponent) as int;
+  }
+
+  /// The largest power of ten that fits into int64.
+  static const _maxPow10Exponent = 18;
+
+  /// Powers of ten from `10^0` to `10^_maxPow10Exponent`.
+  ///
+  /// Built rather than written out: the last three do not survive a round trip
+  /// through a JavaScript number, and a literal would say they do.
+  static final List<int> _pow10Table = () {
+    final table = List<int>.filled(_maxPow10Exponent + 1, 1);
+    for (var i = 1; i < table.length; i++) {
+      table[i] = table[i - 1] * 10;
+    }
+
+    return table;
+  }();
+
+  /// Compares [value] with `scaled * 10^exponent` without overflowing.
+  ///
+  /// The alignment of two decimals multiplies one of the bases by a power of
+  /// ten, and that product is exactly what overflows int64 — silently, and
+  /// with a change of sign at 10^19. Here the multiplication is done only when
+  /// it is known to fit; otherwise the comparison is answered by dividing,
+  /// which cannot overflow.
+  static int _compareScaled(int value, int scaled, int exponent) {
+    if (exponent <= _maxPow10Exponent) {
+      final limit = _pow10Table[_maxPow10Exponent - exponent];
+
+      // |scaled| * 10^exponent < 10^18, so the product is well inside int64.
+      if (scaled > -limit && scaled < limit) {
+        return value.compareTo(scaled * _pow10Table[exponent]).sign;
+      }
+    }
+
+    // value == quotient * 10^exponent + remainder, and the two parts have the
+    // same sign, so the answer is decided by the quotient and, when the
+    // quotients match, by the remainder. Above 10^18 there is nothing to
+    // divide by: any base is smaller than the divisor.
+    final (quotient, remainder) = exponent > _maxPow10Exponent
+        ? (0, value)
+        : (
+            value ~/ _pow10Table[exponent],
+            value.remainder(_pow10Table[exponent]),
+          );
+
+    return quotient != scaled
+        ? quotient.compareTo(scaled).sign
+        : remainder.sign;
+  }
+
+  /// Compares this to [other] the way [compareTo] does, without aligning.
+  ///
+  /// Decimal has no such method: BigInt does not overflow, so there the plain
+  /// alignment is both correct and shorter.
+  int _compare(ShortDecimal other) {
+    final as = scale;
+    final bs = other.scale;
+
+    if (as == bs) {
+      return base.compareTo(other.base).sign;
+    }
+
+    return as > bs
+        ? _compareScaled(base, other.base, as - bs)
+        : -_compareScaled(other.base, base, bs - as);
   }
 
   (int, int, int) _align(ShortDecimal other) {
@@ -570,13 +645,23 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
 
   ShortDecimal _dropFraction(
     int fractionDigits,
-    int Function(int result, int divisor) callback,
-  ) {
+    int Function(int result, int divisor) callback, {
+    required int Function(int exponent) onDivisorOverflow,
+  }) {
     if (scale <= fractionDigits) {
       return this;
     }
 
-    final divisor = _pow10(scale - fractionDigits);
+    final exponent = scale - fractionDigits;
+
+    // There is no divisor to divide by above 10^18, and no need for one: it is
+    // bigger than any base, so the quotient is zero and the remainder is the
+    // whole base. What is left is the rule of the calling method.
+    if (exponent > _maxPow10Exponent) {
+      return ShortDecimal._pack(onDivisorOverflow(exponent), fractionDigits);
+    }
+
+    final divisor = _pow10(exponent);
     final result = callback(base ~/ divisor, divisor);
 
     return ShortDecimal._pack(result, fractionDigits);

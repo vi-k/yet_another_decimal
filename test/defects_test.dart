@@ -11,7 +11,6 @@ library;
 import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
-const _skip2 = 'Д2: _pow10 переполняется';
 const _skip5 = 'Д5: toStringAsFixed не добивает нулями';
 const _skip6 = 'Д6: divideWithRemainder падает под ассертами';
 const _skip7 = 'Д7: ShortDecimal.ten не нормализована';
@@ -55,7 +54,7 @@ void main() {
       final limit = ShortDecimal.parse('10');
       expect(dust < limit, isTrue);
       expect(dust.compareTo(limit), -1);
-    }, skip: _skip2);
+    });
 
     test('сортировка остаётся сортировкой', () {
       final list = [
@@ -68,19 +67,19 @@ void main() {
         '1',
         '2',
       ]);
-    }, skip: _skip2);
+    });
 
     test('округление почти-нуля даёт ноль', () {
       final tiny = ShortDecimal.parse('0.0000000000000000001');
       expect(tiny.round().toString(), '0');
       expect(tiny.toStringAsFixed(0), '0');
-    }, skip: _skip2);
+    });
 
     test('toInt для значения меньше единицы', () {
       final value = ShortDecimal(9223372036854775807) >> 40;
       expect(value.toInt(), 0);
       expect(value > ShortDecimal.one, isFalse);
-    }, skip: _skip2);
+    });
   });
 
   group('Д3 деление на ноль', () {
