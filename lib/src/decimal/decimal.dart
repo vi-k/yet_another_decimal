@@ -139,10 +139,33 @@ final class Decimal implements Comparable<Decimal> {
       Decimal._asIs(base * other.base, scale + other.scale);
 
   /// Divides this decimal by [other].
+  ///
+  /// Throws [UnsupportedError] if [other] is zero and
+  /// [DecimalDivideException] if the result cannot be written down as a
+  /// decimal with a finite number of digits.
   Decimal operator /(Decimal other) {
+    var divisor = other.base;
+
+    if (divisor == BigInt.zero) {
+      throw UnsupportedError('division by zero');
+    }
+
     var base = this.base;
     var scale = this.scale - other.scale;
-    var divisor = other.base;
+
+    // The sign is taken out of the divisor before the factorization below.
+    // A remainder is never negative in Dart, so a negative divisor never comes
+    // down to one, and a result that is perfectly representable would be
+    // rejected.
+    //
+    // The result is negated at the end rather than the dividend here: for
+    // ShortDecimal that is the difference between the canonical value and a
+    // silent overflow on the minimum integer, and the two families keep the
+    // same shape.
+    final negate = divisor.isNegative;
+    if (negate) {
+      divisor = -divisor;
+    }
 
     final gcd = base.fastGcd(divisor);
     if (gcd != BigInt.one) {
@@ -171,7 +194,7 @@ final class Decimal implements Comparable<Decimal> {
       base *= k;
     }
 
-    return Decimal._asIs(base, scale);
+    return Decimal._asIs(negate ? -base : base, scale);
   }
 
   /// Performs truncating division of this decimal by [other].
@@ -335,7 +358,15 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Returns [BigInt], discarding all fractional digits from this decimal.
-  BigInt toBigInt() => truncate().base;
+  BigInt toBigInt() {
+    final truncated = truncate();
+    final scale = truncated.scale;
+
+    // The scale is never positive after truncate. A negative one is a shift to
+    // the left and has to be materialized, exactly as ShortDecimal.toInt does:
+    // the base alone is not the value.
+    return scale < 0 ? truncated.base * _bigInt10.pow(-scale) : truncated.base;
+  }
 
   /// Converts this decimal to [double].
   double toDouble() => double.parse(toString());

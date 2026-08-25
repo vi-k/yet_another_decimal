@@ -11,10 +11,7 @@ library;
 import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
-const _skip1 = 'Д1: деление на отрицательное бросает вместо результата';
 const _skip2 = 'Д2: _pow10 переполняется';
-const _skip3 = 'Д3: деление на ноль зависает — тест повесит сюиту';
-const _skip4 = 'Д4: Decimal.toBigInt теряет порядок величины';
 const _skip5 = 'Д5: toStringAsFixed не добивает нулями';
 const _skip6 = 'Д6: divideWithRemainder падает под ассертами';
 const _skip7 = 'Д7: ShortDecimal.ten не нормализована';
@@ -35,13 +32,13 @@ void main() {
       expect((Decimal(-6) / Decimal(-4)).toString(), '1.5');
       expect((Decimal(5) / Decimal(-1)).toString(), '-5');
       expect((Decimal(0) / Decimal(-5)).toString(), '0');
-    }, skip: _skip1);
+    });
 
     test('ShortDecimal', () {
       expect((ShortDecimal(1) / ShortDecimal(-2)).toString(), '-0.5');
       expect((ShortDecimal(6) / ShortDecimal(-3)).toString(), '-2');
       expect((ShortDecimal(-6) / ShortDecimal(-4)).toString(), '1.5');
-    }, skip: _skip1);
+    });
 
     test('знак делителя не влияет на представимость', () {
       for (final divisor in [2, 4, 5, 8, 10, 16, 20, 25]) {
@@ -49,7 +46,7 @@ void main() {
         final negative = Decimal(1) / Decimal(-divisor);
         expect(negative.toString(), '-$positive');
       }
-    }, skip: _skip1);
+    });
   });
 
   group('Д2 _pow10 переполняется', () {
@@ -89,30 +86,30 @@ void main() {
   group('Д3 деление на ноль', () {
     test('Decimal бросает, а не зависает', () {
       expect(() => Decimal(1) / Decimal(0), throwsA(isA<Object>()));
-    }, skip: _skip3);
+    });
 
     test('ShortDecimal бросает, а не зависает', () {
       expect(() => ShortDecimal(1) / ShortDecimal(0), throwsA(isA<Object>()));
-    }, skip: _skip3);
+    });
   });
 
   group('Д4 toBigInt при отрицательном масштабе', () {
     test('сдвиг влево', () {
       expect((Decimal(1) << 3).toBigInt(), BigInt.from(1000));
-    }, skip: _skip4);
+    });
 
     test('результат деления на дробь', () {
       final value = Decimal.parse('1') / Decimal.parse('0.001');
       expect(value.toString(), '1000');
       expect(value.toBigInt(), BigInt.from(1000));
-    }, skip: _skip4);
+    });
 
     test('согласовано с ShortDecimal.toInt', () {
       expect(
         (Decimal(1) << 3).toBigInt().toInt(),
         (ShortDecimal(1) << 3).toInt(),
       );
-    }, skip: _skip4);
+    });
   });
 
   group('Д5 toStringAsFixed добивает нулями', () {

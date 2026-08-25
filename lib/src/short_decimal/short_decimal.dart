@@ -198,10 +198,32 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       ShortDecimal._pack(base * other.base, scale + other.scale);
 
   /// Divides this decimal by [other].
+  ///
+  /// Throws [UnsupportedError] if [other] is zero and
+  /// [ShortDecimalDivideException] if the result cannot be written down as a
+  /// decimal with a finite number of digits.
   ShortDecimal operator /(ShortDecimal other) {
+    var divisor = other.base;
+
+    if (divisor == 0) {
+      throw UnsupportedError('division by zero');
+    }
+
     var base = this.base;
     var scale = this.scale - other.scale;
-    var divisor = other.base;
+
+    // The sign is taken out of the divisor before the factorization below.
+    // A remainder is never negative in Dart, so a negative divisor never comes
+    // down to one, and a result that is perfectly representable would be
+    // rejected.
+    //
+    // The result is negated at the end rather than the dividend here: negating
+    // the dividend up front turns the minimum integer into itself and loses
+    // the sign, while the value after the factorization is the canonical one.
+    final negate = divisor.isNegative;
+    if (negate) {
+      divisor = -divisor;
+    }
 
     final gcd = base.fastGcd(divisor);
     if (gcd != 1) {
@@ -228,7 +250,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       }
     }
 
-    return ShortDecimal._pack(base, scale);
+    return ShortDecimal._pack(negate ? -base : base, scale);
   }
 
   /// Performs truncating division of this decimal by [other].
