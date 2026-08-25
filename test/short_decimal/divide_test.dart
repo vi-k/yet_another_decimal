@@ -15,8 +15,6 @@ void main() {
         expectShortDecimal(
           ShortDecimal(24, shiftRight: 1) / ShortDecimal(12, shiftRight: 1),
           '2',
-          base: 2,
-          scale: 0,
           fractionDigits: 0,
         );
 
@@ -24,64 +22,46 @@ void main() {
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '52389094428262881000000000000000000000000',
-          base: 52389094428262881,
-          scale: -24,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '425927596977747000000000000000000000',
-          base: 425927596977747,
-          scale: -21,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '3462825991689000000000000000000',
-          base: 3462825991689,
-          scale: -18,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '28153056843000000000000000',
-          base: 28153056843,
-          scale: -15,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '228886641000000000000',
-          base: 228886641,
-          scale: -12,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '1860867000000000',
-          base: 1860867,
-          scale: -9,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '15129000000',
-          base: 15129,
-          scale: -6,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '123000',
-          base: 123,
-          scale: -3,
           fractionDigits: 0,
         );
         expectShortDecimal(
           value /= ShortDecimal(123000),
           '1',
-          base: 1,
-          scale: 0,
           fractionDigits: 0,
         );
 
@@ -92,8 +72,6 @@ void main() {
         expectShortDecimal(
           value,
           '0.000000000000000000000000000000000000000000000000000000000001',
-          base: 1,
-          scale: 60,
           fractionDigits: 60,
         );
 
@@ -647,13 +625,7 @@ void main() {
           }
 
           expect(v1 ~/ v2, 1014285);
-          expectShortDecimal(
-            v1 % v2,
-            '0.00615',
-            base: 615,
-            scale: 5,
-            fractionDigits: 5,
-          );
+          expectShortDecimal(v1 % v2, '0.00615', fractionDigits: 5);
 
           // +n / -n
           v1 = ShortDecimal(8733);
@@ -675,13 +647,7 @@ void main() {
           }
 
           expect(v1 ~/ v2, -1014285);
-          expectShortDecimal(
-            v1 % v2,
-            '0.00615',
-            base: 615,
-            scale: 5,
-            fractionDigits: 5,
-          );
+          expectShortDecimal(v1 % v2, '0.00615', fractionDigits: 5);
         });
 
         test('small / big', () {
@@ -706,13 +672,7 @@ void main() {
           }
 
           expect(v1 ~/ v2, 1);
-          expectShortDecimal(
-            v1 % v2,
-            '8733',
-            base: 8733,
-            scale: 0,
-            fractionDigits: 0,
-          );
+          expectShortDecimal(v1 % v2, '8733', fractionDigits: 0);
         });
       });
     });

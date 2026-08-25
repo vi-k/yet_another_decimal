@@ -13,8 +13,6 @@ void main() {
         expectDecimal(
           Decimal(24, shiftRight: 1) / Decimal(12, shiftRight: 1),
           '2',
-          base: BigInt.two,
-          scale: 0,
           fractionDigits: 0,
         );
 
@@ -22,43 +20,31 @@ void main() {
         expectDecimal(
           value /= Decimal(123456),
           '28678802168.634497644363776',
-          base: BigInt.parse('28678802168634497644363776'),
-          scale: 15,
           fractionDigits: 15,
         );
         expectDecimal(
           value /= Decimal.parse('12345.6'),
           '2322997.84284558852096',
-          base: BigInt.parse('232299784284558852096'),
-          scale: 14,
           fractionDigits: 14,
         );
         expectDecimal(
           value /= Decimal.parse('1234.56'),
           '1881.640295202816',
-          base: BigInt.from(1881640295202816),
-          scale: 12,
           fractionDigits: 12,
         );
         expectDecimal(
           value /= Decimal.parse('123.456'),
           '15.241383936',
-          base: BigInt.from(15241383936),
-          scale: 9,
           fractionDigits: 9,
         );
         expectDecimal(
           value /= Decimal.parse('12.3456'),
           '1.23456',
-          base: BigInt.from(123456),
-          scale: 5,
           fractionDigits: 5,
         );
         expectDecimal(
           value /= Decimal.parse('1.23456'),
           '1',
-          base: BigInt.one,
-          scale: 0,
           fractionDigits: 0,
         );
 
@@ -69,30 +55,18 @@ void main() {
         expectDecimal(
           value,
           '0.000000000000000000000000000000000000000000000000000000000001',
-          base: BigInt.from(1),
-          scale: 60,
           fractionDigits: 60,
         );
 
-        expectDecimal(
-          Decimal(1) / Decimal(100),
-          '0.01',
-          base: BigInt.from(100),
-          scale: 4,
-          fractionDigits: 2,
-        );
+        expectDecimal(Decimal(1) / Decimal(100), '0.01', fractionDigits: 2);
         expectDecimal(
           Decimal(1) / Decimal(1000, shiftRight: 1),
           '0.01',
-          base: BigInt.from(1000),
-          scale: 5,
           fractionDigits: 2,
         );
         expectDecimal(
           Decimal(1) / Decimal(10000, shiftRight: 2),
           '0.01',
-          base: BigInt.from(10000),
-          scale: 6,
           fractionDigits: 2,
         );
 
@@ -544,13 +518,7 @@ void main() {
           }
 
           expect(v1 ~/ v2, BigInt.from(1014285));
-          expectDecimal(
-            v1 % v2,
-            '0.00615',
-            base: BigInt.from(61500),
-            scale: 7,
-            fractionDigits: 5,
-          );
+          expectDecimal(v1 % v2, '0.00615', fractionDigits: 5);
 
           // +n / -n
           v1 = Decimal(8733);
@@ -572,13 +540,7 @@ void main() {
           }
 
           expect(v1 ~/ v2, BigInt.from(-1014285));
-          expectDecimal(
-            v1 % v2,
-            '0.00615',
-            base: BigInt.from(61500),
-            scale: 7,
-            fractionDigits: 5,
-          );
+          expectDecimal(v1 % v2, '0.00615', fractionDigits: 5);
         });
 
         test('small / big', () {
@@ -603,13 +565,7 @@ void main() {
           }
 
           expect(v1 ~/ v2, BigInt.one);
-          expectDecimal(
-            v1 % v2,
-            '8733',
-            base: BigInt.from(873300),
-            scale: 2,
-            fractionDigits: 0,
-          );
+          expectDecimal(v1 % v2, '8733', fractionDigits: 0);
         });
       });
     });
