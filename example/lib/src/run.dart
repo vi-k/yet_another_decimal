@@ -476,6 +476,7 @@ void _printSummary(
   final widths = List<int>.filled(packages.length + 1, 0);
   final footnotes = <String>[];
   var hasWinner = false;
+  var hasOutsider = false;
 
   String footnote(String text) {
     final index = footnotes.indexOf(text);
@@ -549,6 +550,15 @@ void _printSummary(
                 text = '$ktext $text';
               }
             }
+          } else if (package.excludeFromComparision &&
+              minScore != null &&
+              !benchmark.wrongAnswer &&
+              score <= minScore) {
+            // Вне зачёта, но быстрее всех, кто в зачёте. Отметка нужна не
+            // ради похвалы, а ради её отсутствия: где её нет, там пакет
+            // проигрывает, и это видно сразу.
+            text = ok('★★ $text');
+            hasOutsider = true;
           }
         }
       }
@@ -626,6 +636,12 @@ void _printSummary(
 
     if (hasWinner) {
       print('${ok('★')} Winner or near winner (<= 10%)');
+    }
+
+    if (hasOutsider) {
+      print(
+        '${ok('★★')} Outside the comparison and faster than everyone in it',
+      );
     }
 
     for (final (index, footnote) in footnotes.indexed) {

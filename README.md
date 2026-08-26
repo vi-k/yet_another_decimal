@@ -292,9 +292,11 @@ The short of it:
 
 One row is one pass over a list of values, and the number is what that pass
 cost in microseconds. `★` marks the winner and everyone within 10 % of it,
-`▼Nx` says how many times slower than the winner. The absolute values mean
-nothing on their own — another machine will give different ones. The ratios are
-the point.
+`▼Nx` says how many times slower than the winner. `ShortDecimal` stands outside
+that reckoning and carries a mark of its own: `★★` where it is faster than
+every package in the comparison — so the rows where that mark is missing are
+exactly the rows where int64 buys nothing. The absolute values mean nothing on
+their own; another machine will give different ones. The ratios are the point.
 
 *Running the tests:*
 
@@ -323,39 +325,39 @@ one.
 |                               |            decimal |        decimal_type |              fixed |       big_decimal |     Decimal | ShortDecimal |
 |:------------------------------|-------------------:|--------------------:|-------------------:|------------------:|------------:|-------------:|
 | add-big-int                   |           1.882 µs |      (▼2x) 3.246 µs |           2.397 µs |          2.248 µs |  ★ 1.329 µs |            — |
-| add-int                       |           0.695 µs |      (▼2x) 1.172 µs |           0.876 µs |          0.837 µs |  ★ 0.483 µs |     0.150 µs |
+| add-int                       |           0.695 µs |      (▼2x) 1.172 µs |           0.876 µs |          0.837 µs |  ★ 0.483 µs |  ★★ 0.150 µs |
 | add-dirty-big-int             |           0.920 µs |      (▼2x) 1.546 µs |           1.162 µs |          1.107 µs |  ★ 0.648 µs |            — |
-| add-dirty-int                 |           0.412 µs |      (▼2x) 0.676 µs |           0.523 µs |          0.495 µs |  ★ 0.294 µs |     0.092 µs |
+| add-dirty-int                 |           0.412 µs |      (▼2x) 0.676 µs |           0.523 µs |          0.495 µs |  ★ 0.294 µs |  ★★ 0.092 µs |
 | multiply-large-big-int        |         ★ 0.145 µs |          ★ 0.136 µs |           0.178 µs |        ★ 0.142 µs |  ★ 0.144 µs |            — |
-| multiply-large-int            |         ★ 0.124 µs |          ★ 0.118 µs |           0.157 µs |        ★ 0.119 µs |  ★ 0.123 µs |     0.064 µs |
+| multiply-large-int            |         ★ 0.124 µs |          ★ 0.118 µs |           0.157 µs |        ★ 0.119 µs |  ★ 0.123 µs |  ★★ 0.064 µs |
 | multiply-small-big-int        |         ★ 0.144 µs |          ★ 0.137 µs |    (▼41x) 5.671 µs |        ★ 0.142 µs |  ★ 0.143 µs |            — |
-| multiply-small-int            |         ★ 0.119 µs |          ★ 0.112 µs |    (▼31x) 3.540 µs |        ★ 0.117 µs |  ★ 0.119 µs |     0.067 µs |
+| multiply-small-int            |         ★ 0.119 µs |          ★ 0.112 µs |    (▼31x) 3.540 µs |        ★ 0.117 µs |  ★ 0.119 µs |  ★★ 0.067 µs |
 | multiply-dirty-big-int        |         ★ 0.112 µs |          ★ 0.108 µs |    (▼28x) 3.038 µs |        ★ 0.109 µs |  ★ 0.112 µs |            — |
-| multiply-dirty-int            |         ★ 0.046 µs |          ★ 0.043 µs |    (▼24x) 1.063 µs |        ★ 0.045 µs |  ★ 0.045 µs |     0.026 µs |
+| multiply-dirty-int            |         ★ 0.046 µs |          ★ 0.043 µs |    (▼24x) 1.063 µs |        ★ 0.045 µs |  ★ 0.045 µs |  ★★ 0.026 µs |
 | divide-large-big-int          |     (▼5x) 9.562 µs |               ERROR |           2.255 µs |          2.124 µs |  ★ 1.759 µs |            — |
-| divide-large-int              |     (▼5x) 8.257 µs |               ERROR |           1.905 µs |          1.822 µs |  ★ 1.514 µs |     0.062 µs |
+| divide-large-int              |     (▼5x) 8.257 µs |               ERROR |           1.905 µs |          1.822 µs |  ★ 1.514 µs |  ★★ 0.062 µs |
 | divide-small-big-int          | (▼110x) 631.223 µs |               ERROR |              ERROR |             ERROR |  ★ 5.708 µs |            — |
-| divide-small-int              |  (▼52x) 146.752 µs |               ERROR |              ERROR |             ERROR |  ★ 2.795 µs |     0.121 µs |
+| divide-small-int              |  (▼52x) 146.752 µs |               ERROR |              ERROR |             ERROR |  ★ 2.795 µs |  ★★ 0.121 µs |
 | divide-dirty-big-int          | (▼352x) 485.928 µs |               ERROR |     (▼2x) 3.634 µs |          2.007 µs |  ★ 1.380 µs |            — |
-| divide-dirty-int              |   (▼64x) 39.868 µs |               ERROR |     (▼2x) 1.349 µs |          0.880 µs |  ★ 0.620 µs |     0.027 µs |
+| divide-dirty-int              |   (▼64x) 39.868 µs |               ERROR |     (▼2x) 1.349 µs |          0.880 µs |  ★ 0.620 µs |  ★★ 0.027 µs |
 | divide-large-and-view-big-int |     (▼5x) 9.813 µs |               ERROR |           2.378 µs |          2.172 µs |  ★ 1.814 µs |            — |
-| divide-large-and-view-int     |     (▼5x) 8.509 µs |               ERROR |           2.027 µs |          1.840 µs |  ★ 1.536 µs |     0.065 µs |
+| divide-large-and-view-int     |     (▼5x) 8.509 µs |               ERROR |           2.027 µs |          1.840 µs |  ★ 1.536 µs |  ★★ 0.065 µs |
 | divide-small-and-view-big-int |  (▼90x) 634.875 µs |               ERROR |              ERROR |             ERROR |  ★ 6.978 µs |            — |
-| divide-small-and-view-int     |  (▼43x) 147.019 µs |               ERROR |              ERROR |             ERROR |  ★ 3.367 µs |     0.323 µs |
+| divide-small-and-view-int     |  (▼43x) 147.019 µs |               ERROR |              ERROR |             ERROR |  ★ 3.367 µs |  ★★ 0.323 µs |
 | raw-view-big-int              |          24.338 µs |     (▼2x) 51.374 µs |    (▼2x) 56.241 µs |       ★ 20.919 µs | ★ 19.450 µs |            — |
-| raw-view-int                  |          11.048 µs |     (▼3x) 25.080 µs |    (▼3x) 25.192 µs |          8.745 µs |  ★ 7.480 µs |     1.694 µs |
+| raw-view-int                  |          11.048 µs |     (▼3x) 25.080 µs |    (▼3x) 25.192 µs |          8.745 µs |  ★ 7.480 µs |  ★★ 1.694 µs |
 | raw-view-zeros-big-int        |   (▼6x) 122.556 µs |    (▼8x) 153.163 µs |    (▼3x) 65.215 µs |       ★ 19.936 µs | ★ 18.744 µs |            — |
-| raw-view-zeros-int            |    (▼7x) 57.655 µs |     (▼7x) 54.440 µs |    (▼4x) 31.293 µs |          8.813 µs |  ★ 7.449 µs |     1.023 µs |
+| raw-view-zeros-int            |    (▼7x) 57.655 µs |     (▼7x) 54.440 µs |    (▼4x) 31.293 µs |          8.813 µs |  ★ 7.449 µs |  ★★ 1.023 µs |
 | repeat-view-big-int           |  (▼767x) 19.184 µs |  (▼2033x) 50.833 µs | (▼2242x) 56.055 µs | (▼827x) 20.684 µs |  ★ 0.025 µs |            — |
 | repeat-view-int               |   (▼299x) 6.898 µs |  (▼1067x) 24.544 µs | (▼1088x) 25.035 µs |  (▼364x) 8.379 µs |  ★ 0.023 µs |     1.637 µs |
 | repeat-view-zeros-big-int     |    (▼51x) 1.291 µs | (▼5977x) 149.438 µs | (▼2615x) 65.397 µs | (▼789x) 19.748 µs |  ★ 0.025 µs |            — |
 | repeat-view-zeros-int         |    (▼42x) 1.054 µs |  (▼2095x) 52.394 µs | (▼1249x) 31.227 µs |  (▼333x) 8.326 µs |  ★ 0.025 µs |     0.968 µs |
-| parse                         |          14.795 µs |           15.055 µs |    (▼8x) 88.191 µs |       ★ 11.437 µs | ★ 10.702 µs |     1.765 µs |
-| compare                       |           0.764 µs |      (▼7x) 2.950 µs |              ERROR |    (▼3x) 1.405 µs |  ★ 0.394 µs |     0.154 µs |
-| round                         |           4.370 µs |                   — |           4.789 µs |          4.774 µs |  ★ 3.710 µs |     0.354 µs |
-| to-double                     |     (▼2x) 2.210 µs |    (▼28x) 20.927 µs |                  — |          0.823 µs |  ★ 0.740 µs |     0.102 µs |
+| parse                         |          14.795 µs |           15.055 µs |    (▼8x) 88.191 µs |       ★ 11.437 µs | ★ 10.702 µs |  ★★ 1.765 µs |
+| compare                       |           0.764 µs |      (▼7x) 2.950 µs |              ERROR |    (▼3x) 1.405 µs |  ★ 0.394 µs |  ★★ 0.154 µs |
+| round                         |           4.370 µs |                   — |           4.789 µs |          4.774 µs |  ★ 3.710 µs |  ★★ 0.354 µs |
+| to-double                     |     (▼2x) 2.210 µs |    (▼28x) 20.927 µs |                  — |          0.823 µs |  ★ 0.740 µs |  ★★ 0.102 µs |
 | to-double-wide                |              ERROR |    (▼14x) 36.432 µs |                  — |             ERROR |  ★ 2.451 µs |            — |
-| to-string-as-fixed            |    (▼2x) 16.410 µs |                   — |                  — |                 — |  ★ 5.754 µs |     2.118 µs |
+| to-string-as-fixed            |    (▼2x) 16.410 µs |                   — |                  — |                 — |  ★ 5.754 µs |  ★★ 2.118 µs |
 | unrepresentable-divide        |  (▼25x) 133.016 µs |                   — |                  — |        ★ 5.171 µs |    8.718 µs |     7.913 µs |
 
 `ERROR` is not a crash. It means the package answered and the answer was wrong.

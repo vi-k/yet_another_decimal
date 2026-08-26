@@ -35,6 +35,14 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   String? resultMessage;
   String? error;
 
+  /// Whether the answer differed from the expected one by more than trailing
+  /// zeros.
+  ///
+  /// Kept apart from [error]: a package excluded from the comparison keeps its
+  /// timing even when it answers wrongly, and a wrong answer must not be
+  /// decorated as a fast one.
+  bool wrongAnswer = false;
+
   /// How many digits [round] and [toStringAsFixed] keep: money.
   static const int moneyDigits = 2;
 
@@ -165,6 +173,8 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
     resultMessage =
         '${isWarning ? accentWarning('WARNING') : accentError('ERROR')}'
         '$reset$description';
+
+    wrongAnswer = !isWarning;
 
     if (!isWarning && !package.ignoreMatchingErrors) {
       error = "The results don't match";

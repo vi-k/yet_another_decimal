@@ -58,6 +58,12 @@ A few rules keep the answers honest:
   reported as a fast one.
 - **A package that has no such operation shows `—`**, not an error. An absent
   method is not a defect, and nothing is made to look slow for the lack of one.
+- **`★` is the winner of the comparison** and everyone within 10 % of it.
+  `ShortDecimal` and `big_double` stand outside that reckoning — int64 and
+  floating point are not the same job as `BigInt` — and carry `★★` instead,
+  which marks a package that is faster than everyone inside the comparison.
+  The point of it is the absence: a row where `ShortDecimal` has no `★★` is a
+  row where int64 buys nothing. A wrong answer never earns the mark.
 - **Every benchmark is measured five times** (`--runs=N`), and the summary
   shows the median; the console shows the whole spread next to it. One run
   says nothing: the machine drifts by up to 15 % between them.
