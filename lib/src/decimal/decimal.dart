@@ -2,12 +2,13 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 
+import '../fixed_point.dart';
 import '../helpers.dart';
 
 part 'division.dart';
 part 'fraction.dart';
 
-final class Decimal implements Comparable<Decimal> {
+final class Decimal implements FixedPoint<Decimal> {
   static final _char0 = '0'.codeUnitAt(0);
   static final _charMinus = '-'.codeUnitAt(0);
   static final _bigInt5 = BigInt.from(5);
@@ -157,27 +158,34 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Returns number of digits after the decimal point.
+  @override
   int get fractionDigits => scale <= 0 ? 0 : math.max(_requirePacked.scale, 0);
 
   /// Returns the sign of this decimal.
   ///
   /// Returns 0 for zero, -1 for values less than zero and +1 for values
   /// greater than zero.
+  @override
   int get sign => base.sign;
 
   /// Whether this decimal is negative.
+  @override
   bool get isNegative => base.isNegative;
 
   /// Whether this decimal is an integer.
+  @override
   bool get isInteger => scale <= 0 || _requirePacked.scale <= 0;
 
   /// Whether this decimal is zero.
+  @override
   bool get isZero => base == BigInt.zero;
 
   /// Returns the negative value of this decimal.
+  @override
   Decimal operator -() => Decimal._asIs(-base, scale);
 
   /// Adds [other] to this decimal.
+  @override
   Decimal operator +(Decimal other) {
     final (a, b, scale) = _align(other);
 
@@ -185,6 +193,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Subtracts [other] from this decimal.
+  @override
   Decimal operator -(Decimal other) {
     final (a, b, scale) = _align(other);
 
@@ -192,6 +201,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Multiplies this decimal by [other].
+  @override
   Decimal operator *(Decimal other) =>
       Decimal._asIs(base * other.base, scale + other.scale);
 
@@ -201,6 +211,7 @@ final class Decimal implements Comparable<Decimal> {
   /// [DecimalDivideException] if the result cannot be written down as a
   /// decimal with a finite number of digits. [divideOrNull] and [divide]
   /// answer the same question without an exception.
+  @override
   Decimal operator /(Decimal other) =>
       divideOrNull(other) ?? (throw DecimalDivideException._(this, other));
 
@@ -218,6 +229,7 @@ final class Decimal implements Comparable<Decimal> {
   /// print(Decimal(1).divideOrNull(Decimal(4))); // 0.25
   /// print(Decimal(1).divideOrNull(Decimal(3))); // null
   /// ```
+  @override
   Decimal? divideOrNull(Decimal other) {
     var divisor = other.base;
 
@@ -306,6 +318,7 @@ final class Decimal implements Comparable<Decimal> {
   /// ```dart
   /// print(Decimal(1).divide(Decimal(3), scaleOnInfinitePrecision: 4)); // 0.3333
   /// ```
+  @override
   Decimal divide(Decimal other, {int? scaleOnInfinitePrecision}) {
     final result = divideOrNull(other);
     if (result != null) {
@@ -326,6 +339,7 @@ final class Decimal implements Comparable<Decimal> {
   /// in this sense, because 1.5 can be written down.
   ///
   /// Throws [UnsupportedError] if [other] is zero.
+  @override
   bool isDivisibleBy(Decimal other) => divideOrNull(other) != null;
 
   /// Performs truncating division of this decimal by [other].
@@ -339,6 +353,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Calculates the result of division as double.
+  @override
   double divideToDouble(Decimal other) {
     final fraction = divideToFraction(other);
 
@@ -388,6 +403,7 @@ final class Decimal implements Comparable<Decimal> {
   /// Euclidean modulo of this number by [other].
   ///
   /// The sign of the returned value is always positive.
+  @override
   Decimal operator %(Decimal other) {
     final (a, b, scale) = _align(other);
 
@@ -399,6 +415,7 @@ final class Decimal implements Comparable<Decimal> {
   /// The result r of this operation satisfies:
   /// this == (this ~/ other) * other + r. As a consequence, the remainder r
   /// has the same sign as the dividend this.
+  @override
   Decimal remainder(Decimal other) {
     final (a, b, scale) = _align(other);
 
@@ -406,6 +423,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Whether this decimal is smaller than [other].
+  @override
   bool operator <(Decimal other) {
     final (a, b, _) = _align(other);
 
@@ -413,6 +431,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Whether this decimal is smaller than or equal to [other].
+  @override
   bool operator <=(Decimal other) {
     final (a, b, _) = _align(other);
 
@@ -420,6 +439,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Whether this decimal is greater than [other].
+  @override
   bool operator >(Decimal other) {
     final (a, b, _) = _align(other);
 
@@ -427,6 +447,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Whether this decimal is greater than or equal to [other].
+  @override
   bool operator >=(Decimal other) {
     final (a, b, _) = _align(other);
 
@@ -439,6 +460,7 @@ final class Decimal implements Comparable<Decimal> {
   /// Decimal(1) << 2; // 100
   /// Decimal.parse('0.01') << 1; // 0.1
   /// ```
+  @override
   Decimal operator <<(int shiftAmount) =>
       Decimal._asIs(base, scale - shiftAmount);
 
@@ -455,6 +477,7 @@ final class Decimal implements Comparable<Decimal> {
   /// ```dart
   /// print(Decimal(1) >> 2 == Decimal(1, shiftRight: 2)); // true
   /// ```
+  @override
   Decimal operator >>(int shiftAmount) =>
       Decimal._asIs(base, scale + shiftAmount);
 
@@ -464,9 +487,11 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Returns the absolute value of this decimal.
+  @override
   Decimal abs() => base.isNegative ? Decimal._asIs(-base, scale) : this;
 
   /// Rounds the decimal towards negative infinity to [fractionDigits].
+  @override
   Decimal floor([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) => isNegative && base % divisor != BigInt.zero
@@ -475,6 +500,7 @@ final class Decimal implements Comparable<Decimal> {
   );
 
   /// Rounds to the closest decimal with [fractionDigits].
+  @override
   Decimal round([int fractionDigits = 0]) =>
       _dropFraction(fractionDigits, (result, divisor) {
         final remainder = base.remainder(divisor).abs();
@@ -484,6 +510,7 @@ final class Decimal implements Comparable<Decimal> {
       });
 
   /// Rounds the decimal towards infinity to [fractionDigits].
+  @override
   Decimal ceil([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) => !isNegative && base % divisor != BigInt.zero
@@ -492,6 +519,7 @@ final class Decimal implements Comparable<Decimal> {
   );
 
   /// Rounds the decimal towards zero to [fractionDigits].
+  @override
   Decimal truncate([int fractionDigits = 0]) =>
       _dropFraction(fractionDigits, (result, divisor) => result);
 
@@ -499,6 +527,7 @@ final class Decimal implements Comparable<Decimal> {
   ///
   /// The arguments [lowerLimit] and [upperLimit] must form a valid range where
   /// lowerLimit <= upperLimit.
+  @override
   Decimal clamp(Decimal lowerLimit, Decimal upperLimit) {
     if (lowerLimit > upperLimit) {
       throw ArgumentError('The lowerLimit must be no greater than upperLimit');
@@ -520,6 +549,7 @@ final class Decimal implements Comparable<Decimal> {
   /// ```dart
   /// print(Decimal(2).pow(-2)); // 0.25
   /// ```
+  @override
   Decimal pow(int exponent) {
     if (exponent >= 0) {
       return Decimal._asIs(base.pow(exponent), scale * exponent);
@@ -542,6 +572,7 @@ final class Decimal implements Comparable<Decimal> {
   /// print(Decimal.parse('1.5').precision); // 2
   /// print(Decimal.parse('0.05').precision); // 3
   /// ```
+  @override
   int get precision {
     final integer = toBigInt().toString();
 
@@ -554,6 +585,7 @@ final class Decimal implements Comparable<Decimal> {
   /// Whether this decimal is greater than zero.
   ///
   /// Zero is neither positive nor [isNegative].
+  @override
   bool get isPositive => base.sign > 0;
 
   /// One divided by this decimal, as an exact [Fraction].
@@ -567,15 +599,18 @@ final class Decimal implements Comparable<Decimal> {
       : Fraction(BigInt.one, base * _pow10(-scale));
 
   /// A JSON representation of this decimal: the string [toString] returns.
+  @override
   String toJson() => toString();
 
   /// Returns [int], discarding all fractional digits from this decimal.
   ///
   /// A value that does not fit is truncated to 64 bits, exactly as
   /// [BigInt.toInt] does; [toBigInt] keeps it whole.
+  @override
   int toInt() => toBigInt().toInt();
 
   /// Returns [BigInt], discarding all fractional digits from this decimal.
+  @override
   BigInt toBigInt() {
     final truncated = truncate();
     final scale = truncated.scale;
@@ -587,6 +622,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Converts this decimal to [double].
+  @override
   double toDouble() {
     final base = this.base;
     final scale = this.scale;
@@ -720,6 +756,7 @@ final class Decimal implements Comparable<Decimal> {
   ///
   /// If [fractionDigits] is less than `this.fractionDigits`, the [round]
   /// method is used.
+  @override
   String toStringAsFixed(int fractionDigits) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
 
@@ -765,6 +802,7 @@ final class Decimal implements Comparable<Decimal> {
   /// print(Decimal.parse('1234.5').toStringAsExponential(2)); // 1.23e+3
   /// print(Decimal.parse('0.00123').toStringAsExponential(1)); // 1.2e-3
   /// ```
+  @override
   String toStringAsExponential([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
 
@@ -799,6 +837,7 @@ final class Decimal implements Comparable<Decimal> {
   /// print(Decimal.parse('1234.5678').toStringAsPrecision(6)); // 1234.57
   /// print(Decimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
   /// ```
+  @override
   String toStringAsPrecision(int precision) {
     if (precision <= 0) {
       throw ArgumentError.value(

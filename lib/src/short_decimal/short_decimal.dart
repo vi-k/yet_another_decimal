@@ -2,13 +2,14 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 
+import '../fixed_point.dart';
 import '../helpers.dart';
 
 part 'short_fraction.dart';
 part 'short_division.dart';
 
 @immutable
-final class ShortDecimal implements Comparable<ShortDecimal> {
+final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static final _charCode0 = '0'.codeUnitAt(0);
   static final _charCode9 = '9'.codeUnitAt(0);
   static final _charCodeMinus = '-'.codeUnitAt(0);
@@ -134,6 +135,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   static bool _isDigit(int code) => code >= _charCode0 && code <= _charCode9;
 
   /// Returns number of digits after the decimal point.
+  @override
   int get fractionDigits {
     final scale = this.scale;
     return scale >= 0 ? scale : 0;
@@ -143,21 +145,27 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   ///
   /// Returns 0 for zero, -1 for values less than zero and +1 for values
   /// greater than zero.
+  @override
   int get sign => base.sign;
 
   /// Whether this decimal is negative.
+  @override
   bool get isNegative => base.isNegative;
 
   /// Whether this decimal is an integer.
+  @override
   bool get isInteger => scale <= 0;
 
   /// Whether this decimal is zero.
+  @override
   bool get isZero => base == 0;
 
   /// Returns the negative value of this decimal.
+  @override
   ShortDecimal operator -() => ShortDecimal._asIs(-base, scale);
 
   /// Adds [other] to this decimal.
+  @override
   ShortDecimal operator +(ShortDecimal other) {
     final (a, b, scale) = _align(other);
 
@@ -165,6 +173,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Subtracts [other] from this decimal.
+  @override
   ShortDecimal operator -(ShortDecimal other) {
     final (a, b, scale) = _align(other);
 
@@ -172,6 +181,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Multiplies this decimal by [other].
+  @override
   ShortDecimal operator *(ShortDecimal other) {
     final a = base;
     final b = other.base;
@@ -260,6 +270,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// [ShortDecimalDivideException] if the result cannot be written down as a
   /// decimal with a finite number of digits. [divideOrNull] and [divide]
   /// answer the same question without an exception.
+  @override
   ShortDecimal operator /(ShortDecimal other) =>
       divideOrNull(other) ?? (throw ShortDecimalDivideException._(this, other));
 
@@ -277,6 +288,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// print(ShortDecimal(1).divideOrNull(ShortDecimal(4))); // 0.25
   /// print(ShortDecimal(1).divideOrNull(ShortDecimal(3))); // null
   /// ```
+  @override
   ShortDecimal? divideOrNull(ShortDecimal other) {
     var divisor = other.base;
 
@@ -374,6 +386,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// print(ShortDecimal(1).divide(ShortDecimal(3),
   ///     scaleOnInfinitePrecision: 4)); // 0.3333
   /// ```
+  @override
   ShortDecimal divide(ShortDecimal other, {int? scaleOnInfinitePrecision}) {
     final result = divideOrNull(other);
     if (result != null) {
@@ -394,6 +407,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// in this sense, because 1.5 can be written down.
   ///
   /// Throws [UnsupportedError] if [other] is zero.
+  @override
   bool isDivisibleBy(ShortDecimal other) => divideOrNull(other) != null;
 
   /// Performs truncating division of this decimal by [other].
@@ -410,6 +424,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   ///
   /// Decimal needs a scaled division here to keep the ratio out of NaN; this
   /// family does not: both ends of the fraction are int64 and always convert.
+  @override
   double divideToDouble(ShortDecimal other) {
     final fraction = divideToFraction(other);
 
@@ -430,6 +445,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// Euclidean modulo of this number by [other].
   ///
   /// The sign of the returned value is always positive.
+  @override
   ShortDecimal operator %(ShortDecimal other) {
     final (a, b, scale) = _align(other);
 
@@ -441,6 +457,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// The result r of this operation satisfies:
   /// this == (this ~/ other) * other + r. As a consequence, the remainder r
   /// has the same sign as the dividend this.
+  @override
   ShortDecimal remainder(ShortDecimal other) {
     final (a, b, scale) = _align(other);
 
@@ -448,15 +465,19 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Whether this decimal is smaller than [other].
+  @override
   bool operator <(ShortDecimal other) => _compare(other) < 0;
 
   /// Whether this decimal is smaller than or equal to [other].
+  @override
   bool operator <=(ShortDecimal other) => _compare(other) <= 0;
 
   /// Whether this decimal is greater than [other].
+  @override
   bool operator >(ShortDecimal other) => _compare(other) > 0;
 
   /// Whether this decimal is greater than or equal to [other].
+  @override
   bool operator >=(ShortDecimal other) => _compare(other) >= 0;
 
   /// Shifts a decimal relative to the decimal point to the left.
@@ -472,6 +493,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// ```dart
   /// print(ShortDecimal(1) << 2 == ShortDecimal(1, shiftLeft: 2)); // true
   /// ```
+  @override
   ShortDecimal operator <<(int shiftAmount) =>
       base == 0 ? this : ShortDecimal._asIs(base, scale - shiftAmount);
 
@@ -488,6 +510,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// ```dart
   /// print(ShortDecimal(1) >> 2 == ShortDecimal(1, shiftRight: 2)); // true
   /// ```
+  @override
   ShortDecimal operator >>(int shiftAmount) =>
       base == 0 ? this : ShortDecimal._pack(base, scale + shiftAmount);
 
@@ -499,10 +522,12 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// print(ShortDecimal(-9223372036854775808).abs() ==
   ///     ShortDecimal(-9223372036854775808)); // true
   /// ```
+  @override
   ShortDecimal abs() =>
       base.isNegative ? ShortDecimal._asIs(-base, scale) : this;
 
   /// Rounds the decimal towards negative infinity to [fractionDigits].
+  @override
   ShortDecimal floor([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) =>
@@ -511,6 +536,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   );
 
   /// Rounds to the closest decimal with [fractionDigits].
+  @override
   ShortDecimal round([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) {
@@ -534,6 +560,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   );
 
   /// Rounds the decimal towards infinity to [fractionDigits].
+  @override
   ShortDecimal ceil([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) =>
@@ -542,6 +569,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   );
 
   /// Rounds the decimal towards zero to [fractionDigits].
+  @override
   ShortDecimal truncate([int fractionDigits = 0]) => _dropFraction(
     fractionDigits,
     (result, divisor) => result,
@@ -552,6 +580,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   ///
   /// The arguments [lowerLimit] and [upperLimit] must form a valid range where
   /// lowerLimit <= upperLimit.
+  @override
   ShortDecimal clamp(ShortDecimal lowerLimit, ShortDecimal upperLimit) {
     if (lowerLimit > upperLimit) {
       throw ArgumentError('The lowerLimit must be no greater than upperLimit');
@@ -573,6 +602,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// ```dart
   /// print(ShortDecimal(2).pow(-2)); // 0.25
   /// ```
+  @override
   ShortDecimal pow(int exponent) {
     if (exponent >= 0) {
       return ShortDecimal._pack(
@@ -598,6 +628,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// print(ShortDecimal.parse('1.5').precision); // 2
   /// print(ShortDecimal.parse('0.05').precision); // 3
   /// ```
+  @override
   int get precision {
     final integer = toBigInt().toString();
 
@@ -610,6 +641,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// Whether this decimal is greater than zero.
   ///
   /// Zero is neither positive nor [isNegative].
+  @override
   bool get isPositive => base.sign > 0;
 
   /// One divided by this decimal, as an exact [ShortFraction].
@@ -623,12 +655,14 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       : ShortFraction(1, base * _pow10(-scale));
 
   /// A JSON representation of this decimal: the string [toString] returns.
+  @override
   String toJson() => toString();
 
   /// Returns [BigInt], discarding all fractional digits from this decimal.
   ///
   /// Unlike [toInt] this one never overflows: a decimal shifted far to the
   /// left holds a value no int64 can.
+  @override
   BigInt toBigInt() {
     final truncated = truncate();
     final base = BigInt.from(truncated.base);
@@ -639,6 +673,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Returns [int], discarding all fractional digits from this decimal.
+  @override
   int toInt() {
     final t = truncate();
 
@@ -646,6 +681,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Converts this decimal to [double].
+  @override
   double toDouble() {
     final base = this.base;
     final scale = this.scale;
@@ -753,6 +789,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   ///
   /// If [fractionDigits] is less than `this.fractionDigits`, the [round]
   /// method is used.
+  @override
   String toStringAsFixed(int fractionDigits) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
 
@@ -798,6 +835,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// print(ShortDecimal.parse('1234.5').toStringAsExponential(2)); // 1.23e+3
   /// print(ShortDecimal.parse('0.00123').toStringAsExponential(1)); // 1.2e-3
   /// ```
+  @override
   String toStringAsExponential([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
 
@@ -832,6 +870,7 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// print(ShortDecimal.parse('1234.5678').toStringAsPrecision(6)); // 1234.57
   /// print(ShortDecimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
   /// ```
+  @override
   String toStringAsPrecision(int precision) {
     if (precision <= 0) {
       throw ArgumentError.value(
