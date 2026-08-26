@@ -83,6 +83,16 @@ final class Decimal implements Comparable<Decimal> {
   /// So we use the trick of preserving the intermediate optimal result.
   Decimal? _packed;
 
+  /// The printed form, kept for the next call.
+  ///
+  /// One and the same decimal is printed again and again — a Flutter widget
+  /// rebuilds dozens of times a second — and every call redid `BigInt`
+  /// arithmetic, the loop that strips zeros and several substrings. The
+  /// competitor keeps its normalized form and beat us on the repeat by up to
+  /// two and a half times; the first call we win by two to five, and that is
+  /// the call the string stripping was written for.
+  String? _text;
+
   /// Returns [Decimal] from integer [base].
   ///
   /// Parameter [shiftRight] shifts [base] to the right relative to the decimal
@@ -550,7 +560,9 @@ final class Decimal implements Comparable<Decimal> {
 
   /// Returns a string representation of this decimal.
   @override
-  String toString() {
+  String toString() => _text ??= _print();
+
+  String _print() {
     final packed = _packed;
     final it = packed ?? this;
 

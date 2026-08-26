@@ -595,6 +595,11 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   String debugToString() => '$ShortDecimal(base: $base, scale: $scale)';
 
   /// Returns a string representation of this decimal.
+  ///
+  /// Decimal keeps the printed form for the next call; this family cannot.
+  /// Its constructors are const — `zero`, `one`, `two` and `ten` are compile
+  /// time constants — and a const object has no field to write into. The work
+  /// here is on machine words anyway, not on BigInt.
   @override
   String toString() {
     final base = this.base;
