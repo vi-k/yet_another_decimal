@@ -339,6 +339,8 @@ void main() {
         ('100', 3),
         ('100.00', 3),
         ('1234.5678', 8),
+        ('-1234.5678', 8),
+        ('-1', 1),
       ]) {
         test('$source даёт $expected', () {
           expect(Decimal.parse(source).precision, expected);
@@ -363,6 +365,10 @@ void main() {
       expect(Decimal.parse('3').inverse.toString(), '1/3');
       expect(Decimal.parse('100').inverse.toString(), '1/100');
       expect(Decimal.parse('-0.25').inverse.toString(), '-4');
+
+      // Отрицательный масштаб: значение хранится сдвинутым влево.
+      expect((Decimal(1) << 2).inverse.toString(), '1/100');
+      expect((Decimal(3) << 1).inverse.toString(), '1/30');
 
       expect(
         () => Decimal.parse('0').inverse,

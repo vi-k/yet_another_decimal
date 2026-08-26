@@ -331,6 +331,8 @@ void main() {
         ('100', 3),
         ('100.00', 3),
         ('1234.5678', 8),
+        ('-1234.5678', 8),
+        ('-1', 1),
       ]) {
         test('$source даёт $expected', () {
           expect(ShortDecimal.parse(source).precision, expected);
@@ -355,6 +357,10 @@ void main() {
       expect(ShortDecimal.parse('3').inverse.toString(), '1/3');
       expect(ShortDecimal.parse('100').inverse.toString(), '1/100');
       expect(ShortDecimal.parse('-0.25').inverse.toString(), '-4');
+
+      // Отрицательный масштаб: значение хранится сдвинутым влево.
+      expect((ShortDecimal(1) << 2).inverse.toString(), '1/100');
+      expect((ShortDecimal(3) << 1).inverse.toString(), '1/30');
 
       expect(
         () => ShortDecimal.parse('0').inverse,

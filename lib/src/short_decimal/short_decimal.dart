@@ -331,14 +331,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     if (divisor != 1) {
-      // Every ten in the divisor is a shift of the scale and nothing more.
-      while (divisor % 10 == 0) {
-        divisor = divisor ~/ 10;
-        scale++;
-      }
-
-      // What is left is either odd or free of fives, so only one of the two
-      // steps below does anything.
+      // Decimal takes the tens out of the divisor here; this family has none
+      // to take. Its bases are packed at every entrance — `_pack`, `tryParse`,
+      // the shifts — so a divisor divisible by ten does not exist, and what is
+      // left is either odd or free of fives. Only one of the two steps below
+      // does anything.
       if (divisor.isEven) {
         var twos = 0;
         do {

@@ -690,6 +690,12 @@ void main() {
       expect(ShortDecimal(0).divideToDouble(ShortDecimal(3)), 0.0);
     });
 
+    test('деление на степень двойки за пределом таблицы', () {
+      // 5^28 в int64 не помещается, значит и результат тоже: переполнение
+      // остаётся молчаливым — но не падением.
+      expect(() => ShortDecimal(1) / ShortDecimal(268435456), returnsNormally);
+    });
+
     test('печать исключения содержит и остаток, и дробь', () {
       try {
         final unused = ShortDecimal(1) / ShortDecimal(3);

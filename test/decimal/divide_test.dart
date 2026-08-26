@@ -570,6 +570,15 @@ void main() {
       });
     });
 
+    test('деление на очень большую степень двойки', () {
+      // Показатель за пределом кеша степеней пятёрки: путь редкий, но точный.
+      final divisor = Decimal.fromBigInt(BigInt.two.pow(130));
+      final result = Decimal(1) / divisor;
+
+      expect(result * divisor, Decimal(1));
+      expect(result.toString().length, greaterThan(130));
+    });
+
     test('печать исключения содержит и остаток, и дробь', () {
       try {
         final unused = Decimal(1) / Decimal(3);
