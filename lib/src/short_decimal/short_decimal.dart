@@ -197,8 +197,61 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Multiplies this decimal by [other].
-  ShortDecimal operator *(ShortDecimal other) =>
-      ShortDecimal._pack(base * other.base, scale + other.scale);
+  ShortDecimal operator *(ShortDecimal other) {
+    var a = base;
+    var b = other.base;
+    var scale = this.scale + other.scale;
+
+    // A two on one side and a five on the other make a ten, and a ten belongs
+    // in the scale rather than in the product. Cancelling them keeps results
+    // that are perfectly representable — 2^62 * 5 among them — out of the
+    // overflow. Nothing is cancelled while the product fits.
+    while (!_productFits(a, b)) {
+      if (a.isEven && b % 5 == 0) {
+        a ~/= 2;
+        b ~/= 5;
+      } else if (a % 5 == 0 && b.isEven) {
+        a ~/= 5;
+        b ~/= 2;
+      } else {
+        break;
+      }
+
+      scale--;
+    }
+
+    return ShortDecimal._pack(a * b, scale);
+  }
+
+  /// Whether `a * b` stays within int64.
+  static bool _productFits(int a, int b) {
+    if (a == 0 || b == 0) {
+      return true;
+    }
+
+    final product = a * b;
+
+    return product ~/ b == a;
+  }
+
+  /// `a * b`, or null when it does not stay within int64.
+  static int? _productOrNull(int a, int b) => _productFits(a, b) ? a * b : null;
+
+  /// `a + b`, or null when it does not stay within int64.
+  ///
+  /// A sum overflows only when the addends share a sign and the sum does not
+  /// share it with them.
+  static int? _sumOrNull(int a, int b) {
+    final sum = a + b;
+
+    return (a ^ b) < 0 || (sum ^ a) >= 0 ? sum : null;
+  }
+
+  /// `-value`, or null when it does not stay within int64.
+  ///
+  /// `x == -x` holds for zero and for the minimum integer only.
+  static int? _negateOrNull(int value) =>
+      value != 0 && value == -value ? null : -value;
 
   /// Divides this decimal by [other].
   ///
@@ -585,6 +638,27 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     return table;
   }();
 
+  /// [value] multiplied by `10^exponent`, or null when it does not fit int64.
+  ///
+  /// The test is deliberately conservative: `|value| < 10^(18 - exponent)`
+  /// keeps the product below 10^18, well inside the range, and costs one table
+  /// lookup and one comparison instead of a division.
+  static int? _scaledOrNull(int value, int exponent) {
+    if (value == 0) {
+      return 0;
+    }
+
+    if (exponent > _maxPow10Exponent) {
+      return null;
+    }
+
+    final limit = _pow10Table[_maxPow10Exponent - exponent];
+
+    return value > -limit && value < limit
+        ? value * _pow10Table[exponent]
+        : null;
+  }
+
   /// Compares [value] with `scaled * 10^exponent` without overflowing.
   ///
   /// The alignment of two decimals multiplies one of the bases by a power of
@@ -593,13 +667,9 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// it is known to fit; otherwise the comparison is answered by dividing,
   /// which cannot overflow.
   static int _compareScaled(int value, int scaled, int exponent) {
-    if (exponent <= _maxPow10Exponent) {
-      final limit = _pow10Table[_maxPow10Exponent - exponent];
-
-      // |scaled| * 10^exponent < 10^18, so the product is well inside int64.
-      if (scaled > -limit && scaled < limit) {
-        return value.compareTo(scaled * _pow10Table[exponent]).sign;
-      }
+    final product = _scaledOrNull(scaled, exponent);
+    if (product != null) {
+      return value.compareTo(product).sign;
     }
 
     // value == quotient * 10^exponent + remainder, and the two parts have the

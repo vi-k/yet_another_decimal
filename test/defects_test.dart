@@ -11,13 +11,8 @@ library;
 import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
-const _skip9 = 'Д9: Fraction не принимает отрицательный fractionDigits';
 const _skip10 = 'Д10: tryParse принимает шестнадцатеричное';
-const _skip11 = 'Д11: ShortFraction переполняется при округлении';
 const _skip12 = 'Д12: ShortDecimal.tryParse принимает "+0" и табуляцию иначе';
-const _skip13 = 'Д13: ShortDecimal * переполняется до нормализации';
-const _skip14 = 'Д14: ShortFraction перемножает до сокращения';
-const _skip15 = 'Д15: ShortFraction допускает отрицательный знаменатель';
 
 void main() {
   group('Д1 деление на отрицательное', () {
@@ -183,7 +178,7 @@ void main() {
       expect(Decimal.parse('123.4').floor(-1).toString(), '120');
       final fraction = Fraction(BigInt.from(1234), BigInt.from(10));
       expect(fraction.floor(-1).toString(), '120');
-    }, skip: _skip9);
+    });
   });
 
   group('Д10 tryParse не принимает шестнадцатеричное', () {
@@ -205,11 +200,11 @@ void main() {
       final short = ShortFraction(4, 7);
       final wide = Fraction(BigInt.from(4), BigInt.from(7));
       expect(short.round(19).toString(), wide.round(19).toString());
-    }, skip: _skip11);
+    });
 
     test('положительная дробь не даёт отрицательный результат', () {
       expect(ShortFraction(4, 7).round(20).isNegative, isFalse);
-    }, skip: _skip11);
+    });
   });
 
   group('Д12 ShortDecimal.tryParse', () {
@@ -234,7 +229,7 @@ void main() {
     test('канонический результат помещается — значит считается', () {
       final result = ShortDecimal(4611686018427387904) * ShortDecimal(5);
       expect(result.toString(), '23058430092136939520');
-    }, skip: _skip13);
+    });
   });
 
   group('Д14 ShortFraction перемножает после сокращения', () {
@@ -242,25 +237,39 @@ void main() {
       const max = 9223372036854775807;
       final result = ShortFraction(max, 2) * ShortFraction(2, max - 2);
       expect(result.toString(), '$max/${max - 2}');
-    }, skip: _skip14);
+    });
 
     test('округление почти-единицы даёт единицу', () {
       const max = 9223372036854775807;
       expect(ShortFraction(max, max - 2).round(1).toString(), '1');
-    }, skip: _skip14);
+    });
   });
 
+  // Оба ожидания переписаны в волне 2. Первое было невыполнимо: точное
+  // значение 1/-2^63 требует знаменателя 2^63, который в int64 не помещается,
+  // а сокращать нечего. Второе противоречило Д9, который требует от дробей
+  // поддержки отрицательного fractionDigits. Обоснование —
+  // docs/records/2026-08-26[1]-wave-2-defects-plan.md.
   group('Д15 ShortFraction: знак и проверка аргумента', () {
     test('знаменатель всегда положителен', () {
-      final fraction = ShortFraction(1, -9223372036854775808);
+      final fraction = ShortFraction(2, -9223372036854775808);
       expect(fraction.denominator, greaterThan(0));
-    }, skip: _skip15);
+      expect(fraction.toString(), '-1/4611686018427387904');
+    });
 
-    test('отрицательный fractionDigits даёт ArgumentError', () {
+    test('неприводимая дробь даёт ArgumentError', () {
       expect(
-        () => ShortFraction(4, 7).floor(-1),
+        () => ShortFraction(1, -9223372036854775808),
         throwsA(isA<ArgumentError>()),
       );
-    }, skip: _skip15);
+    });
+
+    test('отрицательный fractionDigits работает как у Fraction', () {
+      expect(ShortFraction(1234, 10).floor(-1).toString(), '120');
+      expect(
+        ShortFraction(1234, 10).floor(-1).toString(),
+        Fraction(BigInt.from(1234), BigInt.from(10)).floor(-1).toString(),
+      );
+    });
   });
 }

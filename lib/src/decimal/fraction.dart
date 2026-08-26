@@ -63,48 +63,63 @@ final class Fraction {
   Decimal toDecimal() =>
       Decimal.fromBigInt(numerator) / Decimal.fromBigInt(denominator);
 
+  /// Rounds the fraction towards negative infinity to [fractionDigits].
   Decimal floor([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
-    var quotient = scaledNumerator ~/ denominator;
+    final (numerator, denominator) = _align(fractionDigits);
+    final quotient = numerator ~/ denominator;
 
-    if (scaledNumerator.isNegative &&
-        scaledNumerator % denominator != BigInt.zero) {
-      quotient -= BigInt.one;
-    }
-
-    return Decimal.fromBigInt(quotient, shiftRight: fractionDigits);
+    return Decimal._asIs(
+      numerator.isNegative && numerator.remainder(denominator) != BigInt.zero
+          ? quotient - BigInt.one
+          : quotient,
+      fractionDigits,
+    );
   }
 
+  /// Rounds the fraction to the closest decimal with [fractionDigits].
   Decimal round([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
-    var quotient = scaledNumerator ~/ denominator;
+    final (numerator, denominator) = _align(fractionDigits);
+    final quotient = numerator ~/ denominator;
+    final remainder = numerator.remainder(denominator).abs();
 
-    final remainder = scaledNumerator.remainder(denominator).abs();
-    if (remainder >= denominator.abs() - remainder) {
-      quotient += BigInt.from(scaledNumerator.sign);
-    }
-
-    return Decimal.fromBigInt(quotient, shiftRight: fractionDigits);
+    return Decimal._asIs(
+      remainder >= denominator - remainder
+          ? quotient + BigInt.from(numerator.sign)
+          : quotient,
+      fractionDigits,
+    );
   }
 
+  /// Rounds the fraction towards infinity to [fractionDigits].
   Decimal ceil([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
-    var quotient = scaledNumerator ~/ denominator;
+    final (numerator, denominator) = _align(fractionDigits);
+    final quotient = numerator ~/ denominator;
 
-    if (!scaledNumerator.isNegative &&
-        scaledNumerator % denominator != BigInt.zero) {
-      quotient += BigInt.one;
-    }
-
-    return Decimal.fromBigInt(quotient, shiftRight: fractionDigits);
+    return Decimal._asIs(
+      !numerator.isNegative && numerator.remainder(denominator) != BigInt.zero
+          ? quotient + BigInt.one
+          : quotient,
+      fractionDigits,
+    );
   }
 
+  /// Rounds the fraction towards zero to [fractionDigits].
   Decimal truncate([int fractionDigits = 0]) {
-    final scaledNumerator = numerator * Decimal._bigInt10.pow(fractionDigits);
-    final quotient = scaledNumerator ~/ denominator;
+    final (numerator, denominator) = _align(fractionDigits);
 
-    return Decimal.fromBigInt(quotient, shiftRight: fractionDigits);
+    return Decimal._asIs(numerator ~/ denominator, fractionDigits);
   }
+
+  /// The fraction brought to [fractionDigits] digits after the decimal point.
+  ///
+  /// A negative [fractionDigits] rounds to tens, hundreds and so on — the same
+  /// scenario [Decimal.floor] and its neighbours support. It cannot scale the
+  /// numerator then, so it scales the denominator instead: `BigInt.pow` does
+  /// not take a negative exponent, and the two directions are the same
+  /// division anyway.
+  (BigInt, BigInt) _align(int fractionDigits) => fractionDigits >= 0
+      ? (numerator * Decimal._bigInt10.pow(fractionDigits), denominator)
+      : (numerator, denominator * Decimal._bigInt10.pow(-fractionDigits));
 
   @override
   bool operator ==(Object other) =>
