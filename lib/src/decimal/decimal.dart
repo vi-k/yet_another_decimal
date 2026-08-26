@@ -24,6 +24,26 @@ final class Decimal implements Comparable<Decimal> {
   /// Powers past this one are not kept: nobody asks for them twice.
   static const _pow10CacheLimit = 128;
 
+  /// Powers of five, kept the same way [_pow10Cache] keeps powers of ten.
+  ///
+  /// Dividing by `2^n` is multiplying by `5^n` with the scale moved by `n`.
+  static final List<BigInt> _pow5Cache = <BigInt>[BigInt.one];
+
+  /// Five to the power of [exponent].
+  static BigInt _pow5(int exponent) {
+    assert(exponent >= 0, "exponent can't be negative");
+
+    if (exponent >= _pow10CacheLimit) {
+      return _bigInt5.pow(exponent);
+    }
+
+    for (var i = _pow5Cache.length; i <= exponent; i++) {
+      _pow5Cache.add(_pow5Cache[i - 1] * _bigInt5);
+    }
+
+    return _pow5Cache[exponent];
+  }
+
   /// Ten to the power of [exponent].
   static BigInt _pow10(int exponent) {
     assert(exponent >= 0, "exponent can't be negative");
@@ -188,6 +208,18 @@ final class Decimal implements Comparable<Decimal> {
       divisor = -divisor;
     }
 
+    // Dividing by one, and dividing without a remainder, are the two common
+    // cases and neither needs a factorization.
+    if (divisor == BigInt.one) {
+      return Decimal._asIs(negate ? -base : base, scale);
+    }
+
+    if (base.remainder(divisor) == BigInt.zero) {
+      final quotient = base ~/ divisor;
+
+      return Decimal._asIs(negate ? -quotient : quotient, scale);
+    }
+
     final gcd = base.fastGcd(divisor);
     if (gcd != BigInt.one) {
       base ~/= gcd;
@@ -195,24 +227,37 @@ final class Decimal implements Comparable<Decimal> {
     }
 
     if (divisor != BigInt.one) {
-      var k = BigInt.one;
-      while (divisor % _bigInt5 == BigInt.zero) {
-        k *= BigInt.two;
-        scale++;
-        divisor = divisor ~/ _bigInt5;
+      // Every ten in the divisor is a shift of the scale and nothing more, and
+      // they come off together rather than one digit at a time: a divisor of
+      // 10^6 took twenty-four BigInt operations here.
+      if (divisor.isEven) {
+        final (rest, zeros) = _splitTrailingZeros(divisor);
+        divisor = rest;
+        scale += zeros;
       }
 
-      while (divisor % BigInt.two == BigInt.zero) {
-        k *= _bigInt5;
-        scale++;
-        divisor = divisor ~/ BigInt.two;
+      // What is left is either odd or free of fives, so only one of the two
+      // steps below does anything. Both take the whole power at once.
+      if (divisor.isEven) {
+        // The lowest set bit is the power of two the divisor holds.
+        final twos = (divisor & -divisor).bitLength - 1;
+        base *= _pow5(twos);
+        scale += twos;
+        divisor = divisor >> twos;
+      } else if (divisor % _bigInt5 == BigInt.zero) {
+        var fives = 0;
+        do {
+          divisor = divisor ~/ _bigInt5;
+          fives++;
+        } while (divisor % _bigInt5 == BigInt.zero);
+
+        base <<= fives;
+        scale += fives;
       }
 
       if (divisor != BigInt.one) {
         throw DecimalDivideException._(this, other);
       }
-
-      base *= k;
     }
 
     return Decimal._asIs(negate ? -base : base, scale);
@@ -591,15 +636,27 @@ final class Decimal implements Comparable<Decimal> {
       return Decimal._asIs(base, 0);
     }
 
+    final (packed, zeros) = _splitTrailingZeros(base);
+
+    return Decimal._asIs(packed, scale - zeros);
+  }
+
+  /// [base] with its trailing zeros taken off, and how many there were.
+  ///
+  /// [base] must be even; an odd one has no trailing zero by definition and
+  /// the callers check that first, where it costs nothing.
+  static (BigInt, int) _splitTrailingZeros(BigInt base) {
     if (base % _bigInt10 != BigInt.zero) {
-      return Decimal._asIs(base, scale);
+      return (base, 0);
     }
 
+    // Up to four zeros the plain loop wins: setting a search up costs more
+    // than it saves. Past that the search wins by an order of magnitude.
     var rest = base ~/ _bigInt10;
     var zeros = 1;
     while (zeros < _linearZeros) {
       if (rest % _bigInt10 != BigInt.zero) {
-        return Decimal._asIs(rest, scale - zeros);
+        return (rest, zeros);
       }
 
       rest = rest ~/ _bigInt10;
@@ -620,7 +677,7 @@ final class Decimal implements Comparable<Decimal> {
       }
     }
 
-    return Decimal._asIs(base ~/ _pow10(low), scale - low);
+    return (base ~/ _pow10(low), low);
   }
 
   /// How many zeros are taken off one at a time before the search starts.
