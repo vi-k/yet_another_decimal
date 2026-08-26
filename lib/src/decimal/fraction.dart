@@ -118,8 +118,8 @@ final class Fraction {
   /// not take a negative exponent, and the two directions are the same
   /// division anyway.
   (BigInt, BigInt) _align(int fractionDigits) => fractionDigits >= 0
-      ? (numerator * Decimal._bigInt10.pow(fractionDigits), denominator)
-      : (numerator, denominator * Decimal._bigInt10.pow(-fractionDigits));
+      ? (numerator * Decimal._pow10(fractionDigits), denominator)
+      : (numerator, denominator * Decimal._pow10(-fractionDigits));
 
   @override
   bool operator ==(Object other) =>

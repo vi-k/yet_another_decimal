@@ -12,6 +12,33 @@ final class Decimal implements Comparable<Decimal> {
   static final _bigInt5 = BigInt.from(5);
   static final _bigInt10 = BigInt.from(10);
 
+  /// Powers of ten, kept between calls.
+  ///
+  /// `pow` shows up under `+`, `-`, `%`, `remainder`, `~/`, every comparison,
+  /// `==`, `compareTo`, `Division` and `divideToFraction` — the hottest code
+  /// in the package — and it built the same power again on every call. Adding
+  /// two decimals of the same scale costs about a third of adding two of
+  /// different scales; the rest went into `pow`.
+  static final List<BigInt> _pow10Cache = <BigInt>[BigInt.one];
+
+  /// Powers past this one are not kept: nobody asks for them twice.
+  static const _pow10CacheLimit = 128;
+
+  /// Ten to the power of [exponent].
+  static BigInt _pow10(int exponent) {
+    assert(exponent >= 0, "exponent can't be negative");
+
+    if (exponent >= _pow10CacheLimit) {
+      return _bigInt10.pow(exponent);
+    }
+
+    for (var i = _pow10Cache.length; i <= exponent; i++) {
+      _pow10Cache.add(_pow10Cache[i - 1] * _bigInt10);
+    }
+
+    return _pow10Cache[exponent];
+  }
+
   /// A decimal with the numerical value 0.
   static final Decimal zero = Decimal.fromBigInt(BigInt.zero);
 
@@ -389,7 +416,7 @@ final class Decimal implements Comparable<Decimal> {
     // The scale is never positive after truncate. A negative one is a shift to
     // the left and has to be materialized, exactly as ShortDecimal.toInt does:
     // the base alone is not the value.
-    return scale < 0 ? truncated.base * _bigInt10.pow(-scale) : truncated.base;
+    return scale < 0 ? truncated.base * _pow10(-scale) : truncated.base;
   }
 
   /// Converts this decimal to [double].
@@ -567,10 +594,10 @@ final class Decimal implements Comparable<Decimal> {
     }
 
     if (as > bs) {
-      return (base, other.base * _bigInt10.pow(as - bs), as);
+      return (base, other.base * _pow10(as - bs), as);
     }
 
-    return (base * _bigInt10.pow(bs - as), other.base, bs);
+    return (base * _pow10(bs - as), other.base, bs);
   }
 
   Decimal _dropFraction(
@@ -581,7 +608,7 @@ final class Decimal implements Comparable<Decimal> {
       return this;
     }
 
-    final divisor = _bigInt10.pow(scale - fractionDigits);
+    final divisor = _pow10(scale - fractionDigits);
     final result = callback(base ~/ divisor, divisor);
 
     return Decimal._asIs(result, fractionDigits);
