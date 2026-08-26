@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 
@@ -100,7 +100,7 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Returns number of digits after the decimal point.
-  int get fractionDigits => scale <= 0 ? 0 : max(_requirePacked.scale, 0);
+  int get fractionDigits => scale <= 0 ? 0 : math.max(_requirePacked.scale, 0);
 
   /// Returns the sign of this decimal.
   ///
@@ -211,7 +211,37 @@ final class Decimal implements Comparable<Decimal> {
   double divideToDouble(Decimal other) {
     final fraction = divideToFraction(other);
 
-    return fraction.numerator / fraction.denominator;
+    return _ratioToDouble(fraction.numerator, fraction.denominator);
+  }
+
+  /// The value of `numerator / denominator` as a [double].
+  ///
+  /// `BigInt.operator /` is `toDouble() / other.toDouble()`, so once both ends
+  /// pass `double.maxFinite` it computes `Infinity / Infinity` and answers NaN
+  /// for a ratio that is perfectly ordinary. Numbers of high precision reach
+  /// that point easily: aligning the scales grows both ends at once.
+  static double _ratioToDouble(BigInt numerator, BigInt denominator) {
+    final numeratorBits = numerator.abs().bitLength;
+    final denominatorBits = denominator.abs().bitLength;
+
+    // Both ends survive the conversion: let the SDK do the work.
+    if (numeratorBits < 1024 && denominatorBits < 1024) {
+      return numerator / denominator;
+    }
+
+    // Otherwise take 64 significant bits of the ratio — eleven more than a
+    // double keeps — and put the exponent back afterwards. An exponent out of
+    // range turns into zero or infinity here, which is the right answer for a
+    // ratio out of range.
+    const bits = 64;
+    final shift = bits + denominatorBits - numeratorBits;
+    final scaled = shift >= 0
+        ? (numerator << shift) ~/ denominator
+        : numerator ~/ (denominator << -shift);
+
+    // The base has to be a double: `pow` with two ints answers with an int,
+    // and 2^2596 as an int is zero.
+    return scaled.toDouble() * math.pow(2.0, -shift);
   }
 
   /// Calculates the result of division as fraction.

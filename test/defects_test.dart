@@ -11,7 +11,6 @@ library;
 import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
-const _skip8 = 'Д8: divideToDouble даёт NaN';
 const _skip9 = 'Д9: Fraction не принимает отрицательный fractionDigits';
 const _skip10 = 'Д10: tryParse принимает шестнадцатеричное';
 const _skip11 = 'Д11: ShortFraction переполняется при округлении';
@@ -176,7 +175,7 @@ void main() {
       expect(result.isNaN, isFalse);
       expect(result, greaterThan(0.0));
       expect(result, closeTo(0.526, 0.01));
-    }, skip: _skip8);
+    });
   });
 
   group('Д9 Fraction и отрицательный fractionDigits', () {

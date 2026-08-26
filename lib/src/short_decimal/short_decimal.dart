@@ -267,6 +267,9 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Calculates the result of division as double.
+  ///
+  /// Decimal needs a scaled division here to keep the ratio out of NaN; this
+  /// family does not: both ends of the fraction are int64 and always convert.
   double divideToDouble(ShortDecimal other) {
     final fraction = divideToFraction(other);
 
