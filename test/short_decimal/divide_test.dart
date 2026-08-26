@@ -738,6 +738,56 @@ void main() {
         expect(ShortDecimal(1).divideOrNull(ShortDecimal(7)), isNull);
       });
 
+      test('делитель int.min: знак не теряется', () {
+        // Р3: `-int.min == int.min`, поэтому знак не снимался, а результат
+        // отрицался — то есть дважды.
+        const min = -9223372036854775808;
+
+        expect(ShortDecimal(min) / ShortDecimal(min), ShortDecimal(1));
+        expect(
+          ShortDecimal(min).divideWithRemainder(ShortDecimal(min)).toString(),
+          '1',
+        );
+        expect(ShortDecimal(min).isDivisibleBy(ShortDecimal(min)), isTrue);
+
+        // 2^62 / -2^63 = -0.5 — представимо, а отбрасывалось как null.
+        expectShortDecimal(
+          ShortDecimal(4611686018427387904).divideOrNull(ShortDecimal(min))!,
+          '-0.5',
+        );
+
+        // Нечётное делимое: точный ответ требует 5^63 и в int64 не влезает.
+        expect(ShortDecimal(3).divideOrNull(ShortDecimal(min)), isNull);
+
+        // Согласовано с семейством на BigInt.
+        expect(
+          (ShortDecimal(min) / ShortDecimal(min)).toString(),
+          (Decimal.parse('$min') / Decimal.parse('$min')).toString(),
+        );
+      });
+
+      test('прибавление нуля не меняет значения', () {
+        // Р1: при разрыве масштабов больше 18 выравнивание переполнялось, и
+        // домножалась база самого числа, а не нуля.
+        for (final shift in [0, 5, 18, 19, 25, 60]) {
+          final v = ShortDecimal(1, shiftLeft: shift);
+          expect(v + ShortDecimal.zero, v, reason: '1e$shift + 0');
+          expect(ShortDecimal.zero + v, v, reason: '0 + 1e$shift');
+          expect(v - ShortDecimal.zero, v, reason: '1e$shift - 0');
+          expect(ShortDecimal.zero - v, -v, reason: '0 - 1e$shift');
+        }
+
+        // Сумма списка через fold — обычный способ, и он не должен портиться.
+        final values = [
+          ShortDecimal(1, shiftLeft: 19),
+          ShortDecimal(2, shiftLeft: 19),
+        ];
+        expect(
+          values.fold(ShortDecimal.zero, (a, b) => a + b),
+          ShortDecimal(3, shiftLeft: 19),
+        );
+      });
+
       test('на ноль все деления бросают один и тот же тип', () {
         // До 1.2.0 `~/`, `%` и `remainder` бросали
         // IntegerDivisionByZeroException, а `/` — UnsupportedError: одна

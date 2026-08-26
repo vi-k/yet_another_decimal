@@ -218,6 +218,18 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// Adds [other] to this decimal.
   @override
   ShortDecimal operator +(ShortDecimal other) {
+    // Zero cannot change a value, and going through the alignment to find
+    // that out can: a scale gap wider than eighteen overflows the shift, and
+    // the operand being added is exactly the one that would have shifted the
+    // other. Answering here costs one comparison and keeps `x + 0 == x`.
+    if (other.isZero) {
+      return this;
+    }
+
+    if (isZero) {
+      return other;
+    }
+
     final (a, b, scale) = _align(other);
 
     return ShortDecimal._pack(a + b, scale);
@@ -226,6 +238,15 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// Subtracts [other] from this decimal.
   @override
   ShortDecimal operator -(ShortDecimal other) {
+    // See [operator +]: subtracting zero must not go near the alignment.
+    if (other.isZero) {
+      return this;
+    }
+
+    if (isZero) {
+      return -other;
+    }
+
     final (a, b, scale) = _align(other);
 
     return ShortDecimal._pack(a - b, scale);
@@ -361,6 +382,20 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final negate = divisor.isNegative;
     if (negate) {
       divisor = -divisor;
+    }
+
+    // `-int.min` is `int.min`: the sign does not come off, and the negation at
+    // the end would then apply it a second time. Halving both ends keeps the
+    // ratio and brings the divisor into range — but only for an even dividend.
+    // An odd one leaves 2^63 in the denominator, and writing that down as a
+    // decimal needs 5^63, which int64 does not hold.
+    if (divisor.isNegative) {
+      if (base.isOdd) {
+        return null;
+      }
+
+      base ~/= 2;
+      divisor = -(divisor ~/ 2);
     }
 
     // Dividing by one, and dividing without a remainder, are the two common
