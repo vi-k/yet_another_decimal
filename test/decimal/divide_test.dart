@@ -665,6 +665,7 @@ void main() {
           ('remainder', () => one.remainder(zero)),
           ('divideOrNull', () => one.divideOrNull(zero)),
           ('divideToFraction', () => one.divideToFraction(zero)),
+          ('divideToDouble', () => one.divideToDouble(zero)),
           ('divideWithRemainder', () => one.divideWithRemainder(zero)),
           ('isDivisibleBy', () => one.isDivisibleBy(zero)),
         ]) {

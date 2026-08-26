@@ -35,6 +35,7 @@ part 'short_division.dart';
 @pragma('vm:deeply-immutable')
 @immutable
 final class ShortDecimal implements FixedPoint<ShortDecimal> {
+  static final _bigInt10 = BigInt.from(10);
   static final _charCode0 = '0'.codeUnitAt(0);
   static final _charCode9 = '9'.codeUnitAt(0);
   static final _charCodeMinus = '-'.codeUnitAt(0);
@@ -505,9 +506,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw UnsupportedError('division by zero');
     }
 
-    final (a, b, _) = _align(other);
+    final aligned = _alignOrNull(other);
+    if (aligned != null) {
+      final (a, b, _) = aligned;
 
-    return a ~/ b;
+      return a ~/ b;
+    }
+
+    final (a, b, _) = _alignExactly(other);
+
+    return (a ~/ b).toInt();
   }
 
   /// Calculates the result of division as double.
@@ -516,16 +524,37 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// family does not: both ends of the fraction are int64 and always convert.
   @override
   double divideToDouble(ShortDecimal other) {
-    final fraction = divideToFraction(other);
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
 
-    return fraction.numerator / fraction.denominator;
+    // Straight from the exact pair rather than through [ShortFraction]: the
+    // double is representable even where the fraction is not, and dividing one
+    // int by another rounds twice on operands past 2^53.
+    final (a, b, _) = _alignExactly(other);
+
+    return a.ratioToDouble(b);
   }
 
   /// Calculates the result of division as fraction.
   ShortFraction divideToFraction(ShortDecimal other) {
-    final (dividend, divisor, _) = _align(other);
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
 
-    return ShortFraction(dividend, divisor);
+    final aligned = _alignOrNull(other);
+    if (aligned != null) {
+      final (dividend, divisor, _) = aligned;
+
+      return ShortFraction(dividend, divisor);
+    }
+
+    // Reduced first: the aligned pair can leave int64 while the same ratio in
+    // lowest terms fits it comfortably.
+    final (a, b, _) = _alignExactly(other);
+    final gcd = a.fastGcd(b);
+
+    return ShortFraction((a ~/ gcd).toInt(), (b ~/ gcd).toInt());
   }
 
   /// Calculates the result of division as an integer quotient and remainder.
@@ -543,9 +572,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw UnsupportedError('division by zero');
     }
 
-    final (a, b, scale) = _align(other);
+    final aligned = _alignOrNull(other);
+    if (aligned != null) {
+      final (a, b, scale) = aligned;
 
-    return ShortDecimal._pack(a % b, scale);
+      return ShortDecimal._pack(a % b, scale);
+    }
+
+    final (a, b, scale) = _alignExactly(other);
+
+    return ShortDecimal._pack((a % b).toInt(), scale);
   }
 
   /// The remainder of the truncating division of this by [other].
@@ -561,9 +597,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw UnsupportedError('division by zero');
     }
 
-    final (a, b, scale) = _align(other);
+    final aligned = _alignOrNull(other);
+    if (aligned != null) {
+      final (a, b, scale) = aligned;
 
-    return ShortDecimal._pack(a.remainder(b), scale);
+      return ShortDecimal._pack(a.remainder(b), scale);
+    }
+
+    final (a, b, scale) = _alignExactly(other);
+
+    return ShortDecimal._pack(a.remainder(b).toInt(), scale);
   }
 
   /// Whether this decimal is smaller than [other].
@@ -1169,6 +1212,53 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     return as > bs
         ? _compareScaled(base, other.base, as - bs)
         : -_compareScaled(other.base, base, bs - as);
+  }
+
+  /// The two bases brought to a common scale, or null when the shift itself
+  /// does not fit into int64.
+  ///
+  /// [_align] shifts with [_pow10], which wraps silently past an exponent of
+  /// eighteen — and wraps the base of whichever operand had the smaller scale,
+  /// which is the one that was not going to move the answer. Where the answer
+  /// is still representable, callers fall back to [_alignExactly].
+  (int, int, int)? _alignOrNull(ShortDecimal other) {
+    final as = scale;
+    final bs = other.scale;
+
+    if (as == bs) {
+      return (base, other.base, as);
+    }
+
+    if (as > bs) {
+      final scaled = _scaledOrNull(other.base, as - bs);
+
+      return scaled == null ? null : (base, scaled, as);
+    }
+
+    final scaled = _scaledOrNull(base, bs - as);
+
+    return scaled == null ? null : (scaled, other.base, bs);
+  }
+
+  /// The same pair in `BigInt`, where the shift cannot overflow.
+  ///
+  /// The road [_alignOrNull] falls back to. A scale gap wider than eighteen
+  /// leaves int64 behind, but the answer to the operation that needed the
+  /// alignment often does not: `2e19 ~/ 4` is `5e18`, and int64 holds it with
+  /// room to spare.
+  (BigInt, BigInt, int) _alignExactly(ShortDecimal other) {
+    final as = scale;
+    final bs = other.scale;
+    final a = BigInt.from(base);
+    final b = BigInt.from(other.base);
+
+    if (as == bs) {
+      return (a, b, as);
+    }
+
+    return as > bs
+        ? (a, b * _bigInt10.pow(as - bs), as)
+        : (a * _bigInt10.pow(bs - as), b, bs);
   }
 
   (int, int, int) _align(ShortDecimal other) {

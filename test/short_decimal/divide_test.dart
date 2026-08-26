@@ -738,6 +738,58 @@ void main() {
         expect(ShortDecimal(1).divideOrNull(ShortDecimal(7)), isNull);
       });
 
+      test('разрыв масштабов больше 18 не портит представимый ответ', () {
+        // Р2: выравнивание переполнялось, и `~/` расходился с `/` на одних и
+        // тех же данных, хотя верный ответ укладывается в int64.
+        final big = ShortDecimal(2, shiftLeft: 19); // 2e19
+
+        expect(
+          big.divideOrNull(ShortDecimal(4)),
+          ShortDecimal(5, shiftLeft: 18),
+        );
+        expect(big ~/ ShortDecimal(4), 5000000000000000000);
+        expect(big % ShortDecimal(4), ShortDecimal.zero);
+        expect(big.remainder(ShortDecimal(4)), ShortDecimal.zero);
+        expect(
+          big.divideWithRemainder(ShortDecimal(4)).toString(),
+          '5000000000000000000',
+        );
+        expect(
+          big.divideToFraction(ShortDecimal(4)),
+          ShortFraction(5000000000000000000, 1),
+        );
+
+        // Инвариант деления с остатком держится и здесь.
+        final d = ShortDecimal(1, shiftLeft: 19).divideWithRemainder(
+          ShortDecimal(3),
+        );
+        expect(d.quotient, 3333333333333333333);
+        expect(d.remainder, ShortDecimal(1));
+
+        // Согласовано с семейством на BigInt.
+        expect(
+          big ~/ ShortDecimal(4),
+          ((Decimal(2) << 19) ~/ Decimal(4)).toInt(),
+        );
+      });
+
+      test('divideToDouble не теряет знак на разрыве масштабов', () {
+        // Тот же корень: результат представим в double, а промежуточное — нет.
+        expect(
+          ShortDecimal.parse('1e-19').divideToDouble(ShortDecimal.one),
+          1e-19,
+        );
+        expect(
+          ShortDecimal(2, shiftLeft: 19).divideToDouble(ShortDecimal(4)),
+          5e18,
+        );
+        // И округляет к ближайшему, а не через два округления подряд.
+        expect(
+          ShortDecimal(9007199254740993).divideToDouble(ShortDecimal(7)),
+          1286742750677284.8,
+        );
+      });
+
       test('делитель int.min: знак не теряется', () {
         // Р3: `-int.min == int.min`, поэтому знак не снимался, а результат
         // отрицался — то есть дважды.
@@ -804,6 +856,7 @@ void main() {
           ('remainder', () => one.remainder(zero)),
           ('divideOrNull', () => one.divideOrNull(zero)),
           ('divideToFraction', () => one.divideToFraction(zero)),
+          ('divideToDouble', () => one.divideToDouble(zero)),
           ('divideWithRemainder', () => one.divideWithRemainder(zero)),
           ('isDivisibleBy', () => one.isDivisibleBy(zero)),
         ]) {

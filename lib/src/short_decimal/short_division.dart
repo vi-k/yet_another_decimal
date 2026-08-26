@@ -25,12 +25,22 @@ final class ShortDivision {
       throw UnsupportedError('division by zero');
     }
 
-    final (a, b, scale) = dividend._align(divisor);
-
     // The scale of an aligned pair is negative for round numbers, and the
     // public constructor asserts it is not. The remainder is built by the
     // internal one for that reason.
-    return ShortDivision._(a ~/ b, ShortDecimal._pack(a.remainder(b), scale));
+    final aligned = dividend._alignOrNull(divisor);
+    if (aligned != null) {
+      final (a, b, scale) = aligned;
+
+      return ShortDivision._(a ~/ b, ShortDecimal._pack(a.remainder(b), scale));
+    }
+
+    final (a, b, scale) = dividend._alignExactly(divisor);
+
+    return ShortDivision._(
+      (a ~/ b).toInt(),
+      ShortDecimal._pack(a.remainder(b).toInt(), scale),
+    );
   }
 
   const ShortDivision._(this.quotient, this.remainder);

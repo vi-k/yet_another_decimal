@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// What the package needs of `BigInt` and the standard library does not have.
 extension BigIntInternals on BigInt {
   /// The greatest common divisor of this and [other].
@@ -27,6 +29,70 @@ extension BigIntInternals on BigInt {
 
     return result.abs();
   }
+
+  /// The ratio of two integers as the nearest double, ties to even.
+  ///
+  /// Doing it the obvious way rounds more than once, and every extra rounding
+  /// is a chance to land on the wrong double. `numerator / denominator` rounds
+  /// three times — each end on its way to a double, then the division itself.
+  /// Taking a fixed number of bits of the quotient and putting the exponent
+  /// back afterwards rounds twice, and below `2^-1074` the exponent itself
+  /// underflows to zero, which turned every subnormal answer into a plain `0`.
+  ///
+  /// So the quotient is taken at exactly the precision the answer will keep —
+  /// fifty-three bits while the result is normal, fewer once it is not —
+  /// rounded once with the remainder standing in for the sticky bit, and only
+  /// then scaled by a power of two, which is exact.
+  double ratioToDouble(BigInt denominator) {
+    if (this == BigInt.zero) {
+      return 0;
+    }
+
+    final negative = isNegative != denominator.isNegative;
+    final n = abs();
+    final d = denominator.abs();
+
+    // Where both ends are exactly representable, the SDK is already correct —
+    // IEEE division rounds once — and much faster than the road below.
+    if (n.bitLength <= _doubleMantissaBits &&
+        d.bitLength <= _doubleMantissaBits) {
+      final result = n.toDouble() / d.toDouble();
+
+      return negative ? -result : result;
+    }
+
+    // floor(log2(n / d)). The bit lengths give it to within one, and the
+    // comparison below settles which.
+    var log2 = n.bitLength - d.bitLength;
+    if (log2 >= 0 ? n < (d << log2) : (n << -log2) < d) {
+      log2--;
+    }
+
+    // The exponent of the lowest bit the answer can hold: fifty-two below the
+    // leading one while the result is normal, and 2^-1074 once it is not.
+    final lowest =
+        math.max(log2 - (_doubleMantissaBits - 1), _doubleMinSubnormalExponent);
+
+    // mantissa = round(n / d / 2^lowest), halves to even.
+    final shift = -lowest;
+    final scaledNumerator = shift >= 0 ? n << shift : n;
+    final scaledDenominator = shift >= 0 ? d : d << -shift;
+    var mantissa = scaledNumerator ~/ scaledDenominator;
+    final twiceRemainder =
+        (scaledNumerator - mantissa * scaledDenominator) << 1;
+    if (twiceRemainder > scaledDenominator ||
+        (twiceRemainder == scaledDenominator && mantissa.isOdd)) {
+      mantissa += BigInt.one;
+    }
+
+    // The mantissa holds at most fifty-three bits, so it converts exactly, and
+    // every step of the scaling below stays between it and the answer — so no
+    // step loses a bit either. An answer out of range becomes infinity here,
+    // which is what it should be.
+    final result = _scaleByPowerOfTwo(mantissa.toDouble(), lowest);
+
+    return negative ? -result : result;
+  }
 }
 
 /// What the package needs of `int` and the standard library does not have.
@@ -45,6 +111,36 @@ extension IntInternals on int {
 
     return gcd.abs();
   }
+}
+
+/// How many bits a double keeps, the implicit leading one included.
+const _doubleMantissaBits = 53;
+
+/// The exponent of the smallest subnormal double, `2^-1074`.
+const _doubleMinSubnormalExponent = -1074;
+
+/// [value] multiplied by `2^exponent`, in steps small enough to stay in range.
+///
+/// A single `pow(2.0, exponent)` is not enough: the factor itself can
+/// underflow to zero or overflow to infinity while the product is a perfectly
+/// good double.
+double _scaleByPowerOfTwo(double value, int exponent) {
+  const step = 500;
+  final down = math.pow(2.0, -step) as double;
+  final up = math.pow(2.0, step) as double;
+
+  var result = value;
+  var rest = exponent;
+  while (rest <= -step) {
+    result *= down;
+    rest += step;
+  }
+  while (rest >= step) {
+    result *= up;
+    rest -= step;
+  }
+
+  return result * (math.pow(2.0, rest) as double);
 }
 
 const _char0 = 0x30;
