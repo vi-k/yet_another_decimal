@@ -713,5 +713,102 @@ void main() {
       expect(() => dust % ShortDecimal(3), returnsNormally);
       expect(() => dust ~/ ShortDecimal(3), returnsNormally);
     });
+
+    // Волна 4: тотальные формы деления. Ловля исключения стоит около 800 нс,
+    // чтение null — доли наносекунды, а заглавный путь пакета не должен быть
+    // его самым медленным.
+    group('тотальное деление', () {
+      test('divideOrNull возвращает результат или null', () {
+        expectShortDecimal(
+          ShortDecimal(1).divideOrNull(ShortDecimal(4))!,
+          '0.25',
+        );
+        expectShortDecimal(ShortDecimal(6).divideOrNull(ShortDecimal(3))!, '2');
+        expectShortDecimal(
+          ShortDecimal(1).divideOrNull(ShortDecimal(-2))!,
+          '-0.5',
+        );
+        expect(ShortDecimal(1).divideOrNull(ShortDecimal(3)), isNull);
+        expect(ShortDecimal(1).divideOrNull(ShortDecimal(7)), isNull);
+      });
+
+      test('деление на ноль по-прежнему бросает', () {
+        expect(
+          () => ShortDecimal(1).divideOrNull(ShortDecimal(0)),
+          throwsA(isA<UnsupportedError>()),
+        );
+        expect(
+          () => ShortDecimal(
+            1,
+          ).divide(ShortDecimal(0), scaleOnInfinitePrecision: 2),
+          throwsA(isA<UnsupportedError>()),
+        );
+        expect(
+          () => ShortDecimal(1).isDivisibleBy(ShortDecimal(0)),
+          throwsA(isA<UnsupportedError>()),
+        );
+      });
+
+      test('divide округляет непредставимое', () {
+        expectShortDecimal(
+          ShortDecimal(1).divide(ShortDecimal(3), scaleOnInfinitePrecision: 4),
+          '0.3333',
+        );
+        expectShortDecimal(
+          ShortDecimal(2).divide(ShortDecimal(3), scaleOnInfinitePrecision: 4),
+          '0.6667',
+        );
+        expectShortDecimal(
+          ShortDecimal(-2).divide(ShortDecimal(3), scaleOnInfinitePrecision: 0),
+          '-1',
+        );
+
+        // Представимое не округляется, даже если попросили меньше знаков.
+        expectShortDecimal(
+          ShortDecimal(1).divide(ShortDecimal(8), scaleOnInfinitePrecision: 1),
+          '0.125',
+        );
+      });
+
+      test('divide без аргумента бросает то же, что оператор', () {
+        expect(
+          () => ShortDecimal(1).divide(ShortDecimal(3)),
+          throwsA(isA<ShortDecimalDivideException>()),
+        );
+        expectShortDecimal(ShortDecimal(1).divide(ShortDecimal(4)), '0.25');
+      });
+
+      test('isDivisibleBy отвечает про конечную запись, а не про целое', () {
+        expect(ShortDecimal(3).isDivisibleBy(ShortDecimal(2)), isTrue);
+        expect(ShortDecimal(1).isDivisibleBy(ShortDecimal(4)), isTrue);
+        expect(ShortDecimal(1).isDivisibleBy(ShortDecimal(3)), isFalse);
+        expect(ShortDecimal(1).isDivisibleBy(ShortDecimal(6)), isFalse);
+        expect(ShortDecimal(0).isDivisibleBy(ShortDecimal(7)), isTrue);
+      });
+
+      test('согласовано с оператором на множестве случаев', () {
+        for (var a = -20; a <= 20; a++) {
+          for (var b = -20; b <= 20; b++) {
+            if (b == 0) continue;
+            final left = ShortDecimal(a);
+            final right = ShortDecimal(b);
+            final total = left.divideOrNull(right);
+            final why = '$a / $b';
+
+            if (total == null) {
+              expect(left.isDivisibleBy(right), isFalse, reason: why);
+              expect(
+                () => left / right,
+                throwsA(isA<ShortDecimalDivideException>()),
+                reason: why,
+              );
+            } else {
+              expect(left.isDivisibleBy(right), isTrue, reason: why);
+              expect((left / right).toString(), total.toString(), reason: why);
+            }
+          }
+        }
+      });
+    });
   });
 }

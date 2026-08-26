@@ -583,5 +583,94 @@ void main() {
         expect(error.divisor, Decimal(3));
       }
     });
+
+    // Волна 4: тотальные формы деления. Ловля исключения стоит около 800 нс,
+    // чтение null — доли наносекунды, а заглавный путь пакета не должен быть
+    // его самым медленным.
+    group('тотальное деление', () {
+      test('divideOrNull возвращает результат или null', () {
+        expectDecimal(Decimal(1).divideOrNull(Decimal(4))!, '0.25');
+        expectDecimal(Decimal(6).divideOrNull(Decimal(3))!, '2');
+        expectDecimal(Decimal(1).divideOrNull(Decimal(-2))!, '-0.5');
+        expect(Decimal(1).divideOrNull(Decimal(3)), isNull);
+        expect(Decimal(1).divideOrNull(Decimal(7)), isNull);
+      });
+
+      test('деление на ноль по-прежнему бросает', () {
+        expect(
+          () => Decimal(1).divideOrNull(Decimal(0)),
+          throwsA(isA<UnsupportedError>()),
+        );
+        expect(
+          () => Decimal(1).divide(Decimal(0), scaleOnInfinitePrecision: 2),
+          throwsA(isA<UnsupportedError>()),
+        );
+        expect(
+          () => Decimal(1).isDivisibleBy(Decimal(0)),
+          throwsA(isA<UnsupportedError>()),
+        );
+      });
+
+      test('divide округляет непредставимое', () {
+        expectDecimal(
+          Decimal(1).divide(Decimal(3), scaleOnInfinitePrecision: 4),
+          '0.3333',
+        );
+        expectDecimal(
+          Decimal(2).divide(Decimal(3), scaleOnInfinitePrecision: 4),
+          '0.6667',
+        );
+        expectDecimal(
+          Decimal(-2).divide(Decimal(3), scaleOnInfinitePrecision: 0),
+          '-1',
+        );
+
+        // Представимое не округляется, даже если попросили меньше знаков.
+        expectDecimal(
+          Decimal(1).divide(Decimal(8), scaleOnInfinitePrecision: 1),
+          '0.125',
+        );
+      });
+
+      test('divide без аргумента бросает то же, что оператор', () {
+        expect(
+          () => Decimal(1).divide(Decimal(3)),
+          throwsA(isA<DecimalDivideException>()),
+        );
+        expectDecimal(Decimal(1).divide(Decimal(4)), '0.25');
+      });
+
+      test('isDivisibleBy отвечает про конечную запись, а не про целое', () {
+        expect(Decimal(3).isDivisibleBy(Decimal(2)), isTrue);
+        expect(Decimal(1).isDivisibleBy(Decimal(4)), isTrue);
+        expect(Decimal(1).isDivisibleBy(Decimal(3)), isFalse);
+        expect(Decimal(1).isDivisibleBy(Decimal(6)), isFalse);
+        expect(Decimal(0).isDivisibleBy(Decimal(7)), isTrue);
+      });
+
+      test('согласовано с оператором на множестве случаев', () {
+        for (var a = -20; a <= 20; a++) {
+          for (var b = -20; b <= 20; b++) {
+            if (b == 0) continue;
+            final left = Decimal(a);
+            final right = Decimal(b);
+            final total = left.divideOrNull(right);
+            final why = '$a / $b';
+
+            if (total == null) {
+              expect(left.isDivisibleBy(right), isFalse, reason: why);
+              expect(
+                () => left / right,
+                throwsA(isA<DecimalDivideException>()),
+                reason: why,
+              );
+            } else {
+              expect(left.isDivisibleBy(right), isTrue, reason: why);
+              expect((left / right).toString(), total.toString(), reason: why);
+            }
+          }
+        }
+      });
+    });
   });
 }

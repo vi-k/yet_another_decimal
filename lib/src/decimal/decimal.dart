@@ -199,8 +199,26 @@ final class Decimal implements Comparable<Decimal> {
   ///
   /// Throws [UnsupportedError] if [other] is zero and
   /// [DecimalDivideException] if the result cannot be written down as a
-  /// decimal with a finite number of digits.
-  Decimal operator /(Decimal other) {
+  /// decimal with a finite number of digits. [divideOrNull] and [divide]
+  /// answer the same question without an exception.
+  Decimal operator /(Decimal other) =>
+      divideOrNull(other) ?? (throw DecimalDivideException._(this, other));
+
+  /// Divides this decimal by [other], or returns null.
+  ///
+  /// Null means the result has no finite decimal form — one divided by three.
+  /// Dividing by zero still throws [UnsupportedError]: that is not a result
+  /// nobody can write down, that is a question nobody can answer.
+  ///
+  /// Catching an exception costs about two thousand times more than reading a
+  /// null, so this is the form to reach for when the divisor is not known in
+  /// advance.
+  ///
+  /// ```dart
+  /// print(Decimal(1).divideOrNull(Decimal(4))); // 0.25
+  /// print(Decimal(1).divideOrNull(Decimal(3))); // null
+  /// ```
+  Decimal? divideOrNull(Decimal other) {
     var divisor = other.base;
 
     if (divisor == BigInt.zero) {
@@ -272,12 +290,43 @@ final class Decimal implements Comparable<Decimal> {
       }
 
       if (divisor != BigInt.one) {
-        throw DecimalDivideException._(this, other);
+        return null;
       }
     }
 
     return Decimal._asIs(negate ? -base : base, scale);
   }
+
+  /// Divides this decimal by [other], rounding what cannot be written down.
+  ///
+  /// A result with no finite decimal form is rounded to
+  /// [scaleOnInfinitePrecision] digits; without that argument it throws
+  /// [DecimalDivideException], the same as [operator /].
+  ///
+  /// ```dart
+  /// print(Decimal(1).divide(Decimal(3), scaleOnInfinitePrecision: 4)); // 0.3333
+  /// ```
+  Decimal divide(Decimal other, {int? scaleOnInfinitePrecision}) {
+    final result = divideOrNull(other);
+    if (result != null) {
+      return result;
+    }
+
+    if (scaleOnInfinitePrecision == null) {
+      throw DecimalDivideException._(this, other);
+    }
+
+    return divideToFraction(other).round(scaleOnInfinitePrecision);
+  }
+
+  /// Whether dividing by [other] has a finite decimal form.
+  ///
+  /// In other words, whether [operator /] returns instead of throwing. This is
+  /// not a question about a whole quotient: three divided by two is divisible
+  /// in this sense, because 1.5 can be written down.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero.
+  bool isDivisibleBy(Decimal other) => divideOrNull(other) != null;
 
   /// Performs truncating division of this decimal by [other].
   ///
