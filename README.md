@@ -146,6 +146,15 @@ The [decimal](https://pub.dev/packages/decimal) and
 does not have the above division problems. No need to calculate `scale`
 yourself, and no `double` under the hood.
 
+Numbers are read from strings — exponential notation included — and written
+back without losing anything on the way:
+
+```dart
+print(Decimal.parse('1.5e21')); // 1500000000000000000000
+print(Decimal.parse('-0.000001')); // -0.000001
+print(Decimal.parse('19.99').toStringAsFixed(4)); // 19.9900
+```
+
 [decimal](https://pub.dev/packages/decimal) returns the result as `Rational`
 ([rational](https://pub.dev/packages/rational)), since not every division
 result can be represented by a decimal. But it can be easily converted
@@ -180,14 +189,28 @@ final b = Decimal(256);
 print('$a / $b = ${a / b}'); // 1 / 256 = 0.00390625
 ```
 
-I wanted a package that works with decimal to return the result as decimal by
-default. I'm counting on the fact that whoever is using the division operation
-knows what they are doing, and understands in which cases they can get decimal
-when dividing, and in which cases they will go beyond the capabilities of
-decimal.
+I wanted a package that works with decimals to return the result as a decimal
+by default. But not every division has a decimal answer — one third has none —
+so the package makes you say which answer you want. Four ways, and only the
+last of them can fail:
 
-If the result cannot be obtained as a decimal, an exception will be thrown. It
-can be caught and handled to get the desired result:
+```dart
+final a = Decimal.one;
+final b = Decimal(3);
+
+print(a.isDivisibleBy(b)); // false — ask before dividing
+print(a.divideOrNull(b)); // null — divide, and be told
+print(a.divide(b, scaleOnInfinitePrecision: 6)); // 0.333333 — round on the spot
+print(a / b); // throws DecimalDivideException
+```
+
+`divideOrNull` is the one to reach for by default: it asks the same question as
+catching the exception and is about four times faster at it. `operator /` is the
+fast form for the case where the division is known to be exact in advance —
+money split by a whole number of parts, a value scaled by a power of ten.
+
+When it does throw, the exception is not a dead end: it carries every other
+answer the division had.
 
 ```dart
 final a = Decimal.one;
@@ -429,26 +452,78 @@ without zeros in raw-view. Each of the tests (raw-view and raw-vew-zeros)
 separately can give a wrong idea of performance, so they should be considered
 only together.
 
-##### prepared-view
+##### repeat-view
 
-Conversion of prepared numbers (if the package supports it) into a readable
-format.
+Converting the same numbers to a readable format a second time, and every time
+after that.
 
-Packages may use optimization mechanisms in their work (for example, saving
-previously calculated values). The raw-view test does not allow you to evaluate
-the fruits of this optimization. This test gives such an opportunity by
-performing the same operation as raw-view, but adding optimization. Compare the
-results of both tests.
+Printing one and the same value over and over is what a screen does, and a
+package is free to remember what it printed last time. raw-view measures the
+first conversion, this one measures all the later ones, and the two are only
+meaningful together: a package that is quick here and slow there has a cache,
+not a faster algorithm.
 
-Packages [decimal_type](https://pub.dev/packages/decimal_type), [fixed](https://pub.dev/packages/fixed),
-[big_decimal](https://pub.dev/packages/big_decimal) do without optimization.
+`Decimal` keeps the printed form; `ShortDecimal` does not — its constructors are
+`const`, and there is nowhere to keep it. [decimal_type](https://pub.dev/packages/decimal_type),
+[fixed](https://pub.dev/packages/fixed) and [big_decimal](https://pub.dev/packages/big_decimal)
+keep nothing either.
 
-##### prepared-view-zeros
+Until version 1.2.0 this test was called prepared-view and measured nothing at
+all: it printed one value a hundred times and the cache answered ninety-nine of
+them.
 
-Conversion of prepared numbers (if the package supports it) with a large number
-of initial or final zeros into a readable format:
+##### repeat-view-zeros
 
-See description of previous tests.
+The same, on numbers with a large number of leading or trailing zeros.
+
+##### add-dirty, multiply-dirty, divide-dirty
+
+The same three operations on values with nothing round about them: no trailing
+zeros to strip, no common factors to cancel, no digit repeated. Every other set
+here is built out of powers of ten or out of one factor repeated, which is the
+best case for stripping zeros, for `gcd` and for the fast path of division.
+Money does not look like that.
+
+divide-dirty divides a product back by its own factors. Every division in it is
+exact, but nothing about the numbers says so in advance — only `gcd` can see it.
+
+##### parse
+
+Reading twenty money-like numbers out of strings. Every package is given the
+same strings.
+
+##### compare
+
+Comparing neighbours of the same magnitude but of different scales, so that the
+comparison cannot be settled by the exponent and has to bring the two numbers to
+a common scale first.
+
+[fixed](https://pub.dev/packages/fixed) 6.2.0 shows `ERROR` here: its
+`compareTo` compares the stored integers without aligning the scales, so it puts
+0.5 below 0.49. The bench checks every answer before timing it, and a wrong
+answer is never reported as a fast one.
+
+##### round
+
+Rounding to two digits, halves away from zero.
+
+##### to-double
+
+Converting to the nearest `double`.
+
+##### to-string-as-fixed
+
+Writing a number out with exactly two digits after the point — the operation
+that formats money for a screen.
+
+##### unrepresentable-divide
+
+Dividing by three: not one of the results has a finite decimal form, so every
+one of them has to be rounded to ten digits. This is the price of the total
+forms of division — `divide(other, scaleOnInfinitePrecision: 10)` here,
+`toDecimal(scaleOnInfinitePrecision: 10)` in [decimal](https://pub.dev/packages/decimal),
+`divide(..., scale: 10)` in [big_decimal](https://pub.dev/packages/big_decimal).
+The packages that cannot do it at all show `—`.
 
 ### [decimal](https://pub.dev/packages/decimal) vs [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
 
@@ -535,15 +610,11 @@ decimal point is located (usually called `scale`). 1.2 would be stored as
 (base: 12, scale: 1) and 5 as (base: 5, scale: 0).
 
 ```dart
-final a = Decimal.parse('1.2');
-final b = Decimal.parse('5');
-print(a.debugToString()); // Decimal(base: 12, scale: 1)
-print(b.debugToString()); // Decimal(base: 5, scale: 0)
+final a = Decimal.parse('1.2'); // kept as base 12, scale 1
+final b = Decimal.parse('5'); // kept as base 5, scale 0
 
-final c = ShortDecimal.parse('1.2');
-final d = ShortDecimal.parse('5');
-print(c.debugToString()); // ShortDecimal(base: 12, scale: 1)
-print(d.debugToString()); // ShortDecimal(base: 5, scale: 0)
+final c = ShortDecimal.parse('1.2'); // kept as base 12, scale 1
+final d = ShortDecimal.parse('5'); // kept as base 5, scale 0
 ```
 
 Multiplication of such numbers is quite a simple operation: the bases are
@@ -553,12 +624,10 @@ for `ShortDecimal` it is vital.
 
 ```dart
 final r1 = a * b;
-print(r1); // 6
-print(r1.debugToString()); // Decimal(base: 60, scale: 1)
+print(r1); // 6, kept as base 60, scale 1
 
 final r2 = c * d;
-print(r2); // 6
-print(r2.debugToString()); // ShortDecimal(base: 6, scale: 0)
+print(r2); // 6, kept as base 6, scale 0
 ```
 
 `Decimal`, of course, could after each operation bring the value to normal,
@@ -575,8 +644,7 @@ var a = Decimal.parse('1.0');
 for (var i = 0; i < 18; i++) {
   a *= Decimal.parse('1.0');
 }
-print(a.debugToString()); // Decimal(base: 10000000000000000000, scale: 19)
-print(a); // 1
+print(a); // 1, kept as base 10000000000000000000, scale 19
 
 final i = 10000000000000000000; // The integer literal 10000000000000000000 can't be represented in 64 bits.
 ```
@@ -590,8 +658,7 @@ var a = ShortDecimal.parse('1.0');
 for (var i = 0; i < 18; i++) {
   a *= ShortDecimal.parse('1.0');
 }
-print(a.debugToString()); // ShortDecimal(base: 1, scale: 0)
-print(a); // 1
+print(a); // 1, kept as base 1, scale 0
 ```
 
 ### Performance
