@@ -277,6 +277,18 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       divisor = -divisor;
     }
 
+    // Dividing by one, and dividing without a remainder, are the two common
+    // cases and neither needs a factorization.
+    if (divisor == 1) {
+      return ShortDecimal._pack(negate ? -base : base, scale);
+    }
+
+    if (base.remainder(divisor) == 0) {
+      final quotient = base ~/ divisor;
+
+      return ShortDecimal._pack(negate ? -quotient : quotient, scale);
+    }
+
     final gcd = base.fastGcd(divisor);
     if (gcd != 1) {
       base ~/= gcd;
@@ -284,17 +296,41 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     }
 
     if (divisor != 1) {
-      while (divisor % 5 == 0) {
-        base *= 2;
+      // Every ten in the divisor is a shift of the scale and nothing more.
+      while (divisor % 10 == 0) {
+        divisor = divisor ~/ 10;
         scale++;
-        divisor = divisor ~/ 5;
       }
 
-      // ignore: use_is_even_rather_than_modulo
-      while (divisor % 2 == 0) {
-        base *= 5;
-        scale++;
-        divisor = divisor ~/ 2;
+      // What is left is either odd or free of fives, so only one of the two
+      // steps below does anything.
+      if (divisor.isEven) {
+        var twos = 0;
+        do {
+          divisor = divisor ~/ 2;
+          twos++;
+        } while (divisor.isEven);
+
+        if (twos <= _maxPow5Exponent) {
+          base *= _pow5Table[twos];
+        } else {
+          // 5^28 does not fit int64, so neither does the result. Overflow
+          // stays silent here, as everywhere else in this family.
+          for (var i = 0; i < twos; i++) {
+            base *= 5;
+          }
+        }
+
+        scale += twos;
+      } else if (divisor % 5 == 0) {
+        var fives = 0;
+        do {
+          divisor = divisor ~/ 5;
+          fives++;
+        } while (divisor % 5 == 0);
+
+        base <<= fives;
+        scale += fives;
       }
 
       if (divisor != 1) {
@@ -626,6 +662,21 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   /// int.max is about 9.223·10^18, so the margin left for the rounding of a
   /// double is over 2·10^17.
   static const _productThreshold = 9.0e18;
+
+  /// Powers of five, built the same way and for the same reason.
+  ///
+  /// Dividing by `2^n` is multiplying by `5^n` with the scale moved by `n`.
+  static final List<int> _pow5Table = () {
+    final table = List<int>.filled(_maxPow5Exponent + 1, 1);
+    for (var i = 1; i < table.length; i++) {
+      table[i] = table[i - 1] * 5;
+    }
+
+    return table;
+  }();
+
+  /// The largest power of five that fits into int64.
+  static const _maxPow5Exponent = 27;
 
   /// Powers of ten from `10^0` to `10^_maxPow10Exponent`.
   ///
