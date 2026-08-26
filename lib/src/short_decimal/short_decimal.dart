@@ -165,14 +165,25 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
 
   /// Multiplies this decimal by [other].
   ShortDecimal operator *(ShortDecimal other) {
+    final a = base;
+    final b = other.base;
+
+    return _productFits(a, b)
+        ? ShortDecimal._pack(a * b, scale + other.scale)
+        : _multiplyCarefully(other);
+  }
+
+  /// Multiplies this decimal by [other] when the product may not fit int64.
+  ///
+  /// A two on one side and a five on the other make a ten, and a ten belongs
+  /// in the scale rather than in the product. Cancelling them keeps results
+  /// that are perfectly representable — 2^62 * 5 among them — out of the
+  /// overflow. Nothing is cancelled while the product fits.
+  ShortDecimal _multiplyCarefully(ShortDecimal other) {
     var a = base;
     var b = other.base;
     var scale = this.scale + other.scale;
 
-    // A two on one side and a five on the other make a ten, and a ten belongs
-    // in the scale rather than in the product. Cancelling them keeps results
-    // that are perfectly representable — 2^62 * 5 among them — out of the
-    // overflow. Nothing is cancelled while the product fits.
     while (!_productFits(a, b)) {
       if (a.isEven && b % 5 == 0) {
         a ~/= 2;
@@ -192,6 +203,15 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
 
   /// Whether `a * b` stays within int64.
   static bool _productFits(int a, int b) {
+    // The approximate product decides the common case. A double multiplication
+    // is off by a part in 2^52 at worst, which against the gap between the
+    // threshold and int.max — more than 2·10^17 — is nothing; and it costs a
+    // few cycles where the reliable check below costs a division.
+    final approximate = a.toDouble() * b.toDouble();
+    if (approximate > -_productThreshold && approximate < _productThreshold) {
+      return true;
+    }
+
     if (a == 0 || b == 0) {
       return true;
     }
@@ -591,6 +611,12 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
 
   /// The largest power of ten that fits into int64.
   static const _maxPow10Exponent = 18;
+
+  /// Below this an approximate product is known to fit into int64.
+  ///
+  /// int.max is about 9.223·10^18, so the margin left for the rounding of a
+  /// double is over 2·10^17.
+  static const _productThreshold = 9.0e18;
 
   /// Powers of ten from `10^0` to `10^_maxPow10Exponent`.
   ///
