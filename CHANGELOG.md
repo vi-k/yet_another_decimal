@@ -4,6 +4,15 @@ Fifteen defects closed, the gaps in the public API filled in, and the whole
 package measured. Nothing is broken on the way: every item below is either a
 fix or an addition.
 
+### Compatibility
+
+- The SDK floor comes down from `^3.9.0` to `^3.6.0`, and `meta` from
+  `^1.17.0` to `^1.15.0`. Flutter takes `meta` out of its own SDK at an exact
+  version — 1.15.0 on Flutter 3.27, 1.16.0 on 3.29 — so the old constraint put
+  the real Flutter floor at 3.35 whatever the SDK range said. The package now
+  resolves on Flutter 3.27 and later. Nothing in it needed a language feature
+  newer than 3.6; the whole test suite runs on Dart 3.6.0.
+
 ### Added
 
 - Total division. `divideOrNull` returns null where the result has no finite
