@@ -569,5 +569,19 @@ void main() {
         });
       });
     });
+
+    test('печать исключения содержит и остаток, и дробь', () {
+      try {
+        final unused = Decimal(1) / Decimal(3);
+        fail('ожидалось DecimalDivideException, получено $unused');
+      } on DecimalDivideException catch (error) {
+        final text = error.toString();
+
+        expect(text, contains('1 / 3 = 0 remainder 1'));
+        expect(text, contains('1 / 3 = 1/3'));
+        expect(error.dividend, Decimal(1));
+        expect(error.divisor, Decimal(3));
+      }
+    });
   });
 }

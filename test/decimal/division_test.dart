@@ -65,5 +65,23 @@ void main() {
         '-37',
       );
     });
+
+    test('равенство', () {
+      final division = Division(Decimal(7), Decimal(2));
+      final same = Division(Decimal(7), Decimal(2));
+
+      expect(division == same, isTrue);
+      expect(division.hashCode, same.hashCode);
+      expect(division == division, isTrue);
+      expect(division == Division(Decimal(9), Decimal(2)), isFalse);
+      expect(division == Division(Decimal(7), Decimal(3)), isFalse);
+      expect(division == Object(), isFalse);
+      expect({division, same}, hasLength(1));
+    });
+
+    test('печать без остатка и с остатком', () {
+      expect(Division(Decimal(6), Decimal(3)).toString(), '2');
+      expect(Division(Decimal(7), Decimal(3)).toString(), '2 remainder 1');
+    });
   });
 }

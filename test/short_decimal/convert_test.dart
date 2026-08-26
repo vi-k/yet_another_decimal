@@ -202,5 +202,58 @@ void main() {
         expect((ShortDecimal(-1111111111111111110) >> 2).isInteger, isFalse);
       });
     });
+
+    // Д2: делитель округления не помещается в int64, когда разрыв масштабов
+    // больше восемнадцати. Частное тогда заведомо ноль, а ответ даёт правило
+    // самого метода.
+    group('округление почти-нуля', () {
+      final dust = ShortDecimal.parse('0.0000000000000000001');
+      final negativeDust = ShortDecimal.parse('-0.0000000000000000001');
+
+      test('floor', () {
+        expectShortDecimal(dust.floor(), '0');
+        expectShortDecimal(negativeDust.floor(), '-1');
+      });
+
+      test('ceil', () {
+        expectShortDecimal(dust.ceil(), '1');
+        expectShortDecimal(negativeDust.ceil(), '0');
+      });
+
+      test('round и truncate', () {
+        expectShortDecimal(dust.round(), '0');
+        expectShortDecimal(dust.truncate(), '0');
+        expectShortDecimal(negativeDust.round(), '0');
+        expectShortDecimal(negativeDust.truncate(), '0');
+      });
+
+      test('совпадает с Decimal', () {
+        for (final source in [
+          '0.0000000000000000001',
+          '-0.0000000000000000001',
+          '0.9223372036854775807',
+          '-0.9223372036854775807',
+        ]) {
+          final short = ShortDecimal.parse(source);
+          final wide = Decimal.parse(source);
+          expect(
+            '${short.floor()}',
+            '${wide.floor()}',
+            reason: 'floor $source',
+          );
+          expect('${short.ceil()}', '${wide.ceil()}', reason: 'ceil $source');
+          expect(
+            '${short.round()}',
+            '${wide.round()}',
+            reason: 'round $source',
+          );
+          expect(
+            '${short.truncate()}',
+            '${wide.truncate()}',
+            reason: 'truncate $source',
+          );
+        }
+      });
+    });
   });
 }

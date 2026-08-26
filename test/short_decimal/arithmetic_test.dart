@@ -288,5 +288,92 @@ void main() {
         fractionDigits: 4,
       );
     });
+
+    test('константы', () {
+      expectShortDecimal(ShortDecimal.zero, '0');
+      expectShortDecimal(ShortDecimal.one, '1');
+      expectShortDecimal(ShortDecimal.two, '2');
+      expectShortDecimal(ShortDecimal.ten, '10');
+
+      expect(ShortDecimal.ten == ShortDecimal(10), isTrue);
+      expect(ShortDecimal.ten.hashCode, ShortDecimal(10).hashCode);
+      expect({ShortDecimal.ten, ShortDecimal(10)}, hasLength(1));
+    });
+
+    test('знак', () {
+      expect(ShortDecimal(5).sign, 1);
+      expect(ShortDecimal(-5).sign, -1);
+      expect(ShortDecimal(0).sign, 0);
+      expect(ShortDecimal.parse('0.5').sign, 1);
+    });
+
+    test('унарный минус', () {
+      expectShortDecimal(-ShortDecimal(5), '-5');
+      expectShortDecimal(-ShortDecimal(-5), '5');
+      expectShortDecimal(-ShortDecimal(0), '0');
+      expectShortDecimal(-ShortDecimal.parse('1.5'), '-1.5');
+    });
+
+    // Д13: произведение переполнялось до нормализации. Двойка с одной стороны
+    // и пятёрка с другой дают десятку, а её место — в масштабе.
+    group('умножение на границе int64', () {
+      test('двойка слева, пятёрка справа', () {
+        expectShortDecimal(
+          ShortDecimal(4611686018427387904) * ShortDecimal(5),
+          '23058430092136939520',
+        );
+      });
+
+      test('пятёрка слева, двойка справа', () {
+        expectShortDecimal(
+          ShortDecimal(5000000000000000000) * ShortDecimal(2),
+          '10000000000000000000',
+        );
+      });
+
+      test('совпадает с Decimal всюду, где результат представим', () {
+        const bases = [
+          2,
+          5,
+          1000000,
+          4611686018427387904,
+          5000000000000000000,
+          9223372036854775807,
+          -9223372036854775808,
+        ];
+        for (final a in bases) {
+          for (final b in bases) {
+            final exact = (Decimal(a) * Decimal(b)).toString();
+            final representable = ShortDecimal.tryParse(exact);
+            if (representable == null) continue;
+
+            expect(
+              (ShortDecimal(a) * ShortDecimal(b)).toString(),
+              exact,
+              reason: '$a * $b',
+            );
+          }
+        }
+      });
+    });
+
+    test('остаток', () {
+      expectShortDecimal(ShortDecimal(7).remainder(ShortDecimal(3)), '1');
+      expectShortDecimal(ShortDecimal(-7).remainder(ShortDecimal(3)), '-1');
+      expectShortDecimal(
+        ShortDecimal.parse('7.5').remainder(ShortDecimal(2)),
+        '1.5',
+      );
+    });
+
+    test('отрицательный аргумент pow', () {
+      expect(() => ShortDecimal(2).pow(-1), throwsA(isA<ArgumentError>()));
+    });
+
+    test('расширение int', () {
+      expectShortDecimal(5.toShortDecimal(), '5');
+      expectShortDecimal((-5).toShortDecimal(), '-5');
+      expectShortDecimal(100.toShortDecimal(), '100');
+    });
   });
 }

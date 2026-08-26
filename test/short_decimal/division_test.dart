@@ -53,5 +53,32 @@ void main() {
         '-37',
       );
     });
+
+    test('равенство', () {
+      final division = ShortDivision(ShortDecimal(7), ShortDecimal(2));
+      final same = ShortDivision(ShortDecimal(7), ShortDecimal(2));
+
+      expect(division == same, isTrue);
+      expect(division.hashCode, same.hashCode);
+      expect(division == division, isTrue);
+      expect(
+        division == ShortDivision(ShortDecimal(9), ShortDecimal(2)),
+        isFalse,
+      );
+      expect(
+        division == ShortDivision(ShortDecimal(7), ShortDecimal(3)),
+        isFalse,
+      );
+      expect(division == Object(), isFalse);
+      expect({division, same}, hasLength(1));
+    });
+
+    test('печать без остатка и с остатком', () {
+      expect(ShortDivision(ShortDecimal(6), ShortDecimal(3)).toString(), '2');
+      expect(
+        ShortDivision(ShortDecimal(7), ShortDecimal(3)).toString(),
+        '2 remainder 1',
+      );
+    });
   });
 }

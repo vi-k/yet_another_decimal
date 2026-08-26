@@ -142,15 +142,16 @@ final class ShortFraction {
   }
 
   /// The reduced fraction, or null when it does not fit int64.
+  ///
+  /// The denominator is positive on the way in — both fractions carry a
+  /// positive one and the common denominator is their product — so there is no
+  /// sign to normalize here.
   static ShortFraction? _fromBigOrNull(BigInt numerator, BigInt denominator) {
-    final gcd = numerator.fastGcd(denominator);
-    var reducedNumerator = numerator ~/ gcd;
-    var reducedDenominator = denominator ~/ gcd;
+    assert(!denominator.isNegative, 'The denominator must be > 0');
 
-    if (reducedDenominator.isNegative) {
-      reducedNumerator = -reducedNumerator;
-      reducedDenominator = -reducedDenominator;
-    }
+    final gcd = numerator.fastGcd(denominator);
+    final reducedNumerator = numerator ~/ gcd;
+    final reducedDenominator = denominator ~/ gcd;
 
     return reducedNumerator.isValidInt && reducedDenominator.isValidInt
         ? ShortFraction._(reducedNumerator.toInt(), reducedDenominator.toInt())

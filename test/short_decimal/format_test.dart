@@ -497,5 +497,23 @@ void main() {
         expect(v2.toStringAsFixed(12), '-123456789.123456789000');
       });
     });
+
+    test('debugToString показывает представление', () {
+      expect(
+        ShortDecimal.parse('1.5').debugToString(),
+        'ShortDecimal(base: 15, scale: 1)',
+      );
+      expect(
+        (ShortDecimal(1) << 3).debugToString(),
+        'ShortDecimal(base: 1, scale: -3)',
+      );
+    });
+
+    test('toStringAsFixed не принимает отрицательный аргумент', () {
+      expect(
+        () => ShortDecimal(1).toStringAsFixed(-1),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
   });
 }

@@ -160,5 +160,35 @@ void main() {
         fractionDigits: 4,
       );
     });
+
+    test('константы', () {
+      expectDecimal(Decimal.zero, '0');
+      expectDecimal(Decimal.one, '1');
+      expectDecimal(Decimal.two, '2');
+      expectDecimal(Decimal.ten, '10');
+
+      expect(Decimal.ten == Decimal(10), isTrue);
+      expect(Decimal.ten.hashCode, Decimal(10).hashCode);
+      expect({Decimal.ten, Decimal(10)}, hasLength(1));
+    });
+
+    test('знак', () {
+      expect(Decimal(5).sign, 1);
+      expect(Decimal(-5).sign, -1);
+      expect(Decimal(0).sign, 0);
+      expect(Decimal.parse('0.5').sign, 1);
+      expect(Decimal.parse('-0.5').sign, -1);
+    });
+
+    test('унарный минус', () {
+      expectDecimal(-Decimal(5), '-5');
+      expectDecimal(-Decimal(-5), '5');
+      expectDecimal(-Decimal(0), '0');
+      expectDecimal(-Decimal.parse('1.5'), '-1.5');
+    });
+
+    test('отрицательный аргумент pow', () {
+      expect(() => Decimal(2).pow(-1), throwsA(isA<ArgumentError>()));
+    });
   });
 }

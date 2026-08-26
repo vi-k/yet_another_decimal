@@ -249,5 +249,55 @@ void main() {
         );
       });
     });
+
+    // Д2: домножение при выравнивании переполняется не только при большом
+    // разрыве масштабов, но и при большой базе.
+    group('сравнение, когда домножение не помещается', () {
+      const max = 9223372036854775807;
+
+      test('большая база против малого масштаба', () {
+        final big = ShortDecimal(9000000000000000000);
+        final small = ShortDecimal(1, shiftRight: 5);
+
+        expect(big.compareTo(small), 1);
+        expect(small.compareTo(big), -1);
+        expect(big > small, isTrue);
+        expect(small < big, isTrue);
+        expect(big == small, isFalse);
+      });
+
+      test('знак учитывается', () {
+        final negative = ShortDecimal(-9000000000000000000);
+        final small = ShortDecimal(1, shiftRight: 5);
+
+        expect(negative.compareTo(small), -1);
+        expect(small.compareTo(negative), 1);
+      });
+
+      test('совпадает с Decimal на тех же значениях', () {
+        const bases = [1, -1, max, -max, 9000000000000000000, 5, 0];
+        const scales = [0, 1, 5, 18, 19, 25];
+        for (final ab in bases) {
+          for (final as_ in scales) {
+            for (final bb in bases) {
+              for (final bs in scales) {
+                final why = '$ab e$as_ против $bb e$bs';
+                expect(
+                  ShortDecimal(
+                    ab,
+                    shiftRight: as_,
+                  ).compareTo(ShortDecimal(bb, shiftRight: bs)),
+                  Decimal(
+                    ab,
+                    shiftRight: as_,
+                  ).compareTo(Decimal(bb, shiftRight: bs)),
+                  reason: why,
+                );
+              }
+            }
+          }
+        }
+      });
+    });
   });
 }

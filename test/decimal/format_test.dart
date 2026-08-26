@@ -561,5 +561,38 @@ void main() {
         expect(optimized.compareTo(asIs), 0);
       });
     });
+
+    test('debugToString показывает представление', () {
+      expect(
+        Decimal.parse('1.50').debugToString(),
+        'Decimal(base: 150, scale: 2)',
+      );
+      expect((Decimal(1) << 3).debugToString(), 'Decimal(base: 1, scale: -3)');
+    });
+
+    test('toStringAsFixed при отрицательном масштабе', () {
+      expect((Decimal(1) << 3).toStringAsFixed(0), '1000');
+      expect((Decimal(1) << 3).toStringAsFixed(2), '1000.00');
+      expect((Decimal(-1) << 3).toStringAsFixed(2), '-1000.00');
+      expect((Decimal(0) << 3).toStringAsFixed(2), '0.00');
+    });
+
+    test('toStringAsFixed не принимает отрицательный аргумент', () {
+      expect(
+        () => Decimal(1).toStringAsFixed(-1),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('toStringAsExponential и toStringAsPrecision пока не сделаны', () {
+      expect(
+        () => Decimal(1).toStringAsExponential(),
+        throwsA(isA<UnimplementedError>()),
+      );
+      expect(
+        () => Decimal(1).toStringAsPrecision(3),
+        throwsA(isA<UnimplementedError>()),
+      );
+    });
   });
 }

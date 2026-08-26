@@ -100,5 +100,145 @@ void main() {
       expectDecimal(f.truncate(1), '-0.5');
       expectDecimal(f.truncate(2), '-0.57');
     });
+
+    test('parse без дробной черты', () {
+      expectFraction(Fraction.parse('123'), '123');
+      expectFraction(Fraction.parse('-123'), '-123');
+    });
+
+    group('операторы', () {
+      test('умножение сокращает', () {
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) *
+              Fraction(BigInt.two, BigInt.from(3)),
+          '1/3',
+        );
+        expectFraction(
+          Fraction(-BigInt.one, BigInt.two) *
+              Fraction(BigInt.two, BigInt.from(3)),
+          '-1/3',
+        );
+        expectFraction(
+          Fraction(BigInt.from(4), BigInt.from(7)) *
+              Fraction(BigInt.from(7), BigInt.from(4)),
+          '1',
+        );
+      });
+
+      test('деление', () {
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) /
+              Fraction(BigInt.from(3), BigInt.from(4)),
+          '2/3',
+        );
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) / Fraction(-BigInt.one, BigInt.two),
+          '-1',
+        );
+      });
+
+      test('сложение приводит к общему знаменателю', () {
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) +
+              Fraction(BigInt.one, BigInt.from(3)),
+          '5/6',
+        );
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) + Fraction(BigInt.one, BigInt.two),
+          '1',
+        );
+      });
+
+      test('вычитание', () {
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) -
+              Fraction(BigInt.one, BigInt.from(3)),
+          '1/6',
+        );
+        expectFraction(
+          Fraction(BigInt.one, BigInt.two) - Fraction(BigInt.one, BigInt.two),
+          '0',
+        );
+      });
+    });
+
+    test('знак', () {
+      expect(Fraction(-BigInt.one, BigInt.two).isNegative, isTrue);
+      expect(Fraction(BigInt.one, BigInt.two).isNegative, isFalse);
+      expect(Fraction(BigInt.zero, BigInt.two).isNegative, isFalse);
+
+      expect(Fraction(-BigInt.one, BigInt.two).sign, -1);
+      expect(Fraction(BigInt.one, BigInt.two).sign, 1);
+      expect(Fraction(BigInt.zero, BigInt.two).sign, 0);
+    });
+
+    test('равенство', () {
+      final half = Fraction(BigInt.one, BigInt.two);
+
+      expect(half == Fraction(BigInt.two, BigInt.from(4)), isTrue);
+      expect(half.hashCode, Fraction(BigInt.two, BigInt.from(4)).hashCode);
+      expect(half == half, isTrue);
+      expect(half == Fraction(BigInt.one, BigInt.from(3)), isFalse);
+      expect(half == Object(), isFalse);
+      expect({half, Fraction(BigInt.two, BigInt.from(4))}, hasLength(1));
+    });
+
+    test('в Decimal', () {
+      expectDecimal(Fraction(BigInt.from(3), BigInt.two).toDecimal(), '1.5');
+      expectDecimal(Fraction(BigInt.from(10), BigInt.two).toDecimal(), '5');
+    });
+
+    // Д9: отрицательный fractionDigits — округление до десятков и выше, как
+    // это умеет Decimal.
+    group('отрицательный fractionDigits', () {
+      final fraction = Fraction(BigInt.from(1234), BigInt.from(10));
+
+      test('floor', () {
+        expectDecimal(fraction.floor(-1), '120');
+        expectDecimal(fraction.floor(-2), '100');
+        expectDecimal(fraction.floor(-3), '0');
+      });
+
+      test('ceil', () {
+        expectDecimal(fraction.ceil(-1), '130');
+        expectDecimal(fraction.ceil(-2), '200');
+      });
+
+      test('round', () {
+        expectDecimal(fraction.round(-1), '120');
+        expectDecimal(fraction.round(-2), '100');
+      });
+
+      test('truncate', () {
+        expectDecimal(fraction.truncate(-1), '120');
+        expectDecimal(fraction.truncate(-2), '100');
+      });
+
+      test('совпадает с Decimal на том же значении', () {
+        final value = Decimal.parse('123.4');
+        for (final digits in [-3, -2, -1, 0, 1]) {
+          expect(
+            fraction.floor(digits).toString(),
+            value.floor(digits).toString(),
+            reason: 'floor($digits)',
+          );
+          expect(
+            fraction.ceil(digits).toString(),
+            value.ceil(digits).toString(),
+            reason: 'ceil($digits)',
+          );
+          expect(
+            fraction.round(digits).toString(),
+            value.round(digits).toString(),
+            reason: 'round($digits)',
+          );
+          expect(
+            fraction.truncate(digits).toString(),
+            value.truncate(digits).toString(),
+            reason: 'truncate($digits)',
+          );
+        }
+      });
+    });
   });
 }

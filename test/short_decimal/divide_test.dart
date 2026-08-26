@@ -676,5 +676,42 @@ void main() {
         });
       });
     });
+
+    test('деление на пятёрку', () {
+      expectShortDecimal(ShortDecimal(1) / ShortDecimal(5), '0.2');
+      expectShortDecimal(ShortDecimal(1) / ShortDecimal(25), '0.04');
+      expectShortDecimal(ShortDecimal(3) / ShortDecimal(50), '0.06');
+    });
+
+    test('divideToDouble', () {
+      expect(ShortDecimal(1).divideToDouble(ShortDecimal(2)), 0.5);
+      expect(ShortDecimal(1).divideToDouble(ShortDecimal(3)), 1 / 3);
+      expect(ShortDecimal(-1).divideToDouble(ShortDecimal(3)), -1 / 3);
+      expect(ShortDecimal(0).divideToDouble(ShortDecimal(3)), 0.0);
+    });
+
+    test('печать исключения содержит и остаток, и дробь', () {
+      try {
+        final unused = ShortDecimal(1) / ShortDecimal(3);
+        fail('ожидалось ShortDecimalDivideException, получено $unused');
+      } on ShortDecimalDivideException catch (error) {
+        final text = error.toString();
+
+        expect(text, contains('1 / 3 = 0 remainder 1'));
+        expect(text, contains('1 / 3 = 1/3'));
+        expect(error.dividend, ShortDecimal(1));
+        expect(error.divisor, ShortDecimal(3));
+      }
+    });
+
+    // Выравнивание масштабов за пределом таблицы степеней переполняется молча:
+    // это контракт типа, а не дефект. Проверяем, что оно хотя бы не падает.
+    test('выравнивание за пределом таблицы не бросает', () {
+      final dust = ShortDecimal.parse('0.0000000000000000001');
+
+      expect(() => dust.remainder(ShortDecimal(3)), returnsNormally);
+      expect(() => dust % ShortDecimal(3), returnsNormally);
+      expect(() => dust ~/ ShortDecimal(3), returnsNormally);
+    });
   });
 }

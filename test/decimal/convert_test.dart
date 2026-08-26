@@ -205,5 +205,45 @@ void main() {
         );
       });
     });
+
+    group('divideToDouble', () {
+      test('обычные значения', () {
+        expect(Decimal(1).divideToDouble(Decimal(2)), 0.5);
+        expect(Decimal(0).divideToDouble(Decimal(3)), 0.0);
+        expect(Decimal(1).divideToDouble(Decimal(3)), 1 / 3);
+        expect(Decimal(-1).divideToDouble(Decimal(3)), -1 / 3);
+        expect(Decimal(2).divideToDouble(Decimal(3)), 2 / 3);
+      });
+
+      // Д8: BigInt.operator / — это toDouble() / toDouble(), и на числах
+      // высокой точности оба конца становятся Infinity.
+      test('высокая точность не даёт NaN', () {
+        final a = Decimal.parse('0.${'1234567890' * 40}');
+        final b = Decimal.parse('0.${'2345678901' * 40}');
+        final result = a.divideToDouble(b);
+
+        expect(result.isNaN, isFalse);
+        expect(result, closeTo(0.5263158, 1e-6));
+      });
+
+      test('за пределом double', () {
+        final huge = Decimal.parse('1e400');
+        final tiny = Decimal.parse('1e-400');
+
+        expect(huge.divideToDouble(tiny), double.infinity);
+        expect((-huge).divideToDouble(tiny), double.negativeInfinity);
+        expect(tiny.divideToDouble(huge), 0.0);
+      });
+    });
+
+    test('расширения int и BigInt', () {
+      expectDecimal(5.toDecimal(), '5');
+      expectDecimal((-5).toDecimal(), '-5');
+      expectDecimal(BigInt.from(5).toDecimal(), '5');
+      expectDecimal(
+        BigInt.parse('12345678901234567890').toDecimal(),
+        '12345678901234567890',
+      );
+    });
   });
 }
