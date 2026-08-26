@@ -399,6 +399,22 @@ void main() {
       );
     });
 
+    test('масштаб не заворачивается', () {
+      // Р24: `scale * exponent` переполнялся молча, и 0.01 в степени int.max
+      // печаталось как 100.
+      const max = 9223372036854775807;
+      const min = -9223372036854775807 - 1;
+
+      expect(() => ShortDecimal.parse('0.01').pow(max), throwsArgumentError);
+      expect(() => ShortDecimal(1) << min, throwsArgumentError);
+      expect(() => (ShortDecimal(1) >> max) >> 1, throwsArgumentError);
+      expect(() => ShortDecimal(1).movePointRight(min), throwsArgumentError);
+
+      // Всё, что помещается, по-прежнему считается.
+      expectShortDecimal(ShortDecimal.parse('0.01').pow(3), '0.000001');
+      expect((ShortDecimal(1) >> max).scale, max);
+    });
+
     test('расширение int', () {
       expectShortDecimal(5.toShortDecimal(), '5');
       expectShortDecimal((-5).toShortDecimal(), '-5');

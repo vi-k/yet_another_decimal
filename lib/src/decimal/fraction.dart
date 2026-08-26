@@ -86,17 +86,21 @@ final class Fraction implements Comparable<Fraction> {
   /// The sign: -1, 0 or 1.
   int get sign => numerator.sign;
 
+  /// Multiplies this fraction by [other].
   Fraction operator *(Fraction other) =>
       Fraction(numerator * other.numerator, denominator * other.denominator);
 
+  /// Divides this fraction by [other].
   Fraction operator /(Fraction other) =>
       Fraction(numerator * other.denominator, denominator * other.numerator);
 
+  /// Adds [other] to this fraction.
   Fraction operator +(Fraction other) => Fraction(
         numerator * other.denominator + other.numerator * denominator,
         denominator * other.denominator,
       );
 
+  /// Subtracts [other] from this fraction.
   Fraction operator -(Fraction other) => Fraction(
         numerator * other.denominator - other.numerator * denominator,
         denominator * other.denominator,

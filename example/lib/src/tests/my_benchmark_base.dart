@@ -181,6 +181,13 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
     }
   }
 
+  /// Runs one unmeasured cycle before the measured ones.
+  ///
+  /// For `repeat-view` this is also what fills whatever the package caches on
+  /// the first conversion, so that the measured cycles see only the second and
+  /// later conversion of the same value. It used to be a separate call inside
+  /// [exercise], where it added a cycle to every hundred measured — one per
+  /// cent, taken off the top of every package alike.
   @override
   void warmup() {
     exercise(1);
@@ -218,7 +225,6 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         }
 
       case Op.repeatView:
-        prepareValues();
         for (var i = 0; i < count; i++) {
           blackhole = result = repeatView();
         }
@@ -268,14 +274,6 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   Object divideAndView();
 
   List<String> rawView();
-
-  /// Warms up whatever the package caches on the first conversion.
-  ///
-  /// Runs the very code [repeatView] measures, so that the measured cycles see
-  /// only the second and later conversion of the same value.
-  void prepareValues() {
-    repeatView();
-  }
 
   List<String> repeatView();
 

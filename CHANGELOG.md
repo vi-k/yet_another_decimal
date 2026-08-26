@@ -92,6 +92,14 @@ Changed.
 - Assertions crashed a debug build on values a release build handled.
 - `normalized()` did not recognise its own answer as canonical, so calling it
   on the result packed and allocated all over again.
+- `ShortDecimal.inverse` wrapped around past ten to the eighteenth and answered
+  a positive number with a negative one. Where the fraction has no int64 to
+  live in it throws now.
+- The scale wrapped around silently: `Decimal.parse('0.01').pow(int.max)`
+  printed `100`. `pow`, `<<`, `>>` and both `movePoint` methods refuse a shift
+  that would take the scale out of int64, in both families.
+- `DecimalDivideException.forTest` and its twin accepted a zero divisor, and
+  everything about the exception it built — `toString` included — threw.
 - `ShortDecimal.divide(other, scaleOnInfinitePrecision: n)` threw
   `ArgumentError` when the divisor was `int.min`. The ratio has no fraction in
   int64 — a denominator of 2^63 cannot be positive there — but the rounded

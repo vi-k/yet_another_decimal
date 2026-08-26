@@ -150,7 +150,9 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// Try to parse the [string] to [ShortDecimal].
   ///
-  /// Returns null on failure.
+  /// Accepts an optional sign, an optional exponent and surrounding
+  /// whitespace, and refuses an exponent past a million — the same grammar the
+  /// BigInt family reads. Returns null on failure.
   static ShortDecimal? tryParse(String string) {
     final scanned = string.scanDecimal();
     if (scanned == null) {
@@ -308,6 +310,48 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
     return ShortDecimal._pack(a * b, scale);
   }
+
+  /// The scale moved by [by], refusing to wrap around.
+  ///
+  /// The base of this family wraps around by contract, and the scale does not
+  /// get to: an overflow there is not a number too large to hold but a number
+  /// turned into a different one — `ShortDecimal.parse('0.01').pow(int.max)`
+  /// used to print `100`. So a shift that takes the scale out of int64 is
+  /// refused.
+  static int _scalePlus(int scale, int by, String name) {
+    final result = scale + by;
+    if ((scale ^ by) >= 0 && (result ^ scale) < 0) {
+      throw ArgumentError.value(by, name, _scaleOutOfRange);
+    }
+
+    return result;
+  }
+
+  /// The scale moved the other way, with the same refusal.
+  static int _scaleMinus(int scale, int by, String name) {
+    final result = scale - by;
+    if ((scale ^ by) < 0 && (result ^ scale) < 0) {
+      throw ArgumentError.value(by, name, _scaleOutOfRange);
+    }
+
+    return result;
+  }
+
+  /// The scale repeated [by] times, with the same refusal.
+  static int _scaleTimes(int scale, int by, String name) {
+    if (scale == 0 || by == 0) {
+      return 0;
+    }
+
+    final result = scale * by;
+    if (result ~/ by != scale) {
+      throw ArgumentError.value(by, name, _scaleOutOfRange);
+    }
+
+    return result;
+  }
+
+  static const _scaleOutOfRange = 'The scale would leave int64';
 
   /// Whether `a * b` stays within int64.
   static bool _productFits(int a, int b) {
@@ -614,7 +658,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// Euclidean modulo of this number by [other].
   ///
-  /// The sign of the returned value is always positive.
+  /// The returned value is never negative — zero, being neither, included.
   ///
   /// Throws [UnsupportedError] if [other] is zero.
   @override
@@ -690,8 +734,12 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// print(ShortDecimal(1) << 2 == ShortDecimal(1, shiftLeft: 2)); // true
   /// ```
   @override
-  ShortDecimal operator <<(int shiftAmount) =>
-      base == 0 ? this : ShortDecimal._asIs(base, scale - shiftAmount);
+  ShortDecimal operator <<(int shiftAmount) => base == 0
+      ? this
+      : ShortDecimal._asIs(
+          base,
+          _scaleMinus(scale, shiftAmount, 'shiftAmount'),
+        );
 
   /// Shifts a decimal relative to the decimal point to the right.
   ///
@@ -707,8 +755,9 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// print(ShortDecimal(1) >> 2 == ShortDecimal(1, shiftRight: 2)); // true
   /// ```
   @override
-  ShortDecimal operator >>(int shiftAmount) =>
-      base == 0 ? this : ShortDecimal._pack(base, scale + shiftAmount);
+  ShortDecimal operator >>(int shiftAmount) => base == 0
+      ? this
+      : ShortDecimal._pack(base, _scalePlus(scale, shiftAmount, 'shiftAmount'));
 
   /// This decimal divided by `10^places`: the point moves left.
   ///
@@ -832,7 +881,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     if (exponent >= 0) {
       return ShortDecimal._pack(
         math.pow(base, exponent) as int,
-        scale * exponent,
+        _scaleTimes(scale, exponent, 'exponent'),
       );
     }
 
@@ -876,10 +925,27 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// A fraction rather than a decimal because the inverse of three has no
   /// finite decimal form.
   ///
-  /// Throws [UnsupportedError] if this decimal is zero.
-  ShortFraction get inverse => scale >= 0
-      ? ShortFraction(_pow10(scale), base)
-      : ShortFraction(1, base * _pow10(-scale));
+  /// Throws [UnsupportedError] if this decimal is zero, and where the fraction
+  /// itself leaves int64: the inverse of `1e-19` is ten to the nineteenth, and
+  /// no numerator here holds it. Overflowing quietly would have answered a
+  /// positive number with a negative one, and this family has refused that
+  /// twice already.
+  ShortFraction get inverse {
+    final exponent = scale.abs();
+    if (exponent >= 0 && exponent <= _maxPow10Exponent) {
+      final power = _pow10(exponent);
+      if (scale >= 0) {
+        return ShortFraction(power, base);
+      }
+
+      final denominator = _productOrNull(base, power);
+      if (denominator != null) {
+        return ShortFraction(1, denominator);
+      }
+    }
+
+    throw UnsupportedError('The inverse of $this has no fraction in int64');
+  }
 
   /// A JSON representation of this decimal: the string [toString] returns.
   @override
@@ -1015,11 +1081,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
         '.${abs.substring(abs.length - scale)}';
   }
 
-  /// Returns a string representation of this decimal using new
-  /// [fractionDigits].
+  /// Returns a string representation of this decimal with exactly
+  /// [fractionDigits] digits after the point.
   ///
-  /// If [fractionDigits] is less than `this.fractionDigits`, the [round]
-  /// method is used.
+  /// Asking for more digits than the value carries pads it with zeros; asking
+  /// for fewer rounds it, halves away from zero, the same as [round] does.
   @override
   String toStringAsFixed(int fractionDigits) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
@@ -1154,10 +1220,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// around into a negative number, and `math.pow` reports that silently.
   /// Callers that can be given a bigger exponent have to handle it themselves
   /// — see [_compareScaled] and [_dropFraction].
+  ///
+  /// Two callers still do not, and both mean it: [_align], where the wrap is
+  /// this family's declared silent overflow and the operations that cannot
+  /// afford it take [_alignOrNull] instead, and [toInt], where a value needing
+  /// 10^19 has no int to be converted into anyway.
   static int _pow10(int exponent) {
     assert(exponent >= 0, "exponent can't be negative");
 
-    // TODO(vi.k): ShortFraction is the last caller that can overflow here.
     return exponent <= _maxPow10Exponent
         ? _pow10Table[exponent]
         : math.pow(10, exponent) as int;
@@ -1388,8 +1458,22 @@ final class ShortDecimalDivideException implements Exception {
   const ShortDecimalDivideException._(this.dividend, this.divisor);
 
   /// Builds an instance directly; the package raises the real ones itself.
+  ///
+  /// Refuses a zero divisor. The package never raises this exception for one —
+  /// division by zero throws [UnsupportedError] long before — and an instance
+  /// holding one would answer every one of its own questions, [toString]
+  /// included, by throwing. An exception whose message cannot be read is the
+  /// worst thing to meet inside a `catch`.
   @visibleForTesting
-  ShortDecimalDivideException.forTest(this.dividend, this.divisor);
+  ShortDecimalDivideException.forTest(this.dividend, this.divisor) {
+    if (divisor.isZero) {
+      throw ArgumentError.value(
+        divisor,
+        'divisor',
+        'The value must not be zero',
+      );
+    }
+  }
 
   /// The exact result, as a fraction.
   ShortFraction get fraction => dividend.divideToFraction(divisor);

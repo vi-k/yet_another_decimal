@@ -401,7 +401,6 @@ ShortDecimal(9223372036854775807) + ShortDecimal.one; // -9223372036854775808
 ```
 example/bin/example.dart      тур: точность, деление, деньги, мост
 example/bin/benchmark.dart    точка входа стенда, теги, `--runs`, `--passes`
-example/bin/format.dart       вспомогательная утилита
 example/lib/src/packages.dart перечень сравниваемых пакетов
 example/lib/src/tests.dart    перечень бенчмарков и их данные
 example/lib/src/operations.dart операции

@@ -201,5 +201,21 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
     });
+
+    test('масштаб не заворачивается', () {
+      // Р24: `scale * exponent` переполнялся молча, и 0.01 в степени int.max
+      // печаталось как 100.
+      const max = 9223372036854775807;
+      const min = -9223372036854775807 - 1;
+
+      expect(() => Decimal.parse('0.01').pow(max), throwsArgumentError);
+      expect(() => Decimal(1) << min, throwsArgumentError);
+      expect(() => (Decimal(1) >> max) >> 1, throwsArgumentError);
+      expect(() => Decimal(1).movePointRight(min), throwsArgumentError);
+
+      // Всё, что помещается, по-прежнему считается.
+      expectDecimal(Decimal.parse('0.01').pow(3), '0.000001');
+      expect((Decimal(1) >> max).scale, max);
+    });
   });
 }

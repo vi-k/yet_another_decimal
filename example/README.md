@@ -54,8 +54,12 @@ A few rules keep the answers honest:
 
 - **Every result is checked.** Each benchmark knows the right answer and is
   compared against it before being timed: `OK`, `WARNING` when only trailing
-  zeros differ, `ERROR` when the value itself does. A wrong answer is never
-  reported as a fast one.
+  zeros differ, `ERROR` when the value itself does. An `ERROR` costs the row
+  its number — the summary shows the mismatch where the time would have been.
+  One package is exempt on purpose: [big_double](https://pub.dev/packages/big_double)
+  is a floating-point type, so an inexact answer is its nature rather than its
+  defect, and it is timed all the same. It earns no mark for it — a wrong
+  answer never takes the `★★` below.
 - **A package that has no such operation shows `—`**, not an error. An absent
   method is not a defect, and nothing is made to look slow for the lack of one.
 - **`★` is the winner of the comparison** and everyone within 10 % of it.

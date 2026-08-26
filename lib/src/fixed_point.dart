@@ -17,8 +17,10 @@
 ///
 /// What the interface does not cover is the static side — constructors,
 /// `parse`, `tryParse`, constants — and members whose type differs between the
-/// families (`divideToFraction`, `inverse`, `operator ~/`). Those are held
-/// together by the symmetry test instead.
+/// families: `divideToFraction` and `inverse` answer with two kinds of
+/// fraction, `divideWithRemainder` with two kinds of division, `operator ~/`
+/// with `BigInt` against `int`, and so does `unscaledValue`. Those are held
+/// together by the symmetry test instead, which keeps the same list.
 library;
 
 /// The members both `Decimal` and `ShortDecimal` have to have.

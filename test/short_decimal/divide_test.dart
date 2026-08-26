@@ -697,6 +697,25 @@ void main() {
       expect(() => ShortDecimal(1) / ShortDecimal(268435456), returnsNormally);
     });
 
+    test('исключение с нулевым делителем не построить', () {
+      // Р25: `forTest` пускал внутрь ноль, и у такого исключения падало всё,
+      // включая `toString` — худшее, что можно встретить в `catch`.
+      expect(
+        () => ShortDecimalDivideException.forTest(
+          ShortDecimal.one,
+          ShortDecimal.zero,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        ShortDecimalDivideException.forTest(
+          ShortDecimal.one,
+          ShortDecimal(3),
+        ).toString(),
+        contains('1 / 3'),
+      );
+    });
+
     test('печать исключения содержит и остаток, и дробь', () {
       try {
         final unused = ShortDecimal(1) / ShortDecimal(3);

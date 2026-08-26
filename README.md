@@ -1,26 +1,71 @@
 # Yet another decimal
 
+[![CI](https://github.com/vi-k/yet_another_decimal/actions/workflows/ci.yml/badge.svg)](https://github.com/vi-k/yet_another_decimal/actions/workflows/ci.yml)
+[![pub package](https://img.shields.io/pub/v/yet_another_decimal.svg)](https://pub.dev/packages/yet_another_decimal)
+
 It's yet another package for fixed point decimals.
 
 ## Table of contents
 
-1. [Why?](#why)
+1. [Getting started](#getting-started)
 
-    1.1. [What packages are already in place?](#what-packages-are-already-in-place)
+2. [Why?](#why)
 
-    1.2. [What's it supposed to be?](#whats-it-supposed-to-be)
+    2.1. [What packages are already in place?](#what-packages-are-already-in-place)
 
-    1.3. [Package performance](#package-performance)
+    2.2. [What's it supposed to be?](#whats-it-supposed-to-be)
 
-    1.4. [decimal vs yet_another_decimal](#decimalhttpspubdevpackagesdecimal-vs-yet_another_decimalhttpspubdevpackagesyet_another_decimal)
+    2.3. [Package performance](#package-performance)
 
-2. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
+    2.4. [decimal vs yet_another_decimal](#decimalhttpspubdevpackagesdecimal-vs-yet_another_decimalhttpspubdevpackagesyet_another_decimal)
 
-    2.1. [`ShortDecimal` limitations](#shortdecimal-limitations)
+3. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
 
-    2.2. [Performance](#performance)
+    3.1. [`ShortDecimal` limitations](#shortdecimal-limitations)
 
-    2.3. [`Decimal` optimization](#decimal-optimization)
+    3.2. [Performance](#performance)
+
+    3.3. [`Decimal` optimization](#decimal-optimization)
+
+## Getting started
+
+```bash
+dart pub add yet_another_decimal
+```
+
+```dart
+import 'package:yet_another_decimal/yet_another_decimal.dart';
+
+final price = Decimal.parse('19.99');
+final total = price * Decimal(3);
+
+print(total); // 59.97
+print(Decimal.parse('0.1') + Decimal.parse('0.2') == Decimal.parse('0.3')); // true
+
+// Not every division has a decimal answer, so the package makes you say which
+// answer you want. Only the last of these can throw.
+print(total.divideOrNull(Decimal(7))); // null
+print(total.divide(Decimal(7), scaleOnInfinitePrecision: 2)); // 8.57
+print(total.divideWithRemainder(Decimal(2))); // 29 remainder 1.97
+print(total / Decimal(3)); // 19.99
+```
+
+There are two number types, and they never mix on their own:
+
+- `Decimal` keeps the value in a `BigInt`. Nothing overflows, ever.
+- `ShortDecimal` keeps it in an `int`. Several times faster and smaller, and
+  past the edge of int64 it wraps around silently, exactly as `int` does.
+
+Either one can be imported without the other:
+
+```dart
+import 'package:yet_another_decimal/decimal.dart';       // the BigInt family
+import 'package:yet_another_decimal/short_decimal.dart'; // the int64 family
+```
+
+Which to take, and what the second one costs, is in
+[`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal). The rest of this
+README is why the package exists and what it is measured to cost.
 
 ## Why?
 
@@ -254,7 +299,7 @@ still expected to be a decimal. For example: 1 / 3 * 9:
 
 ```dart
 final rational = Decimal.fromInt(1) / Decimal.fromInt(3) * Decimal.fromInt(9).toRational();
-final decimal = rational.toDecimal(); // 9
+final decimal = rational.toDecimal(); // 3
 ```
 
 A package that works only with decimals will not be able to solve such
@@ -322,7 +367,7 @@ OS:     Version 26.5.2 (Build 25F84)
 CPUs:   14
 Mode:   AOT (dart compile exe)
 Runs:   5 (median of the series)
-Deps:   decimal 3.2.6, decimal_type 0.0.3, fixed 6.2.0, big_decimal 0.7.0
+Deps:   decimal 3.2.6, decimal_type 0.0.3, fixed 6.1.1, big_decimal 0.7.0
 ```
 
 The two rightmost columns are this package: `Decimal` on `BigInt` and
@@ -332,6 +377,12 @@ difference buys. The bench also runs
 [big_double](https://pub.dev/packages/big_double), which is left out here: it is
 a floating-point type, and on most of these rows its answer is not the exact
 one.
+
+The four `repeat-view` rows were measured again later, on the same machine and
+the same SDK and in the same two passes, after the bench stopped counting its
+own warm-up cycle among the hundred it times. That cycle was one per cent, and
+it was taken off every package alike; nothing outside those four rows went
+through the code it changed.
 
 |                               |            decimal |        decimal_type |              fixed |       big_decimal |     Decimal | ShortDecimal |
 |:------------------------------|-------------------:|--------------------:|-------------------:|------------------:|------------:|-------------:|
@@ -359,10 +410,10 @@ one.
 | raw-view-int                  |          11.048 µs |     (▼3x) 25.080 µs |    (▼3x) 25.192 µs |          8.745 µs |  ★ 7.480 µs |  ★★ 1.694 µs |
 | raw-view-zeros-big-int        |   (▼6x) 122.556 µs |    (▼8x) 153.163 µs |    (▼3x) 65.215 µs |       ★ 19.936 µs | ★ 18.744 µs |            — |
 | raw-view-zeros-int            |    (▼7x) 57.655 µs |     (▼7x) 54.440 µs |    (▼4x) 31.293 µs |          8.813 µs |  ★ 7.449 µs |  ★★ 1.023 µs |
-| repeat-view-big-int           |  (▼767x) 19.184 µs |  (▼2033x) 50.833 µs | (▼2242x) 56.055 µs | (▼827x) 20.684 µs |  ★ 0.025 µs |            — |
-| repeat-view-int               |   (▼299x) 6.898 µs |  (▼1067x) 24.544 µs | (▼1088x) 25.035 µs |  (▼364x) 8.379 µs |  ★ 0.023 µs |     1.637 µs |
-| repeat-view-zeros-big-int     |    (▼51x) 1.291 µs | (▼5977x) 149.438 µs | (▼2615x) 65.397 µs | (▼789x) 19.748 µs |  ★ 0.025 µs |            — |
-| repeat-view-zeros-int         |    (▼42x) 1.054 µs |  (▼2095x) 52.394 µs | (▼1249x) 31.227 µs |  (▼333x) 8.326 µs |  ★ 0.025 µs |     0.968 µs |
+| repeat-view-big-int           |  (▼786x) 18.977 µs |  (▼2130x) 51.386 µs | (▼2338x) 56.410 µs | (▼831x) 20.062 µs |  ★ 0.024 µs |            — |
+| repeat-view-int               |   (▼293x) 6.754 µs |  (▼1065x) 24.556 µs | (▼1071x) 24.703 µs |  (▼350x) 8.082 µs |  ★ 0.023 µs |     1.589 µs |
+| repeat-view-zeros-big-int     |    (▼53x) 1.286 µs | (▼6196x) 150.330 µs | (▼2671x) 64.801 µs | (▼783x) 19.003 µs |  ★ 0.024 µs |            — |
+| repeat-view-zeros-int         |    (▼43x) 1.047 µs |  (▼2237x) 53.855 µs | (▼1288x) 31.004 µs |  (▼337x) 8.122 µs |  ★ 0.024 µs |     0.968 µs |
 | parse                         |          14.795 µs |           15.055 µs |    (▼8x) 88.191 µs |       ★ 11.437 µs | ★ 10.702 µs |  ★★ 1.765 µs |
 | compare                       |           0.764 µs |      (▼7x) 2.950 µs |              ERROR |    (▼3x) 1.405 µs |  ★ 0.394 µs |  ★★ 0.154 µs |
 | round                         |           4.370 µs |                   — |           4.789 µs |          4.774 µs |  ★ 3.710 µs |  ★★ 0.354 µs |
@@ -575,13 +626,19 @@ exact, but nothing about the numbers says so in advance — only `gcd` can see i
 Reading twenty money-like numbers out of strings. Every package is given the
 same strings.
 
+The row is not quite like for like, and the difference is a design decision on
+this side: our `parse` stops at the digits and the scale, and leaves the
+canonical form to whoever asks for it, while the other packages normalise the
+value on the spot. Read the row together with raw-view and repeat-view, which
+is where the work our `parse` did not do comes back.
+
 ##### compare
 
 Comparing neighbours of the same magnitude but of different scales, so that the
 comparison cannot be settled by the exponent and has to bring the two numbers to
 a common scale first.
 
-[fixed](https://pub.dev/packages/fixed) 6.2.0 shows `ERROR` here: its
+[fixed](https://pub.dev/packages/fixed) 6.1.1 shows `ERROR` here: its
 `compareTo` compares the stored integers without aligning the scales, so it puts
 0.5 below 0.49. The bench checks every answer before timing it, and a wrong
 answer is never reported as a fast one.
@@ -805,8 +862,8 @@ so that both families can be shown at once:
 | divide-small-and-view-int |  (▼455x) 147.019 µs | (▼10x) 3.367 µs |      ★ 0.323 µs |
 | raw-view-int              |     (▼6x) 11.048 µs |  (▼4x) 7.480 µs |      ★ 1.694 µs |
 | raw-view-zeros-int        |    (▼56x) 57.655 µs |  (▼7x) 7.449 µs |      ★ 1.023 µs |
-| repeat-view-int           |    (▼299x) 6.898 µs |      ★ 0.023 µs | (▼71x) 1.637 µs |
-| repeat-view-zeros-int     |     (▼42x) 1.054 µs |      ★ 0.025 µs | (▼38x) 0.968 µs |
+| repeat-view-int           |    (▼293x) 6.754 µs |      ★ 0.023 µs | (▼69x) 1.589 µs |
+| repeat-view-zeros-int     |     (▼43x) 1.047 µs |      ★ 0.024 µs | (▼40x) 0.968 µs |
 | parse                     |     (▼8x) 14.795 µs | (▼6x) 10.702 µs |      ★ 1.765 µs |
 | compare                   |      (▼4x) 0.764 µs |  (▼2x) 0.394 µs |      ★ 0.154 µs |
 | round                     |     (▼12x) 4.370 µs | (▼10x) 3.710 µs |      ★ 0.354 µs |

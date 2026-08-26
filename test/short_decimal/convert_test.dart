@@ -422,6 +422,29 @@ void main() {
       );
     });
 
+    test('inverse на границе int64 отказывает, а не меняет знак', () {
+      // Р23: `_pow10` за восемнадцатым показателем уходил в `math.pow` и
+      // заворачивался, и обратное к 1e-19 приходило отрицательным.
+      expect(
+        ShortDecimal.parse('1e-18').inverse.toString(),
+        '1000000000000000000',
+      );
+      expect(
+        ShortDecimal.parse('1e18').inverse.toString(),
+        '1/1000000000000000000',
+      );
+
+      for (final source in ['1e-19', '1e19', '0.0000000000000000009']) {
+        expect(
+          () => ShortDecimal.parse(source).inverse,
+          throwsA(isA<UnsupportedError>()),
+          reason: 'на "$source"',
+        );
+        // У семейства на BigInt то же самое представимо.
+        expect(Decimal.parse(source).inverse, isA<Fraction>());
+      }
+    });
+
     test('toJson и fromJson', () {
       for (final source in ['0', '1.5', '-0.05', '1234.5678', '100']) {
         final value = ShortDecimal.parse(source);

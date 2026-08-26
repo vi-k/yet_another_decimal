@@ -176,6 +176,11 @@ final class Decimal implements FixedPoint<Decimal> {
   /// whitespace: `'1'`, `'-0.5'`, `'.5'`, `'+1e21'`. Returns null on anything
   /// else — hexadecimal included, which [BigInt.parse] would have accepted.
   ///
+  /// An exponent past a million is refused as well. The scale itself holds
+  /// far more, but the number such a string asks for could not be printed
+  /// back: a million digits is a megabyte of text, and a billion of them takes
+  /// the stack down inside [BigInt.parse] on the way there.
+  ///
   /// ```dart
   /// Decimal.tryParse('1e21'); // 1000000000000000000000
   /// Decimal.tryParse('0x10'); // null
@@ -489,7 +494,7 @@ final class Decimal implements FixedPoint<Decimal> {
 
   /// Euclidean modulo of this number by [other].
   ///
-  /// The sign of the returned value is always positive.
+  /// The returned value is never negative — zero, being neither, included.
   ///
   /// Throws [UnsupportedError] if [other] is zero.
   @override
@@ -561,7 +566,7 @@ final class Decimal implements FixedPoint<Decimal> {
   /// ```
   @override
   Decimal operator <<(int shiftAmount) =>
-      Decimal._asIs(base, scale - shiftAmount);
+      Decimal._asIs(base, _scaleMinus(scale, shiftAmount, 'shiftAmount'));
 
   /// Shifts a decimal relative to the decimal point to the right.
   ///
@@ -578,7 +583,7 @@ final class Decimal implements FixedPoint<Decimal> {
   /// ```
   @override
   Decimal operator >>(int shiftAmount) =>
-      Decimal._asIs(base, scale + shiftAmount);
+      Decimal._asIs(base, _scalePlus(scale, shiftAmount, 'shiftAmount'));
 
   /// Optimize number to improve performance.
   @Deprecated(
@@ -687,7 +692,10 @@ final class Decimal implements FixedPoint<Decimal> {
   @override
   Decimal pow(int exponent) {
     if (exponent >= 0) {
-      return Decimal._asIs(base.pow(exponent), scale * exponent);
+      return Decimal._asIs(
+        base.pow(exponent),
+        _scaleTimes(scale, exponent, 'exponent'),
+      );
     }
 
     // The minimum integer has no positive counterpart to raise to.
@@ -892,11 +900,11 @@ final class Decimal implements FixedPoint<Decimal> {
         '.${abs.substring(abs.length - scale)}';
   }
 
-  /// Returns a string representation of this decimal using new
-  /// [fractionDigits].
+  /// Returns a string representation of this decimal with exactly
+  /// [fractionDigits] digits after the point.
   ///
-  /// If [fractionDigits] is less than `this.fractionDigits`, the [round]
-  /// method is used.
+  /// Asking for more digits than the value carries pads it with zeros; asking
+  /// for fewer rounds it, halves away from zero, the same as [round] does.
   @override
   String toStringAsFixed(int fractionDigits) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
@@ -1025,6 +1033,47 @@ final class Decimal implements FixedPoint<Decimal> {
     }
   }
 
+  /// The scale moved by [by], refusing to wrap around.
+  ///
+  /// The scale is the one number in this class that cannot grow to fit: it is
+  /// a plain int while everything else is a `BigInt`. A shift that would take
+  /// it out of int64 is an error rather than a value that came back with the
+  /// wrong sign — `Decimal.parse('0.01').pow(int.max)` used to print `100`.
+  static int _scalePlus(int scale, int by, String name) {
+    final result = scale + by;
+    if ((scale ^ by) >= 0 && (result ^ scale) < 0) {
+      throw ArgumentError.value(by, name, _scaleOutOfRange);
+    }
+
+    return result;
+  }
+
+  /// The scale moved the other way, with the same refusal.
+  static int _scaleMinus(int scale, int by, String name) {
+    final result = scale - by;
+    if ((scale ^ by) < 0 && (result ^ scale) < 0) {
+      throw ArgumentError.value(by, name, _scaleOutOfRange);
+    }
+
+    return result;
+  }
+
+  /// The scale repeated [by] times, with the same refusal.
+  static int _scaleTimes(int scale, int by, String name) {
+    if (scale == 0 || by == 0) {
+      return 0;
+    }
+
+    final result = scale * by;
+    if (result ~/ by != scale) {
+      throw ArgumentError.value(by, name, _scaleOutOfRange);
+    }
+
+    return result;
+  }
+
+  static const _scaleOutOfRange = 'The scale would leave int64';
+
   Decimal get _requirePacked {
     var packed = _packed;
     if (packed == null) {
@@ -1066,8 +1115,10 @@ final class Decimal implements FixedPoint<Decimal> {
 
   /// [base] with its trailing zeros taken off, and how many there were.
   ///
-  /// [base] must be even; an odd one has no trailing zero by definition and
-  /// the callers check that first, where it costs nothing.
+  /// [base] must be even and not zero. An odd one has no trailing zero by
+  /// definition, and zero is nothing but trailing zeros — it would come back
+  /// with however many the search happened to stop at. Both callers check
+  /// first, where it costs nothing.
   static (BigInt, int) _splitTrailingZeros(BigInt base) {
     if (base % _bigInt10 != BigInt.zero) {
       return (base, 0);
@@ -1165,8 +1216,22 @@ final class DecimalDivideException implements Exception {
   const DecimalDivideException._(this.dividend, this.divisor);
 
   /// Builds an instance directly; the package raises the real ones itself.
+  ///
+  /// Refuses a zero divisor. The package never raises this exception for one —
+  /// division by zero throws [UnsupportedError] long before — and an instance
+  /// holding one would answer every one of its own questions, [toString]
+  /// included, by throwing. An exception whose message cannot be read is the
+  /// worst thing to meet inside a `catch`.
   @visibleForTesting
-  DecimalDivideException.forTest(this.dividend, this.divisor);
+  DecimalDivideException.forTest(this.dividend, this.divisor) {
+    if (divisor.isZero) {
+      throw ArgumentError.value(
+        divisor,
+        'divisor',
+        'The value must not be zero',
+      );
+    }
+  }
 
   /// The exact result, as a fraction.
   Fraction get fraction => dividend.divideToFraction(divisor);

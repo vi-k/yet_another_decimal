@@ -580,6 +580,19 @@ void main() {
       expect(result.toString().length, greaterThan(130));
     });
 
+    test('исключение с нулевым делителем не построить', () {
+      // Р25: `forTest` пускал внутрь ноль, и у такого исключения падало всё,
+      // включая `toString` — худшее, что можно встретить в `catch`.
+      expect(
+        () => DecimalDivideException.forTest(Decimal.one, Decimal.zero),
+        throwsArgumentError,
+      );
+      expect(
+        DecimalDivideException.forTest(Decimal.one, Decimal(3)).toString(),
+        contains('1 / 3'),
+      );
+    });
+
     test('печать исключения содержит и остаток, и дробь', () {
       try {
         final unused = Decimal(1) / Decimal(3);
