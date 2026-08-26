@@ -2,6 +2,10 @@
 ///
 /// Здесь сверка `base` и `scale` уместна: `toString` обязан снимать хвостовые
 /// нули, не трогая представление, а `optimize` — наоборот, менять только его.
+///
+/// `optimize` помечен устаревшим в пользу `normalized()`, но до удаления
+/// обязан работать — потому его вызовы здесь и остаются, с точечными
+/// `ignore`.
 library;
 
 import 'package:test/test.dart';
@@ -531,6 +535,7 @@ void main() {
           final fractionDigits = value.fractionDigits;
           final str = value.toString();
 
+          // ignore: deprecated_member_use_from_same_package
           value.optimize();
           expectDecimal(
             value,
@@ -540,6 +545,7 @@ void main() {
             fractionDigits: fractionDigits,
           );
 
+          // ignore: deprecated_member_use_from_same_package
           value.optimize();
           expectDecimal(
             value,
@@ -554,6 +560,7 @@ void main() {
       test('optimized equals not optimized', () {
         final optimized = Decimal(1000) >> 5;
         final asIs = Decimal(1000) >> 5;
+        // ignore: deprecated_member_use_from_same_package
         optimized.optimize();
 
         expect(optimized == asIs, isTrue);

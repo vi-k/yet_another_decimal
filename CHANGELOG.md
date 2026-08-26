@@ -30,6 +30,36 @@ fix or an addition.
   `Decimal.toInt`, `ShortDecimal.toBigInt`, `precision`, `isPositive`,
   `inverse`, `pow` with a negative exponent, `ShortFraction.toShortDecimal`,
   and `compareTo`, `abs`, `inverse` and `toDouble` on both fraction types.
+- `normalized()`, which answers with the value in its canonical form. It
+  replaces `optimize()`, which returned nothing and changed the receiver
+  instead.
+- `unscaledValue` and `exponent`: the number taken apart. Both read the
+  canonical form, so equal decimals answer equally whatever produced them.
+- `movePointLeft` and `movePointRight` — the same thing as `>>` and `<<`,
+  spelled out. `>>` moves the point left, which is easy to read the wrong way
+  round.
+- Two narrow entry points beside the umbrella one:
+  `package:yet_another_decimal/decimal.dart` and
+  `package:yet_another_decimal/short_decimal.dart`. Whoever needs one family
+  no longer carries the other.
+- `ShortDecimal` is annotated `vm:deeply-immutable`: the VM may share its
+  instances between isolates. `Decimal` cannot be — a `BigInt` field is
+  rejected by that annotation.
+
+### Deprecated
+
+- `optimize()`. Use `normalized()`.
+- The `toDecimal()` extensions on `int` and `BigInt`. Package `decimal` carries
+  the same two, and the two packages cannot be resolved together while they
+  exist. Use `Decimal(value)` and `Decimal.fromBigInt(value)`.
+
+### Changed
+
+- Dividing by zero throws `UnsupportedError` everywhere. `~/`, `%` and
+  `remainder` used to throw `IntegerDivisionByZeroException` while `/` threw
+  `UnsupportedError`: one mistake, two types. The SDK marks the first
+  deprecated, and it implements the second, so code catching `UnsupportedError`
+  sees no change.
 
 ### Fixed
 

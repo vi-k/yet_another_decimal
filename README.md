@@ -606,6 +606,35 @@ was `ShortDecimal`. `Decimal` was just a natural evolution of the package.
 
 ## `Decimal` vs `ShortDecimal`
 
+Two families, three ways to import them:
+
+```dart
+// both, and the bridge between them
+import 'package:yet_another_decimal/yet_another_decimal.dart';
+
+// only the BigInt family
+import 'package:yet_another_decimal/decimal.dart';
+
+// only the int64 family
+import 'package:yet_another_decimal/short_decimal.dart';
+```
+
+Take `Decimal` when the magnitudes are not known in advance: it has no bound
+and nothing overflows. Take `ShortDecimal` when they are known to be small and
+the speed is the point — it is several times faster and smaller, and its
+overflow is silent. The bridge between them lives only in the umbrella import,
+because it is the only thing that needs both.
+
+Both families answer to the same names. Two of those names are operators, and
+operators are easy to read the wrong way round, so each has a word for it:
+
+| Operator | The same thing, spelled out |
+|:--|:--|
+| `value >> n` | `value.movePointLeft(n)` — divides by `10^n` |
+| `value << n` | `value.movePointRight(n)` — multiplies by `10^n` |
+
+`>>` moves the point **left**, and that is exactly what trips readers up.
+
 ## `ShortDecimal` limitations
 
 `ShortDecimal` has the same functions as `Decimal`, but the values are stored
@@ -773,25 +802,29 @@ and some, on the contrary, much slower, when optimization costs do not pay off
 in time.
 
 In `Decimal` I tried to find a balance: pack a number only where it is needed,
-and use it only if it is there, and do without it if it is not. But I added
-an `optimize` method that will allow you to manually pack a number to optimize
-performance when the algorithm doesn't do it itself. This method can be called
-safely many times. In reality, it will only pack the value once.
+and use it only if it is there, and do without it if it is not. But there has
+to be a way to pack a number by hand, for when the algorithm does not do it
+itself, and that is `normalized()`. It answers with the value in its canonical
+form; calling it again on the result costs nothing.
 
-The `optimize` method is clearly refers to internal implementation, not
-business logic. And I don't really like its presence, but I haven't found
-a better solution, since I couldn't decide for the user in which case it's
-better to use number packing and in which case it's better to avoid it. All I
-could do to keep the implementation from sticking out so obviously was to call
-the method `optimize` rather than `pack` or `rescale`. The user doesn't need to
-know about packing and scaling a value, nor does the user need to know about
-`base` and `scale` at all.
+```dart
+final packed = value.normalized();
+```
+
+Until 1.2.0 the same thing was done by `optimize()`, which returned nothing and
+changed the receiver instead. That method still works and is deprecated: a
+method that mutates what it is called on has no business in a value type.
+
+The user does not need to know about packing and scaling, nor about `base` and
+`scale`. What the user may legitimately want is the number taken apart, and
+that is what `unscaledValue` and `exponent` are for — both read the canonical
+form, so equal decimals answer equally whatever produced them.
 
 In the following example, the optimization significantly speeds up the
 conversion of a number to a string:
 
 ```dart
-final v = Decimal(1000000000000000000) >> 18; // = 1
+var v = Decimal(1000000000000000000) >> 18; // = 1
 
 final sw = Stopwatch()..start();
 for (var i = 0; i < 10000000; i++) {
@@ -800,7 +833,7 @@ for (var i = 0; i < 10000000; i++) {
 sw.stop();
 print(sw.elapsed); // 0:00:02.445964
 
-v.optimize();
+v = v.normalized();
 
 sw
   ..reset()
@@ -835,14 +868,14 @@ sw
 for (var i = 0; i < 10000000; i++) {
   v = -v; // "1" or "-1"
   // If we only need to output numbers once and will not use them anywhere
-  // else, this optimization is unnecessary. Optimization will still be
-  // optimization, but we will pay too much for it.
-  v.optimize();
+  // else, this normalisation is unnecessary. It will still be a
+  // normalisation, but we will pay too much for it.
+  v = v.normalized();
   v.toString(); // 0:00:15.578125
 }
 sw.stop();
 print(sw.elapsed);
 ```
 
-`ShortDecimal` does not need to optimize since it optimizes the value in each
-operation.
+`ShortDecimal` needs none of this: it normalises the value in every operation,
+and its `normalized()` answers with the receiver itself.
