@@ -1,3 +1,4 @@
+/// What the package needs of `BigInt` and the standard library does not have.
 extension BigIntInternals on BigInt {
   /// The greatest common divisor of this and [other].
   ///
@@ -28,7 +29,12 @@ extension BigIntInternals on BigInt {
   }
 }
 
+/// What the package needs of `int` and the standard library does not have.
 extension IntInternals on int {
+  /// The greatest common divisor of this and [other], by Euclid.
+  ///
+  /// Faster than `int.gcd` on machine words, and the reason
+  /// [BigIntInternals.fastGcd] hands small pairs over to it.
   int fastGcd(int other) {
     var gcd = this;
     while (other != 0) {
@@ -57,7 +63,9 @@ const _charCapitalE = 0x45;
 /// the way back. No real notation comes anywhere near this.
 const _maxExponent = 1000000;
 
+/// What the package needs of `String` and the standard library does not have.
 extension StringInternals on String {
+  /// This string cut in two at [index].
   (String, String) splitByIndex(int index) =>
       (substring(0, index), substring(index));
 

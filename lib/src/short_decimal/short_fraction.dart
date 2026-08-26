@@ -1,6 +1,18 @@
 part of 'short_decimal.dart';
 
 @immutable
+/// An exact ratio of two integers: what division answers when a decimal cannot.
+///
+/// One divided by three is `1/3` here, and nothing is lost on the way. The
+/// ratio is always kept in lowest terms with a positive [denominator], so equal
+/// ratios are equal objects.
+///
+/// ```dart
+/// final third = ShortDecimal(1).divideToFraction(ShortDecimal(3));
+/// print(third);            // 1/3
+/// print(third.round(4));   // 0.3333
+/// print(third.toDouble()); // 0.3333333333333333
+/// ```
 final class ShortFraction implements Comparable<ShortFraction> {
   /// Numerator.
   final int numerator;
@@ -8,6 +20,10 @@ final class ShortFraction implements Comparable<ShortFraction> {
   /// Denominator.
   final int denominator;
 
+  /// A ratio of [dividend] over [divisor], reduced to lowest terms.
+  ///
+  /// The sign is carried by the numerator: the denominator is always positive.
+  /// Throws `UnsupportedError` when [divisor] is zero.
   factory ShortFraction(int dividend, int divisor) {
     if (divisor == 0) {
       throw UnsupportedError('division by zero');
@@ -36,6 +52,12 @@ final class ShortFraction implements Comparable<ShortFraction> {
     return ShortFraction._(-numerator, -denominator);
   }
 
+  /// Reads a ratio written as `numerator/denominator`, or a bare integer.
+  ///
+  /// ```dart
+  /// print(ShortFraction.parse('3/4')); // 3/4
+  /// print(ShortFraction.parse('5'));   // 5
+  /// ```
   factory ShortFraction.parse(String str) {
     final fractionBar = str.indexOf('/');
 
@@ -53,8 +75,10 @@ final class ShortFraction implements Comparable<ShortFraction> {
   const ShortFraction._(this.numerator, this.denominator)
     : assert(denominator > 0, 'The denominator must be > 0');
 
+  /// Whether this ratio is less than zero.
   bool get isNegative => numerator.isNegative;
 
+  /// The sign: -1, 0 or 1.
   int get sign => numerator.sign;
 
   /// Multiplies this fraction by [other].

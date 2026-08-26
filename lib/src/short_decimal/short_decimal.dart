@@ -8,6 +8,27 @@ import '../helpers.dart';
 part 'short_fraction.dart';
 part 'short_division.dart';
 
+/// A decimal number with a fixed point, kept in an `int`.
+///
+/// The value is `base × 10^-scale`, the same as in `Decimal`, but the unscaled
+/// [base] is an `int` rather than a `BigInt`. Arithmetic is exact as long as
+/// the numbers stay inside int64 — `0.1 + 0.2` is `0.3` — and several times
+/// faster than the BigInt family.
+///
+/// ```dart
+/// final price = ShortDecimal.parse('19.99');
+/// print(price * ShortDecimal(3)); // 59.97
+/// ```
+///
+/// **Overflow is silent**, exactly as it is for `int` itself: a result that
+/// does not fit in int64 wraps round instead of throwing. Where the magnitudes
+/// are not known in advance, use `Decimal`, which has no such limit, and cross
+/// over with `toDecimal()` when it turns out to be needed.
+///
+/// Division is the one operation that cannot always answer — one third has no
+/// finite decimal form. [divideOrNull] returns null there, [divide] rounds to
+/// as many digits as it is told, [isDivisibleBy] asks the question in advance,
+/// and [operator /] throws [ShortDecimalDivideException].
 @immutable
 final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static final _charCode0 = '0'.codeUnitAt(0);
@@ -29,9 +50,19 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// ten, and hashCode is taken from the packed pair as is.
   static const ShortDecimal ten = ShortDecimal._asIs(1, -1);
 
+  /// The unscaled value: the number is `base × 10^-scale`.
+  ///
+  /// Visible for testing because the tests check the stored form, not because
+  /// the pair is a promise. Unlike the BigInt family this one normalises on
+  /// construction, so the form is canonical — but comparing decimals by this
+  /// pair is still the wrong way round: compare them by value.
   @visibleForTesting
   final int base;
 
+  /// The power of ten the [base] is divided by.
+  ///
+  /// A negative scale is a working mode and not an error: ten is a base of one
+  /// at a scale of minus one, which is what makes [ten] canonical.
   @visibleForTesting
   final int scale;
 
@@ -743,6 +774,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   @override
   int get hashCode => Object.hash(base, scale);
 
+  /// The stored form, for a failing test to print.
+  ///
+  /// Not for production: this is the only place in the package that shows the
+  /// pair a value is kept in.
   @visibleForTesting
   String debugToString() => '$ShortDecimal(base: $base, scale: $scale)';
 
@@ -1073,28 +1108,59 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   }
 }
 
+/// Thrown by [ShortDecimal.operator /] when the result has no finite decimal
+/// form.
+///
+/// One divided by three cannot be written down in full, and the package does
+/// not round behind the caller's back. The exception carries everything that
+/// could have been wanted instead of the exact answer, so that catching it is a
+/// way of asking again rather than a dead end:
+///
+/// ```dart
+/// try {
+///   print(ShortDecimal(1) / ShortDecimal(3));
+/// } on ShortDecimalDivideException catch (e) {
+///   print(e.fraction); // 1/3
+///   print(e.round(4)); // 0.3333
+/// }
+/// ```
+///
+/// Catching is the slow way round, though: [ShortDecimal.divideOrNull] asks the
+/// same question about four times faster, and [ShortDecimal.divide] rounds in
+/// one call.
 final class ShortDecimalDivideException implements Exception {
+  /// The number that was divided.
   final ShortDecimal dividend;
+
+  /// The number it was divided by.
   final ShortDecimal divisor;
 
   const ShortDecimalDivideException._(this.dividend, this.divisor);
 
+  /// Builds an instance directly; the package raises the real ones itself.
   @visibleForTesting
   ShortDecimalDivideException.forTest(this.dividend, this.divisor);
 
+  /// The exact result, as a fraction.
   ShortFraction get fraction => dividend.divideToFraction(divisor);
 
+  /// The whole quotient and what is left of the dividend.
   ShortDivision get quotientWithRemainder =>
       dividend.divideWithRemainder(divisor);
 
+  /// The exact result rounded towards minus infinity, [fractionDigits] digits.
   ShortDecimal floor([int fractionDigits = 0]) =>
       fraction.floor(fractionDigits);
 
+  /// The exact result rounded to [fractionDigits] digits, halves away from
+  /// zero.
   ShortDecimal round([int fractionDigits = 0]) =>
       fraction.round(fractionDigits);
 
+  /// The exact result rounded towards plus infinity, [fractionDigits] digits.
   ShortDecimal ceil([int fractionDigits = 0]) => fraction.ceil(fractionDigits);
 
+  /// The exact result with everything past [fractionDigits] digits cut off.
   ShortDecimal truncate([int fractionDigits = 0]) =>
       fraction.truncate(fractionDigits);
 
@@ -1106,6 +1172,12 @@ final class ShortDecimalDivideException implements Exception {
       '\n$dividend / $divisor = $fraction';
 }
 
+/// Conversion from `int`.
 extension ShortDecimalIntExtension on int {
+  /// This integer as a [ShortDecimal].
+  ///
+  /// ```dart
+  /// print(42.toShortDecimal()); // 42
+  /// ```
   ShortDecimal toShortDecimal() => ShortDecimal._pack(this, 0);
 }

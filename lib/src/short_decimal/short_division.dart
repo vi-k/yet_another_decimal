@@ -1,6 +1,14 @@
 part of 'short_decimal.dart';
 
 @immutable
+/// A whole quotient together with the remainder that did not fit into it.
+///
+/// ```dart
+/// final d = ShortDecimal.parse('7.5').divideWithRemainder(ShortDecimal(2));
+/// print(d);           // 3 remainder 1.5
+/// print(d.quotient);  // 3
+/// print(d.remainder); // 1.5
+/// ```
 final class ShortDivision {
   /// Integer quotient.
   final int quotient;
@@ -8,6 +16,9 @@ final class ShortDivision {
   /// Remainder.
   final ShortDecimal remainder;
 
+  /// Divides [dividend] by [divisor] and keeps the quotient whole.
+  ///
+  /// Throws `UnsupportedError` when [divisor] is zero.
   factory ShortDivision(ShortDecimal dividend, ShortDecimal divisor) {
     if (divisor.isZero) {
       throw UnsupportedError('division by zero');

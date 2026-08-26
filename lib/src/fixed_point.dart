@@ -21,6 +21,11 @@
 /// together by the symmetry test instead.
 library;
 
+/// The members both `Decimal` and `ShortDecimal` have to have.
+///
+/// The reasoning behind the interface — why it exists, why it is not exported
+/// and what it deliberately leaves out — is in the comment on the library
+/// above.
 abstract interface class FixedPoint<T extends FixedPoint<T>>
     implements Comparable<T> {
   /// The number of digits after the decimal point.

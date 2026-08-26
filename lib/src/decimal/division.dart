@@ -1,6 +1,14 @@
 part of 'decimal.dart';
 
 @immutable
+/// A whole quotient together with the remainder that did not fit into it.
+///
+/// ```dart
+/// final d = Decimal.parse('7.5').divideWithRemainder(Decimal(2));
+/// print(d);           // 3 remainder 1.5
+/// print(d.quotient);  // 3
+/// print(d.remainder); // 1.5
+/// ```
 final class Division {
   /// Integer quotient.
   final BigInt quotient;
@@ -8,6 +16,9 @@ final class Division {
   /// Remainder.
   final Decimal remainder;
 
+  /// Divides [dividend] by [divisor] and keeps the quotient whole.
+  ///
+  /// Throws `UnsupportedError` when [divisor] is zero.
   factory Division(Decimal dividend, Decimal divisor) {
     if (divisor.isZero) {
       throw UnsupportedError('division by zero');

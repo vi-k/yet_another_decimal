@@ -8,6 +8,25 @@ import '../helpers.dart';
 part 'division.dart';
 part 'fraction.dart';
 
+/// A decimal number with a fixed point and no limit on magnitude.
+///
+/// The value is kept as an unscaled [base] and a [scale] — `base × 10^-scale`
+/// — and both are exact, so the arithmetic is exact too: `0.1 + 0.2` is `0.3`,
+/// and a sum of money stays the sum it was.
+///
+/// ```dart
+/// final price = Decimal.parse('19.99');
+/// print(price * Decimal(3)); // 59.97
+/// ```
+///
+/// [base] is a `BigInt`: nothing overflows, and there is no bound on the number
+/// of digits. Where the values are known to be small, `ShortDecimal` does the
+/// same on `int` and is several times faster.
+///
+/// Division is the one operation that cannot always answer — one third has no
+/// finite decimal form. [divideOrNull] returns null there, [divide] rounds to
+/// as many digits as it is told, [isDivisibleBy] asks the question in advance,
+/// and [operator /] throws [DecimalDivideException].
 final class Decimal implements FixedPoint<Decimal> {
   static final _char0 = '0'.codeUnitAt(0);
   static final _charMinus = '-'.codeUnitAt(0);
@@ -73,9 +92,19 @@ final class Decimal implements FixedPoint<Decimal> {
   /// A decimal with the numerical value 10.
   static final Decimal ten = Decimal.fromBigInt(_bigInt10);
 
+  /// The unscaled value: the number is `base × 10^-scale`.
+  ///
+  /// Visible for testing because the tests check the stored form, not because
+  /// the pair is a promise: one value has more than one form, and which one is
+  /// on hand is an artefact of the last operation. Compare decimals by value,
+  /// never by this pair.
   @visibleForTesting
   final BigInt base;
 
+  /// The power of ten the [base] is divided by.
+  ///
+  /// A negative scale is a working mode and not an error: `1e21` is a base of
+  /// one at a scale of minus twenty-one, and nothing is lost that way.
   @visibleForTesting
   final int scale;
 
@@ -703,6 +732,10 @@ final class Decimal implements FixedPoint<Decimal> {
     return Object.hash(packed.base, packed.scale);
   }
 
+  /// The stored form, for a failing test to print.
+  ///
+  /// Not for production: one value has more than one stored form, and this is
+  /// the only place in the package that shows which one is on hand.
   @visibleForTesting
   String debugToString() => '$Decimal(base: $base, scale: $scale)';
 
@@ -984,25 +1017,54 @@ final class Decimal implements FixedPoint<Decimal> {
   }
 }
 
+/// Thrown by [Decimal.operator /] when the result has no finite decimal form.
+///
+/// One divided by three cannot be written down in full, and the package does
+/// not round behind the caller's back. The exception carries everything that
+/// could have been wanted instead of the exact answer, so that catching it is a
+/// way of asking again rather than a dead end:
+///
+/// ```dart
+/// try {
+///   print(Decimal(1) / Decimal(3));
+/// } on DecimalDivideException catch (e) {
+///   print(e.fraction); // 1/3
+///   print(e.round(4)); // 0.3333
+/// }
+/// ```
+///
+/// Catching is the slow way round, though: [Decimal.divideOrNull] asks the same
+/// question about four times faster, and [Decimal.divide] rounds in one call.
 final class DecimalDivideException implements Exception {
+  /// The number that was divided.
   final Decimal dividend;
+
+  /// The number it was divided by.
   final Decimal divisor;
 
   const DecimalDivideException._(this.dividend, this.divisor);
 
+  /// Builds an instance directly; the package raises the real ones itself.
   @visibleForTesting
   DecimalDivideException.forTest(this.dividend, this.divisor);
 
+  /// The exact result, as a fraction.
   Fraction get fraction => dividend.divideToFraction(divisor);
 
+  /// The whole quotient and what is left of the dividend.
   Division get quotientWithRemainder => dividend.divideWithRemainder(divisor);
 
+  /// The exact result rounded towards minus infinity, [fractionDigits] digits.
   Decimal floor([int fractionDigits = 0]) => fraction.floor(fractionDigits);
 
+  /// The exact result rounded to [fractionDigits] digits, halves away from
+  /// zero.
   Decimal round([int fractionDigits = 0]) => fraction.round(fractionDigits);
 
+  /// The exact result rounded towards plus infinity, [fractionDigits] digits.
   Decimal ceil([int fractionDigits = 0]) => fraction.ceil(fractionDigits);
 
+  /// The exact result with everything past [fractionDigits] digits cut off.
   Decimal truncate([int fractionDigits = 0]) =>
       fraction.truncate(fractionDigits);
 
@@ -1014,10 +1076,22 @@ final class DecimalDivideException implements Exception {
       '\n$dividend / $divisor = $fraction';
 }
 
+/// Conversion from `BigInt`.
 extension DecimalBigIntExtension on BigInt {
+  /// This integer as a [Decimal].
+  ///
+  /// ```dart
+  /// print(BigInt.from(42).toDecimal()); // 42
+  /// ```
   Decimal toDecimal() => Decimal.fromBigInt(this);
 }
 
+/// Conversion from `int`.
 extension DecimalIntExtension on int {
+  /// This integer as a [Decimal].
+  ///
+  /// ```dart
+  /// print(42.toDecimal()); // 42
+  /// ```
   Decimal toDecimal() => Decimal(this);
 }
