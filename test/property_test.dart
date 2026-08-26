@@ -231,7 +231,7 @@ void main() {
         expect(Decimal.parse(text), value.round(digits), reason: why);
         expect(text, Ref.parse(source).toStringAsFixed(digits), reason: why);
       }
-    }, skip: 'Д5: toStringAsFixed не добивает нулями');
+    });
   });
 
   group('ShortDecimal против Decimal на безопасных значениях', () {

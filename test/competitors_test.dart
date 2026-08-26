@@ -154,7 +154,7 @@ void main() {
           reason: 'ShortDecimal, $why',
         );
       }
-    }, skip: 'Д5: toStringAsFixed не добивает нулями');
+    });
 
     test('точное деление', () {
       final gen = Gen(106);

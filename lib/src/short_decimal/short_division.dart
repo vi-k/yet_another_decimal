@@ -15,10 +15,10 @@ final class ShortDivision {
 
     final (a, b, scale) = dividend._align(divisor);
 
-    return ShortDivision._(
-      a ~/ b,
-      ShortDecimal(a.remainder(b), shiftRight: scale),
-    );
+    // The scale of an aligned pair is negative for round numbers, and the
+    // public constructor asserts it is not. The remainder is built by the
+    // internal one for that reason.
+    return ShortDivision._(a ~/ b, ShortDecimal._pack(a.remainder(b), scale));
   }
 
   const ShortDivision._(this.quotient, this.remainder);

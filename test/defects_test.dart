@@ -11,9 +11,6 @@ library;
 import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
-const _skip5 = 'Д5: toStringAsFixed не добивает нулями';
-const _skip6 = 'Д6: divideWithRemainder падает под ассертами';
-const _skip7 = 'Д7: ShortDecimal.ten не нормализована';
 const _skip8 = 'Д8: divideToDouble даёт NaN';
 const _skip9 = 'Д9: Fraction не принимает отрицательный fractionDigits';
 const _skip10 = 'Д10: tryParse принимает шестнадцатеричное';
@@ -116,33 +113,33 @@ void main() {
       expect(Decimal.parse('0.5').toStringAsFixed(3), '0.500');
       expect(Decimal.parse('-0.5').toStringAsFixed(3), '-0.500');
       expect(Decimal.parse('0.05').toStringAsFixed(5), '0.05000');
-    }, skip: _skip5);
+    });
 
     test('ShortDecimal', () {
       expect(ShortDecimal.parse('0.5').toStringAsFixed(3), '0.500');
       expect(ShortDecimal.parse('0.1').toStringAsFixed(2), '0.10');
-    }, skip: _skip5);
+    });
 
     test('семейства согласованы на нуле', () {
       expect(
         Decimal.parse('0.0').toStringAsFixed(2),
         ShortDecimal.parse('0.0').toStringAsFixed(2),
       );
-    }, skip: _skip5);
+    });
   });
 
   group('Д6 divideWithRemainder при отрицательном масштабе', () {
     test('Decimal', () {
       final division = Division(Decimal(1) << 2, Decimal(3) << 1);
       expect(division.toString(), '3 remainder 10');
-    }, skip: _skip6);
+    });
 
     test('ShortDecimal через parse', () {
       final division = ShortDecimal.parse(
         '400',
       ).divideWithRemainder(ShortDecimal.parse('30'));
       expect(division.toString(), '13 remainder 10');
-    }, skip: _skip6);
+    });
 
     test('печать исключения не бросает и содержит остаток', () {
       try {
@@ -151,24 +148,24 @@ void main() {
       } on ShortDecimalDivideException catch (e) {
         expect(e.toString(), contains('remainder'));
       }
-    }, skip: _skip6);
+    });
   });
 
   group('Д7 ShortDecimal.ten нормализована', () {
     test('хеш согласован с равенством', () {
       expect(ShortDecimal.ten == ShortDecimal(10), isTrue);
       expect(ShortDecimal.ten.hashCode, ShortDecimal(10).hashCode);
-    }, skip: _skip7);
+    });
 
     test('множество не двоится', () {
       expect({ShortDecimal.ten, ShortDecimal(10)}, hasLength(1));
       expect(<ShortDecimal, int>{ShortDecimal(10): 1}[ShortDecimal.ten], 1);
-    }, skip: _skip7);
+    });
 
     test('производные значения тоже каноничны', () {
       expect((ShortDecimal.ten << 1).hashCode, ShortDecimal(100).hashCode);
       expect((-ShortDecimal.ten).hashCode, ShortDecimal(-10).hashCode);
-    }, skip: _skip7);
+    });
   });
 
   group('Д8 divideToDouble на высокой точности', () {

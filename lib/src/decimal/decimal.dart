@@ -494,7 +494,8 @@ final class Decimal implements Comparable<Decimal> {
     final (sign, number) = result.splitByIndex(base.isNegative ? 1 : 0);
 
     if (scale >= number.length) {
-      return '${sign}0.${number.padLeft(scale, '0')}';
+      return '${sign}0.'
+          '${number.padLeft(scale, '0').padRight(fractionDigits, '0')}';
     }
 
     final (integer, fractional) = number.splitByIndex(number.length - scale);

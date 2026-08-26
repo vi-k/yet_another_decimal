@@ -15,10 +15,10 @@ final class Division {
 
     final (a, b, scale) = dividend._align(divisor);
 
-    return Division._(
-      a ~/ b,
-      Decimal.fromBigInt(a.remainder(b), shiftRight: scale),
-    );
+    // The scale of an aligned pair is negative for round numbers, and the
+    // public constructor asserts it is not. The remainder is built by the
+    // internal one for that reason.
+    return Division._(a ~/ b, Decimal._asIs(a.remainder(b), scale));
   }
 
   const Division._(this.quotient, this.remainder);

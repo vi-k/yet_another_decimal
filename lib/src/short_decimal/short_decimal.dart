@@ -24,7 +24,10 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   static const ShortDecimal two = ShortDecimal._asIs(2, 0);
 
   /// A decimal with the numerical value 10.
-  static const ShortDecimal ten = ShortDecimal._asIs(10, 0);
+  ///
+  /// The base is one and the scale is minus one: that is what `_pack` makes of
+  /// ten, and hashCode is taken from the packed pair as is.
+  static const ShortDecimal ten = ShortDecimal._asIs(1, -1);
 
   @visibleForTesting
   final int base;
@@ -533,7 +536,8 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     final (sign, number) = result.splitByIndex(base.isNegative ? 1 : 0);
 
     if (scale >= number.length) {
-      return '${sign}0.${number.padLeft(scale, '0')}';
+      return '${sign}0.'
+          '${number.padLeft(scale, '0').padRight(fractionDigits, '0')}';
     }
 
     final (integer, fractional) = number.splitByIndex(number.length - scale);
@@ -697,7 +701,7 @@ final class ShortDecimalDivideException implements Exception {
   String toString() =>
       '$ShortDecimalDivideException:'
       ' The result of division cannot be represented as $ShortDecimal:'
-      // '\n$dividend / $divisor = $quotientWithRemainder'
+      '\n$dividend / $divisor = $quotientWithRemainder'
       '\n$dividend / $divisor = $fraction';
 }
 
