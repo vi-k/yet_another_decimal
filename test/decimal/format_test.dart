@@ -584,15 +584,66 @@ void main() {
       );
     });
 
-    test('toStringAsExponential и toStringAsPrecision пока не сделаны', () {
-      expect(
-        () => Decimal(1).toStringAsExponential(),
-        throwsA(isA<UnimplementedError>()),
-      );
-      expect(
-        () => Decimal(1).toStringAsPrecision(3),
-        throwsA(isA<UnimplementedError>()),
-      );
+    // Реализованы в волне 4; до неё бросали UnimplementedError. Семантика
+    // взята у `double` и сверяется с ним же там, где значение представимо.
+    group('toStringAsExponential', () {
+      for (final (source, digits) in [
+        ('0', 0),
+        ('0', 2),
+        ('1', 0),
+        ('1', 3),
+        ('100', 0),
+        ('1234.5', 2),
+        ('-1234.5', 2),
+        ('0.00123', 1),
+        ('0.5', 1),
+        ('-0.5', 0),
+        ('9.99', 1),
+        ('99999', 2),
+      ]) {
+        test('$source с $digits знаками', () {
+          expect(
+            Decimal.parse(source).toStringAsExponential(digits),
+            double.parse(source).toStringAsExponential(digits),
+          );
+        });
+      }
+
+      test('отрицательный аргумент не принимается', () {
+        expect(
+          () => Decimal.parse('1').toStringAsExponential(-1),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+    });
+
+    group('toStringAsPrecision', () {
+      for (final (source, precision, expected) in [
+        ('0', 1, '0'),
+        ('0', 3, '0.00'),
+        ('1', 1, '1'),
+        ('1', 3, '1.00'),
+        ('1234.5678', 6, '1234.57'),
+        ('-1234.5678', 6, '-1234.57'),
+        ('0.05', 3, '0.0500'),
+        ('123456', 2, '120000'),
+        ('9.99', 2, '10'),
+        ('0.000000001', 2, '0.0000000010'),
+      ]) {
+        test('$source с $precision знаками даёт $expected', () {
+          expect(
+            Decimal.parse(source).toStringAsPrecision(precision),
+            expected,
+          );
+        });
+      }
+
+      test('нулевая точность не принимается', () {
+        expect(
+          () => Decimal.parse('1').toStringAsPrecision(0),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
     });
   });
 }

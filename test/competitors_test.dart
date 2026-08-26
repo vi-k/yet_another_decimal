@@ -299,6 +299,45 @@ void main() {
     }
   });
 
+  group('экспоненциальная и точная запись совпадают с decimal', () {
+    const sources = [
+      '0',
+      '1',
+      '100',
+      '1234.5',
+      '-1234.5',
+      '0.00123',
+      '9.99',
+      '99999',
+      '0.000000001',
+      '12345678901234567890.12345',
+    ];
+
+    for (final source in sources) {
+      test('toStringAsExponential $source', () {
+        final other = rival.Decimal.parse(source);
+        for (final digits in [0, 1, 2, 5]) {
+          expect(
+            Decimal.parse(source).toStringAsExponential(digits),
+            other.toStringAsExponential(digits),
+            reason: '$source с $digits знаками',
+          );
+        }
+      });
+
+      test('toStringAsPrecision $source', () {
+        final other = rival.Decimal.parse(source);
+        for (final precision in [1, 2, 5, 12]) {
+          expect(
+            Decimal.parse(source).toStringAsPrecision(precision),
+            other.toStringAsPrecision(precision),
+            reason: '$source с $precision знаками',
+          );
+        }
+      });
+    }
+  });
+
   group('осознанное расхождение: точка без дробной части', () {
     // `decimal` принимает '1.' и читает его как 1. Мы отвергаем — это решение
     // принято до переработки и закреплено тестами разбора: у точки обязана

@@ -709,14 +709,86 @@ final class Decimal implements Comparable<Decimal> {
     return '$sign$integer.${fractional.padRight(fractionDigits, '0')}';
   }
 
-  // TODO(vi.k): do it.
-  String toStringAsExponential([int fractionDigits = 0]) =>
-      throw UnimplementedError();
+  /// An exponential representation of this decimal with [fractionDigits]
+  /// digits after the decimal point.
+  ///
+  /// ```dart
+  /// print(Decimal.parse('1234.5').toStringAsExponential(2)); // 1.23e+3
+  /// print(Decimal.parse('0.00123').toStringAsExponential(1)); // 1.2e-3
+  /// ```
+  String toStringAsExponential([int fractionDigits = 0]) {
+    _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
 
-  // TODO(vi.k): do it.
-  //
-  // 1234567 (6) -> 1.23457e+6 ?
-  String toStringAsPrecision(int precision) => throw UnimplementedError();
+    if (isZero) {
+      return '${zero.toStringAsFixed(fractionDigits)}e+0';
+    }
+
+    // The leading digit sits at this power of ten.
+    var exponent = _digits.length - 1 - scale;
+    var value = round(fractionDigits - exponent);
+
+    // Rounding can carry into a new power of ten: 9.99 with one digit after
+    // the point is 10.0, which is 1.0e+1 and not 10.0e+0.
+    if (value._digits.length - 1 - value.scale > exponent) {
+      exponent++;
+      value = round(fractionDigits - exponent);
+    }
+
+    final digits = value._digits;
+    final mantissa = fractionDigits == 0
+        ? digits.substring(0, 1)
+        : '${digits.substring(0, 1)}.'
+              '${digits.substring(1).padRight(fractionDigits, '0')}';
+
+    return '${isNegative ? '-' : ''}$mantissa'
+        'e${exponent.isNegative ? '' : '+'}$exponent';
+  }
+
+  /// A representation of this decimal with [precision] significant digits.
+  ///
+  /// ```dart
+  /// print(Decimal.parse('1234.5678').toStringAsPrecision(6)); // 1234.57
+  /// print(Decimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
+  /// ```
+  String toStringAsPrecision(int precision) {
+    if (precision <= 0) {
+      throw ArgumentError.value(
+        precision,
+        'precision',
+        'The value must be > 0',
+      );
+    }
+
+    if (isZero) {
+      return precision == 1 ? '0' : '0.${'0' * (precision - 1)}';
+    }
+
+    var exponent = _digits.length - 1 - scale;
+    var fractionDigits = precision - 1 - exponent;
+    var value = round(fractionDigits);
+
+    // The same carry as in toStringAsExponential: 9.99 at two digits is 10,
+    // which needs one integer digit more and one fractional digit less.
+    if (value._digits.length - 1 - value.scale > exponent) {
+      exponent++;
+      fractionDigits = precision - 1 - exponent;
+      value = round(fractionDigits);
+    }
+
+    return fractionDigits <= 0
+        ? value.toString()
+        : value.toStringAsFixed(fractionDigits);
+  }
+
+  /// The digits of the base, without a sign.
+  ///
+  /// Taken from the text rather than from `abs()`: the minimum integer has no
+  /// positive counterpart.
+  String get _digits {
+    final text = base.toString();
+
+    return text.codeUnitAt(0) == _charMinus ? text.substring(1) : text;
+  }
 
   static void _checkNonNegativeArgument(int value, String name) {
     if (value < 0) {
