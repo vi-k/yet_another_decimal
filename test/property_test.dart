@@ -212,6 +212,38 @@ void main() {
       }
     });
 
+    test('divide округляет непредставимое так же, как модель', () {
+      final gen = Gen(14);
+      for (var i = 0; i < _cases; i++) {
+        final sa = gen.wideString();
+        final sb = gen.wideString();
+        final a = Decimal.parse(sa);
+        final b = Decimal.parse(sb);
+        if (b.isZero) {
+          continue;
+        }
+
+        // Только неотрицательное число знаков: у модели `_shift` при
+        // отрицательном сперва делит числитель нацело и теряет остаток.
+        // Отрицательные проверяются точечно в test/decimal/divide_test.dart.
+        final digits = gen.fractionDigits(12);
+        final model = Ref.parse(sa) / Ref.parse(sb);
+        final result = a.divide(b, scaleOnInfinitePrecision: digits);
+        final why = 'случай $i: $sa / $sb до $digits знаков';
+
+        if (model.hasFiniteDecimal) {
+          // Представимое возвращается точным, а не урезанным до digits.
+          expect(result, a / b, reason: why);
+        } else {
+          expect(
+            result,
+            Decimal.fromBigInt(model.roundToScaled(digits)) >> digits,
+            reason: why,
+          );
+        }
+      }
+    });
+
     test('toStringAsFixed даёт ровно n знаков и разбирается обратно', () {
       final gen = Gen(10);
       for (var i = 0; i < _cases; i++) {

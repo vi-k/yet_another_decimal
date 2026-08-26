@@ -605,6 +605,50 @@ void main() {
         expect(Decimal(1).divideOrNull(Decimal(7)), isNull);
       });
 
+      test('divide округляет так же, как дробь, на знаках и краях', () {
+        // Округление у divide — то же самое, что у Fraction.round: это его
+        // определение, и прямой путь обязан его сохранять.
+        for (final (dividend, divisor, digits) in <(String, String, int)>[
+          ('1', '3', 4),
+          ('-1', '3', 4),
+          ('1', '-3', 4),
+          ('-1', '-3', 4),
+          ('2', '3', 0),
+          ('-2', '3', 0),
+          ('12345', '7', -2),
+          ('-12345', '7', -2),
+          ('0.000001', '3', 8),
+          ('1e30', '7', -20),
+          ('1', '3', 0),
+          ('-1', '3', 0),
+        ]) {
+          final a = Decimal.parse(dividend);
+          final b = Decimal.parse(divisor);
+          expect(
+            a.divide(b, scaleOnInfinitePrecision: digits),
+            a.divideToFraction(b).round(digits),
+            reason: '$dividend / $divisor до $digits знаков',
+          );
+        }
+      });
+
+      test('divide с отрицательным числом знаков округляет к десяткам', () {
+        // Отрицательное scaleOnInfinitePrecision — рабочий режим, как и
+        // отрицательный масштаб: 12345/7 это 1763.57…, к сотням — 1800.
+        expectDecimal(
+          Decimal(12345).divide(Decimal(7), scaleOnInfinitePrecision: -2),
+          '1800',
+        );
+        expectDecimal(
+          Decimal(-12345).divide(Decimal(7), scaleOnInfinitePrecision: -2),
+          '-1800',
+        );
+        expectDecimal(
+          Decimal(149).divide(Decimal(3), scaleOnInfinitePrecision: -2),
+          '0',
+        );
+      });
+
       test('деление на ноль по-прежнему бросает', () {
         expect(
           () => Decimal(1).divideOrNull(Decimal(0)),
