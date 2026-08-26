@@ -41,8 +41,13 @@ final class ShortFraction implements Comparable<ShortFraction> {
       return ShortFraction._(numerator, denominator);
     }
 
-    // `x == -x` holds for zero and for the minimum integer only, and neither
-    // of these is zero here.
+    // `x == -x` holds for zero and for the minimum integer only. Zero over a
+    // negative number is an ordinary ratio — it is zero — and only the
+    // minimum integer really has nowhere to put the sign.
+    if (numerator == 0) {
+      return const ShortFraction._(0, 1);
+    }
+
     if (denominator == -denominator || numerator == -numerator) {
       throw ArgumentError(
         'The fraction $dividend/$divisor cannot be normalized:'

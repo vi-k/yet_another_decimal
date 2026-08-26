@@ -76,7 +76,7 @@ void main() {
       final gen = Gen(4);
       for (var i = 0; i < _cases; i++) {
         final source = gen.wideString();
-        final digits = gen.fractionDigits();
+        final digits = gen.signedFractionDigits();
         final value = Decimal.parse(source);
         final model = Ref.parse(source);
 
@@ -108,7 +108,7 @@ void main() {
       final gen = Gen(5);
       for (var i = 0; i < _cases; i++) {
         final source = gen.wideString();
-        final digits = gen.fractionDigits();
+        final digits = gen.signedFractionDigits();
         final value = Decimal.parse(source);
 
         final why = 'случай $i: $source до $digits знаков';
@@ -290,7 +290,9 @@ void main() {
       final gen = Gen(12);
       for (var i = 0; i < _cases; i++) {
         final source = gen.shortSafeString();
-        final digits = gen.fractionDigits();
+        // В том числе к десяткам и сотням: у короткого семейства этот режим
+        // не проверялся вовсе, и четыре мутации в нём выживали.
+        final digits = gen.signedFractionDigits();
         final wide = Decimal.parse(source);
         final short = ShortDecimal.parse(source);
 
@@ -314,6 +316,112 @@ void main() {
           short.truncate(digits).toString(),
           wide.truncate(digits).toString(),
           reason: why,
+        );
+      }
+    });
+
+    test('деление во всех формах совпадает', () {
+      final gen = Gen(15);
+      for (var i = 0; i < _cases; i++) {
+        final sa = gen.shortSafeString();
+        final sb = gen.shortSafeString();
+        final wa = Decimal.parse(sa);
+        final wb = Decimal.parse(sb);
+        final na = ShortDecimal.parse(sa);
+        final nb = ShortDecimal.parse(sb);
+        if (wb.isZero) {
+          continue;
+        }
+
+        final why = 'случай $i: $sa / $sb';
+
+        expect(
+          na.divideOrNull(nb)?.toString(),
+          wa.divideOrNull(wb)?.toString(),
+          reason: why,
+        );
+        expect(na.isDivisibleBy(nb), wa.isDivisibleBy(wb), reason: why);
+        expect((na ~/ nb).toString(), (wa ~/ wb).toString(), reason: why);
+        expect((na % nb).toString(), (wa % wb).toString(), reason: why);
+        expect(
+          na.remainder(nb).toString(),
+          wa.remainder(wb).toString(),
+          reason: why,
+        );
+        expect(
+          na.divideWithRemainder(nb).toString(),
+          wa.divideWithRemainder(wb).toString(),
+          reason: why,
+        );
+        expect(na.divideToDouble(nb), wa.divideToDouble(wb), reason: why);
+        expect(
+          na.divideToFraction(nb).toString(),
+          wa.divideToFraction(wb).toString(),
+          reason: why,
+        );
+
+        final digits = gen.fractionDigits();
+        expect(
+          na.divide(nb, scaleOnInfinitePrecision: digits).toString(),
+          wa.divide(wb, scaleOnInfinitePrecision: digits).toString(),
+          reason: '$why до $digits знаков',
+        );
+      }
+    });
+
+    test('свойства и переводы совпадают', () {
+      final gen = Gen(16);
+      for (var i = 0; i < _cases; i++) {
+        final source = gen.shortSafeString();
+        final wide = Decimal.parse(source);
+        final short = ShortDecimal.parse(source);
+        final why = 'случай $i: $source';
+
+        expect(short.precision, wide.precision, reason: why);
+        expect(short.fractionDigits, wide.fractionDigits, reason: why);
+        expect(short.exponent, wide.exponent, reason: why);
+        expect(
+          BigInt.from(short.unscaledValue),
+          wide.unscaledValue,
+          reason: why,
+        );
+        expect(short.sign, wide.sign, reason: why);
+        expect(short.isInteger, wide.isInteger, reason: why);
+        expect(short.isPositive, wide.isPositive, reason: why);
+        expect(short.toDouble(), wide.toDouble(), reason: why);
+        expect(short.toInt(), wide.toInt(), reason: why);
+        expect(short.toBigInt(), wide.toBigInt(), reason: why);
+        expect(short.toJson(), wide.toJson(), reason: why);
+        expect(short.abs().toString(), wide.abs().toString(), reason: why);
+        expect((-short).toString(), (-wide).toString(), reason: why);
+        expect(
+          short.normalized().toString(),
+          wide.normalized().toString(),
+          reason: why,
+        );
+
+        final digits = gen.fractionDigits();
+        expect(
+          short.toStringAsFixed(digits),
+          wide.toStringAsFixed(digits),
+          reason: '$why с $digits знаками',
+        );
+        expect(
+          short.toStringAsExponential(digits),
+          wide.toStringAsExponential(digits),
+          reason: '$why в экспоненте с $digits знаками',
+        );
+        expect(
+          short.toStringAsPrecision(1 + digits),
+          wide.toStringAsPrecision(1 + digits),
+          reason: '$why с точностью ${1 + digits}',
+        );
+
+        final places = gen.signedFractionDigits(4);
+        expect(
+          short.movePointLeft(places).toString(),
+          wide.movePointLeft(places).toString(),
+          reason: '$why, точка влево на $places',
         );
       }
     });

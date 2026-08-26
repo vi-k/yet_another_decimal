@@ -102,21 +102,26 @@ final class Ref implements Comparable<Ref> {
     return d == BigInt.one;
   }
 
-  /// Усечение к нулю до [fractionDigits] знаков, результат — значение,
-  /// умноженное на `10^fractionDigits`.
-  BigInt _scaledTruncate(int fractionDigits) => _shift(fractionDigits) ~/ den;
+  /// Числитель и знаменатель значения, умноженного на `10^fractionDigits`.
+  ///
+  /// Отрицательное число знаков масштабирует **знаменатель**. Делить нацело
+  /// числитель, как здесь делалось раньше, нельзя: остаток теряется до
+  /// округления, и модель начинает врать ровно там, где её и спрашивают —
+  /// при округлении к десяткам и сотням.
+  (BigInt, BigInt) _scaled(int fractionDigits) => fractionDigits >= 0
+      ? (num * _b10.pow(fractionDigits), den)
+      : (num, den * _b10.pow(-fractionDigits));
 
-  BigInt _shift(int fractionDigits) => fractionDigits >= 0
-      ? num * _b10.pow(fractionDigits)
-      : num ~/ _b10.pow(-fractionDigits);
+  BigInt truncateToScaled(int fractionDigits) {
+    final (n, d) = _scaled(fractionDigits);
 
-  BigInt truncateToScaled(int fractionDigits) =>
-      _scaledTruncate(fractionDigits);
+    return n ~/ d;
+  }
 
   BigInt floorToScaled(int fractionDigits) {
-    final shifted = _shift(fractionDigits);
-    var q = shifted ~/ den;
-    if (shifted.isNegative && shifted.remainder(den) != BigInt.zero) {
+    final (n, d) = _scaled(fractionDigits);
+    var q = n ~/ d;
+    if (n.isNegative && n.remainder(d) != BigInt.zero) {
       q -= BigInt.one;
     }
 
@@ -124,9 +129,9 @@ final class Ref implements Comparable<Ref> {
   }
 
   BigInt ceilToScaled(int fractionDigits) {
-    final shifted = _shift(fractionDigits);
-    var q = shifted ~/ den;
-    if (!shifted.isNegative && shifted.remainder(den) != BigInt.zero) {
+    final (n, d) = _scaled(fractionDigits);
+    var q = n ~/ d;
+    if (!n.isNegative && n.remainder(d) != BigInt.zero) {
       q += BigInt.one;
     }
 
@@ -136,11 +141,11 @@ final class Ref implements Comparable<Ref> {
   /// Округление половины от нуля — та же семантика, что у пакета и у
   /// `num.round()`.
   BigInt roundToScaled(int fractionDigits) {
-    final shifted = _shift(fractionDigits);
-    var q = shifted ~/ den;
-    final rest = shifted.remainder(den).abs();
-    if (rest * BigInt.two >= den) {
-      q += BigInt.from(shifted.sign);
+    final (n, d) = _scaled(fractionDigits);
+    var q = n ~/ d;
+    final rest = n.remainder(d).abs();
+    if (rest * BigInt.two >= d) {
+      q += BigInt.from(n.sign);
     }
 
     return q;
@@ -271,6 +276,13 @@ final class Gen {
   }
 
   int fractionDigits([int max = 6]) => _random.nextInt(max + 1);
+
+  /// Число знаков округления, в том числе **отрицательное**.
+  ///
+  /// Округление к десяткам и сотням — рабочий режим пакета, и с починенной
+  /// моделью законы можно гонять и на нём. Отдельно от [fractionDigits],
+  /// потому что `toStringAsFixed` отрицательного не принимает по контракту.
+  int signedFractionDigits([int max = 6]) => _random.nextInt(2 * max + 1) - max;
 
   bool get nextBool => _random.nextBool();
 }

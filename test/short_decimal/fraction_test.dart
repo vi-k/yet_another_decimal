@@ -137,6 +137,18 @@ void main() {
 
     // Д13, Д14: промежуточное значение переполняется, а точный результат в
     // int64 помещается. Эталон — то же самое на BigInt.
+    test('ноль на отрицательное — обычная дробь', () {
+      // Р10: проверка «x == -x» ловила и ноль, а ноль, делённый на что угодно
+      // отрицательное, — это ноль, и у семейства на BigInt так и было.
+      expect(ShortFraction(0, -5).toString(), '0');
+      expect(ShortFraction.parse('0/-5').toString(), '0');
+      expect(
+        ShortDecimal.zero.divideToFraction(ShortDecimal(-5)).toString(),
+        Decimal.zero.divideToFraction(Decimal(-5)).toString(),
+      );
+      expect(ShortDecimal.zero.divideToDouble(ShortDecimal(-5)), 0.0);
+    });
+
     group('точность на границе int64', () {
       const max = 9223372036854775807;
       const min = -9223372036854775808;
