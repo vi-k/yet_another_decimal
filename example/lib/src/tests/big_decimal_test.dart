@@ -15,7 +15,7 @@ final class BigDecimalTest extends MyBenchmarkBase {
     Object? expectedExerciseResult,
   )   : values = list
             .map(
-              (e) => BigDecimal.createAndStripZerosForScale(e.$1, e.$2, e.$2),
+              (e) => BigDecimal(intVal: e.$1, scale: e.$2),
             )
             .toList(growable: false),
         _convertToStringResult = List<String>.filled(list.length, ''),
