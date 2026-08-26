@@ -354,6 +354,7 @@ one.
 | compare                       |           0.764 µs |      (▼7x) 2.950 µs |              ERROR |    (▼3x) 1.405 µs |  ★ 0.394 µs |     0.154 µs |
 | round                         |           4.370 µs |                   — |           4.789 µs |          4.774 µs |  ★ 3.710 µs |     0.354 µs |
 | to-double                     |     (▼2x) 2.210 µs |    (▼28x) 20.927 µs |                  — |          0.823 µs |  ★ 0.740 µs |     0.102 µs |
+| to-double-wide                |              ERROR |    (▼14x) 36.432 µs |                  — |             ERROR |  ★ 2.451 µs |            — |
 | to-string-as-fixed            |    (▼2x) 16.410 µs |                   — |                  — |                 — |  ★ 5.754 µs |     2.118 µs |
 | unrepresentable-divide        |  (▼25x) 133.016 µs |                   — |                  — |        ★ 5.171 µs |    8.718 µs |     7.913 µs |
 
@@ -366,6 +367,21 @@ stored integers without first bringing the scales together.
 [big_decimal](https://pub.dev/packages/big_decimal) is the honest one in that
 column: it refuses with `Rounding necessary` instead of answering wrongly — but
 a refusal is not a result either, and it shows as `ERROR` all the same.
+
+`to-double-wide` is the one row where [decimal](https://pub.dev/packages/decimal)
+shows `ERROR`, and it deserves to be spelled out. Its values carry more
+significant digits than a `double` holds, so every one of them has to be
+rounded and the only question is whether it lands on the nearest one. The set
+was generated blind — not by hunting for values where somebody fails — and the
+expected answers were computed outside Dart by exact conversion. Of the twenty,
+`decimal` misses the nearest double on seven and `big_decimal` on seven as well;
+both divide one `double` by another, which rounds twice. Over 100 000 random
+values the two packages disagree on 33 815 of them, and on 300 sampled
+disagreements checked against exact arithmetic, this package was right every
+time and `decimal` never.
+
+That row is also where the fastest answers are the wrong ones:
+`big_decimal` finishes it in 0.8 µs and `decimal` in 2.6, against 2.5 here.
 
 Where a division is exact, the gap is not about `BigInt` against `int` but about
 what the algorithm can see. `divide-dirty` divides a product back by its own
@@ -564,6 +580,18 @@ Rounding to two digits, halves away from zero.
 ##### to-double
 
 Converting to the nearest `double`.
+
+##### to-double-wide
+
+The same conversion on numbers that carry more significant digits than a
+`double` has room for — which is the only case where rounding to the nearest
+double is a question at all. `to-double` above uses money-sized values, where
+every package agrees.
+
+The twenty values were generated with a fixed seed and no filtering, and their
+expected answers come from exact decimal-to-binary conversion done outside
+Dart. Magnitudes stay between `1e-4` and `1e16`, where Dart prints a `double`
+the same way the generator does, so the comparison is byte-for-byte.
 
 ##### to-string-as-fixed
 
