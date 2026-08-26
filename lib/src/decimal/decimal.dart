@@ -569,20 +569,62 @@ final class Decimal implements Comparable<Decimal> {
     }
   }
 
-  Decimal get _requirePacked => _packed ??= () {
-    var base = this.base;
+  Decimal get _requirePacked => _packed ??= _dropTrailingZeros(base, scale);
+
+  /// [base] without its trailing zeros, with [scale] moved to match.
+  ///
+  /// Dividing by ten until the remainder shows up costs two BigInt operations
+  /// per zero — a hundred and eleven of them on a hundred-digit number with
+  /// fifty-five zeros. Three steps replace that: an odd base has no trailing
+  /// zero at all, few zeros come off cheaper one at a time than any search
+  /// would set itself up, and many zeros are found by halving the range.
+  ///
+  /// The middle step is not decoration: without it the search loses to the
+  /// loop it replaces on every even number that ends in a nonzero digit.
+  static Decimal _dropTrailingZeros(BigInt base, int scale) {
+    // A trailing zero needs both a two and a five, so an odd base has none.
+    if (base.isOdd) {
+      return Decimal._asIs(base, scale);
+    }
+
     if (base == BigInt.zero) {
       return Decimal._asIs(base, 0);
     }
 
-    var scale = this.scale;
-    while (base % _bigInt10 == BigInt.zero) {
-      base ~/= _bigInt10;
-      scale--;
+    if (base % _bigInt10 != BigInt.zero) {
+      return Decimal._asIs(base, scale);
     }
 
-    return Decimal._asIs(base, scale);
-  }();
+    var rest = base ~/ _bigInt10;
+    var zeros = 1;
+    while (zeros < _linearZeros) {
+      if (rest % _bigInt10 != BigInt.zero) {
+        return Decimal._asIs(rest, scale - zeros);
+      }
+
+      rest = rest ~/ _bigInt10;
+      zeros++;
+    }
+
+    // A number of `bitLength` bits has at most `bitLength * log10(2)` decimal
+    // digits, and the zeros cannot outnumber the digits.
+    var low = _linearZeros;
+    var high = (base.bitLength * 30103) ~/ 100000 + 1;
+
+    while (low < high) {
+      final middle = low + (high - low + 1) ~/ 2;
+      if (base % _pow10(middle) == BigInt.zero) {
+        low = middle;
+      } else {
+        high = middle - 1;
+      }
+    }
+
+    return Decimal._asIs(base ~/ _pow10(low), scale - low);
+  }
+
+  /// How many zeros are taken off one at a time before the search starts.
+  static const _linearZeros = 4;
 
   /// Aligning decimals by decimal point.
   (BigInt, BigInt, int) _align(Decimal other) {

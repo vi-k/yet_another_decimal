@@ -77,6 +77,9 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       tryParse(string) ??
       (throw FormatException('Could not parse $ShortDecimal: $string'));
 
+  // The three-step zero removal that Decimal uses is not mirrored here: it was
+  // tried and measured, and every case came out slower — the loop below runs
+  // on machine words and there is nothing to save.
   factory ShortDecimal._pack(int base, int scale) {
     if (base == 0) {
       return ShortDecimal.zero;
