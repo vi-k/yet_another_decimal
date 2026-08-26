@@ -60,8 +60,8 @@ void printUsage() {
 }
 
 void main(List<String> arguments) {
-  runZonedAnsiPrinter(
-    defaultState: const SgrPlainState(
+  runZonedPrinter(
+    defaultStyle: const Style(
       foreground: defaultFg,
     ),
     () {

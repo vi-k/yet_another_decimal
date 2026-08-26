@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
-import 'package:ansi_escape_codes/extensions.dart';
 import 'package:example/src/tests/big_double_test.dart';
 import 'package:format/format.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
@@ -356,7 +355,7 @@ void _printTitle(Test test) {
       ', tags: ${accent(test.tags.map(faintAccent).join(', '))}'
       '$reset';
 
-  final titleLen = title.removeEscapeCodes().length;
+  final titleLen = title.lengthWithoutEscapeCodes;
   final description = test.description.split('\n');
   const descriptionTitle = 'Description: ';
   final descriptionLen = description.fold(0, (l, s) => max(l, s.length));
@@ -423,7 +422,7 @@ void _printSummary(
   // Заголовок.
   final firstRow = List<String>.filled(packages.length + 1, '');
   firstRow[0] = '';
-  widths[0] = max(widths[0], firstRow[0].removeEscapeCodes().length);
+  widths[0] = max(widths[0], firstRow[0].lengthWithoutEscapeCodes);
 
   for (final (index, package) in packages.indexed) {
     var title = accent(package.id);
@@ -431,8 +430,7 @@ void _printSummary(
       title = '$title${footnote('Excluded from comparision')}';
     }
     firstRow[index + 1] = title;
-    widths[index + 1] =
-        max(widths[index + 1], title.removeEscapeCodes().length);
+    widths[index + 1] = max(widths[index + 1], title.lengthWithoutEscapeCodes);
   }
   table.add(firstRow);
 
@@ -440,7 +438,7 @@ void _printSummary(
     final row = List<String>.filled(packages.length + 1, '');
     final title = accent(test.id);
     row[0] = title;
-    widths[0] = max(widths[0], title.removeEscapeCodes().length);
+    widths[0] = max(widths[0], title.lengthWithoutEscapeCodes);
     table.add(row);
     double? minScore;
 
@@ -488,8 +486,7 @@ void _printSummary(
       }
 
       row[index + 1] = text;
-      widths[index + 1] =
-          max(widths[index + 1], text.removeEscapeCodes().length);
+      widths[index + 1] = max(widths[index + 1], text.lengthWithoutEscapeCodes);
     }
   }
 
@@ -501,7 +498,7 @@ void _printSummary(
     final buf = StringBuffer();
     for (final (col, text) in row.indexed) {
       final colWidth = widths[col];
-      final textWidth = text.removeEscapeCodes().length;
+      final textWidth = text.lengthWithoutEscapeCodes;
 
       if (col == 0) {
         buf
@@ -547,39 +544,16 @@ void _printSummary(
       print('${ok('★')} Winner or near winner (<= 10%)');
     }
 
-    for (var (index, footnote) in footnotes.indexed) {
-      final parser = AnsiParser(footnote);
-      final matches = parser.matches.toList();
-      if (matches.isEmpty) {
-        if (!footnote.endsWith('.')) {
-          footnote += '.';
-        }
-      } else {
-        var lastSeq = matches.last;
-        if (lastSeq.end != footnote.length) {
-          if (!footnote.endsWith('.')) {
-            footnote += '.';
-          }
-        } else {
-          var index = matches.length - 1;
-          while (index > 0 && matches[index - 1].end == lastSeq.start) {
-            lastSeq = matches[index - 1];
-            index--;
-          }
+    for (final (index, footnote) in footnotes.indexed) {
+      // The full stop belongs to the text, not after the escape codes that
+      // close its style: the parser puts it where the last visible character
+      // is, whatever follows it in the string.
+      final parser = Parser(footnote);
+      final text = parser.endsWith('.')
+          ? footnote
+          : parser.insertAfter(parser.length, '.');
 
-          if (lastSeq.start > 0 && footnote[lastSeq.start - 1] != '.') {
-            footnote = '${footnote.substring(0, lastSeq.start)}.'
-                '${footnote.substring(lastSeq.start)}';
-          }
-        }
-      }
-
-      parser.replaceAll(
-        (e) => e.string,
-        replacePlainText: (t) => t.string.showControlCodes(),
-      );
-
-      print('${accentWarning('${index + 1}')} $footnote');
+      print('${accentWarning('${index + 1}')} $text');
     }
   }
 }

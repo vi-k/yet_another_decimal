@@ -7,17 +7,17 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
-  ansi_escape_codes: ^2.1.0
+  ansi_escape_codes: ^4.0.1
   benchmark_harness: ^2.3.1
   big_decimal: ^0.7.0
   big_double: ^1.0.2
   decimal: ^3.2.6
   decimal_type: ^0.0.3
   fixed: ^6.2.0
-  format: ^1.6.0
+  format: ^4.1.0
   yet_another_decimal:
     path: ..
 
 dev_dependencies:
-  lints: ^5.0.0
+  lints: ^6.0.0
   test: ^1.24.0
