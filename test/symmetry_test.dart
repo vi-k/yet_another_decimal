@@ -17,11 +17,9 @@ import 'package:test/test.dart';
 /// другого.
 const _knownDivergences = <String, String>{
   'fromBigInt': 'Decimal строится из BigInt, ShortDecimal — из int',
-  'конструктор: shiftLeft':
-      'у ShortDecimal сдвиг влево — параметр '
+  'конструктор: shiftLeft': 'у ShortDecimal сдвиг влево — параметр '
       'конструктора, у Decimal только оператор <<',
-  'optimize':
-      'ленивая нормализация есть только у Decimal: '
+  'optimize': 'ленивая нормализация есть только у Decimal: '
       'у ShortDecimal она немедленная',
 };
 
@@ -165,8 +163,7 @@ void main() {
         expect(
           diverged,
           contains(name),
-          reason:
-              '$name числится расхождением, а семейства уже сошлись — '
+          reason: '$name числится расхождением, а семейства уже сошлись — '
               'вычеркнуть из списка',
         );
       }

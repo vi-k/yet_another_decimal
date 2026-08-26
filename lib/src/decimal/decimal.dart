@@ -135,7 +135,7 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Decimal(1, shiftRight: 2); // 0.01
   /// ```
   Decimal(int base, {int shiftRight = 0})
-    : this.fromBigInt(BigInt.from(base), shiftRight: shiftRight);
+      : this.fromBigInt(BigInt.from(base), shiftRight: shiftRight);
 
   /// Returns [Decimal] from `BigInt` [base].
   ///
@@ -148,8 +148,8 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Decimal.fromBigInt(BigInt.one, shiftRight: 2); // 0.01
   /// ```
   Decimal.fromBigInt(this.base, {int shiftRight = 0})
-    : assert(shiftRight >= 0, 'shiftRight must be positive'),
-      scale = shiftRight;
+      : assert(shiftRight >= 0, 'shiftRight must be positive'),
+        scale = shiftRight;
 
   /// Parse the [string] to [Decimal].
   ///
@@ -522,11 +522,11 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Rounds the decimal towards negative infinity to [fractionDigits].
   @override
   Decimal floor([int fractionDigits = 0]) => _dropFraction(
-    fractionDigits,
-    (result, divisor) => isNegative && base % divisor != BigInt.zero
-        ? result - BigInt.one
-        : result,
-  );
+        fractionDigits,
+        (result, divisor) => isNegative && base % divisor != BigInt.zero
+            ? result - BigInt.one
+            : result,
+      );
 
   /// Rounds to the closest decimal with [fractionDigits].
   @override
@@ -541,11 +541,11 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Rounds the decimal towards infinity to [fractionDigits].
   @override
   Decimal ceil([int fractionDigits = 0]) => _dropFraction(
-    fractionDigits,
-    (result, divisor) => !isNegative && base % divisor != BigInt.zero
-        ? result + BigInt.one
-        : result,
-  );
+        fractionDigits,
+        (result, divisor) => !isNegative && base % divisor != BigInt.zero
+            ? result + BigInt.one
+            : result,
+      );
 
   /// Rounds the decimal towards zero to [fractionDigits].
   @override
@@ -565,8 +565,8 @@ final class Decimal implements FixedPoint<Decimal> {
     return this < lowerLimit
         ? lowerLimit
         : this > upperLimit
-        ? upperLimit
-        : this;
+            ? upperLimit
+            : this;
   }
 
   /// Returns this decimal to the power of [exponent].
@@ -858,7 +858,7 @@ final class Decimal implements FixedPoint<Decimal> {
     final mantissa = fractionDigits == 0
         ? digits.substring(0, 1)
         : '${digits.substring(0, 1)}.'
-              '${digits.substring(1).padRight(fractionDigits, '0')}';
+            '${digits.substring(1).padRight(fractionDigits, '0')}';
 
     return '${isNegative ? '-' : ''}$mantissa'
         'e${exponent.isNegative ? '' : '+'}$exponent';
@@ -1069,8 +1069,7 @@ final class DecimalDivideException implements Exception {
       fraction.truncate(fractionDigits);
 
   @override
-  String toString() =>
-      '$DecimalDivideException:'
+  String toString() => '$DecimalDivideException:'
       ' The result of division cannot be represented as $Decimal:'
       '\n$dividend / $divisor = $quotientWithRemainder'
       '\n$dividend / $divisor = $fraction';

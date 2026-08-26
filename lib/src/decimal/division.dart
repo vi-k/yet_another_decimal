@@ -1,6 +1,7 @@
 part of 'decimal.dart';
 
 @immutable
+
 /// A whole quotient together with the remainder that did not fit into it.
 ///
 /// ```dart

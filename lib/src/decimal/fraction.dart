@@ -1,6 +1,7 @@
 part of 'decimal.dart';
 
 @immutable
+
 /// An exact ratio of two integers: what division answers when a decimal cannot.
 ///
 /// One divided by three is `1/3` here, and nothing is lost on the way. The
@@ -60,7 +61,7 @@ final class Fraction implements Comparable<Fraction> {
   }
 
   Fraction._asIs(this.numerator, this.denominator)
-    : assert(denominator > BigInt.zero, 'The denominator must be > 0');
+      : assert(denominator > BigInt.zero, 'The denominator must be > 0');
 
   /// Whether this ratio is less than zero.
   bool get isNegative => numerator.isNegative;
@@ -75,14 +76,14 @@ final class Fraction implements Comparable<Fraction> {
       Fraction(numerator * other.denominator, denominator * other.numerator);
 
   Fraction operator +(Fraction other) => Fraction(
-    numerator * other.denominator + other.numerator * denominator,
-    denominator * other.denominator,
-  );
+        numerator * other.denominator + other.numerator * denominator,
+        denominator * other.denominator,
+      );
 
   Fraction operator -(Fraction other) => Fraction(
-    numerator * other.denominator - other.numerator * denominator,
-    denominator * other.denominator,
-  );
+        numerator * other.denominator - other.numerator * denominator,
+        denominator * other.denominator,
+      );
 
   /// The absolute value of this fraction.
   Fraction abs() =>

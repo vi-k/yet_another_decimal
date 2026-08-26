@@ -1,6 +1,7 @@
 part of 'short_decimal.dart';
 
 @immutable
+
 /// An exact ratio of two integers: what division answers when a decimal cannot.
 ///
 /// One divided by three is `1/3` here, and nothing is lost on the way. The
@@ -73,7 +74,7 @@ final class ShortFraction implements Comparable<ShortFraction> {
   }
 
   const ShortFraction._(this.numerator, this.denominator)
-    : assert(denominator > 0, 'The denominator must be > 0');
+      : assert(denominator > 0, 'The denominator must be > 0');
 
   /// Whether this ratio is less than zero.
   bool get isNegative => numerator.isNegative;
@@ -303,8 +304,7 @@ final class ShortFraction implements Comparable<ShortFraction> {
         : BigInt.from(this.denominator) * power;
 
     final remainder = numerator.remainder(denominator).abs();
-    var value =
-        numerator ~/ denominator +
+    var value = numerator ~/ denominator +
         BigInt.from(
           rounding.correction(
             sign: numerator.sign,
@@ -357,10 +357,11 @@ enum _Rounding {
     required int sign,
     required bool hasRemainder,
     required bool atLeastHalf,
-  }) => switch (this) {
-    _Rounding.truncate => 0,
-    _Rounding.floor => sign < 0 && hasRemainder ? -1 : 0,
-    _Rounding.ceil => sign > 0 && hasRemainder ? 1 : 0,
-    _Rounding.round => atLeastHalf ? sign : 0,
-  };
+  }) =>
+      switch (this) {
+        _Rounding.truncate => 0,
+        _Rounding.floor => sign < 0 && hasRemainder ? -1 : 0,
+        _Rounding.ceil => sign > 0 && hasRemainder ? 1 : 0,
+        _Rounding.round => atLeastHalf ? sign : 0,
+      };
 }

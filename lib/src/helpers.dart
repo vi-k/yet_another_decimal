@@ -162,8 +162,7 @@ extension StringInternals on String {
       exponent = exponentNegative ? -digits : digits;
     }
 
-    final digits =
-        '${source.substring(integerStart, integerEnd)}'
+    final digits = '${source.substring(integerStart, integerEnd)}'
         '${source.substring(fractionStart, fractionEnd)}';
 
     return (

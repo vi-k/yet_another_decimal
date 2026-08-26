@@ -19,11 +19,12 @@ const _cases = 500;
 /// Разбор одной строки всеми тремя способами.
 ({Decimal wide, ShortDecimal short, rival.Decimal other}) _parseAll(
   String source,
-) => (
-  wide: Decimal.parse(source),
-  short: ShortDecimal.parse(source),
-  other: rival.Decimal.parse(source),
-);
+) =>
+    (
+      wide: Decimal.parse(source),
+      short: ShortDecimal.parse(source),
+      other: rival.Decimal.parse(source),
+    );
 
 void main() {
   group('арифметика совпадает с decimal', () {
