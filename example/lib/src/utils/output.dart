@@ -1,6 +1,6 @@
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
 
-const Color defaultFg = Color256(Colors.gray12);
+const Color defaultFg = Color256.gray12;
 // const Color defaultBg = Color256(Colors.gray4);
 const _special = fg256Rgb520;
 const _accent = fg256Gray23;
