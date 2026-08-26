@@ -206,6 +206,36 @@ void main() {
       });
     });
 
+    group('divideToDouble округляет к ближайшему double', () {
+      // Ожидаемые значения посчитаны точным преобразованием рационального
+      // числа в double вне Dart. Р4: субнормальный результат представим, а
+      // отдавался ноль. Р8: деление double на double округляет дважды.
+      for (final (dividend, divisor, expected) in <(String, String, double)>[
+        ('1', '1e307', 1e-307),
+        ('1', '1e308', 1e-308),
+        ('1', '1e310', 1e-310),
+        ('1', '1e320', 1e-320),
+        ('1', '1e324', 0),
+        ('9007199254740993', '7', 1286742750677284.8),
+        ('18014398509481985', '3', 6004799503160662),
+        ('1', '1e305', 1e-305),
+        ('12345678901234567890123', '7', 1763668414462081127160.4),
+      ]) {
+        test('$dividend / $divisor', () {
+          expect(
+            Decimal.parse(dividend).divideToDouble(Decimal.parse(divisor)),
+            expected,
+          );
+        });
+      }
+
+      test('отрицательные и ноль', () {
+        expect(Decimal(-1).divideToDouble(Decimal.parse('1e308')), -1e-308);
+        expect(Decimal.zero.divideToDouble(Decimal.parse('1e308')), 0.0);
+        expect(Decimal(1).divideToDouble(Decimal(-8)), -0.125);
+      });
+    });
+
     group('divideToDouble', () {
       test('обычные значения', () {
         expect(Decimal(1).divideToDouble(Decimal(2)), 0.5);
