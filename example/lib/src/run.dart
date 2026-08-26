@@ -186,9 +186,11 @@ Map<String, String> _lockedVersions() {
 }
 
 File? _findLock() => _findUp(
+      // The lock of `example/` comes first: it is the one that pins the
+      // compared packages, and the root has a lock of its own.
       (dir) => [
-        File('${dir.path}/pubspec.lock'),
         File('${dir.path}/example/pubspec.lock'),
+        File('${dir.path}/pubspec.lock'),
       ],
     );
 
