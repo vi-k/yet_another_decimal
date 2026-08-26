@@ -277,56 +277,105 @@ print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
 
 ### Package performance
 
-I care about performance, so I wrote tests to check packages. When I did this,
-I was not yet aware of the bugs I wrote above. So the result might seem
-strange. It's as if there were only two packages to compare:
-[decimal](https://pub.dev/packages/decimal) and
-[yet_another_decimal](https://pub.dev/packages/deciyet_another_decimalmals).
+The numbers below come from the bench in [`example/`](example), rebuilt for
+1.2.0 — what it does and why is in [`example/README.md`](example/README.md).
+The short of it:
 
-The tests were performed on Apple M2 Pro 32 Gb. The code of the tests was
-written with the help of [benchmark_harness](https://pub.dev/packages/benchmark_harness).
-Each test was run for at least 2 sec, during which time the test exercise was
-executed until the end time was reached. Each exercise has 100 cycles of
-performing an operation. A single operation performs a series of identical
-actions on multiple values. In the table you see the average time to complete
-one operation in microseconds. Asterisks indicate the best results and close to
-them (up to 10% difference).
+- every answer is checked before it is timed, so a wrong answer is never
+  reported as a fast one;
+- every benchmark is measured five times, and the table shows the median;
+- the result of every measured cycle goes into a sink the optimizer is not
+  allowed to drop;
+- a package that has no such operation shows `—`, not an error.
 
-Absolute values are not important because they will differ from computer to
-computer, from startup to startup. All that matters is comparing the tests with
-each other.
+One row is one pass over a list of values, and the number is what that pass
+cost in microseconds. `★` marks the winner and everyone within 10 % of it,
+`▼Nx` says how many times slower than the winner. The absolute values mean
+nothing on their own — another machine will give different ones. The ratios are
+the point.
 
-*Running Tests:*
+*Running the tests:*
 
-```
-dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe
+```bash
+dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe all
 ```
 
-|                       |           decimal |     decimal_type |            fixed |      big_decimal | yet_another_decimal |
-|:----------------------|------------------:|-----------------:|-----------------:|-----------------:|--------------------:|
-| add                   |          1.863 µs |         3.340 µs |         2.386 µs |         2.276 µs |          ★ 1.694 µs |
-| multiply-large        |        ★ 0.135 µs |       ★ 0.131 µs |         0.175 µs |       ★ 0.132 µs |          ★ 0.129 µs |
-| multiply-small        |        ★ 0.138 µs |       ★ 0.129 µs |            ERROR |       ★ 0.132 µs |          ★ 0.129 µs |
-| divide-large          |    (▼4x) 7.916 µs |            ERROR |            ERROR |       ★ 1.650 µs |            2.025 µs |
-| divide-small          | (▼38x) 496.494 µs |            ERROR |            ERROR |            ERROR |         ★ 12.969 µs |
-| divide-large-and-view |    (▼4x) 8.479 µs |            ERROR |            ERROR |       ★ 1.840 µs |            2.128 µs |
-| divide-small-and-view | (▼35x) 511.241 µs |            ERROR |            ERROR |            ERROR |         ★ 14.372 µs |
-| raw-view              |         21.045 µs |        26.058 µs |  (▼3x) 61.210 µs |      ★ 18.167 µs |         ★ 17.337 µs |
-| raw-view-zeros        |   (▼5x) 83.212 µs |  (▼4x) 73.963 µs |  (▼4x) 70.724 µs |      ★ 16.521 µs |         ★ 15.681 µs |
-| prepared-view         |       ★ 16.845 µs |        25.988 µs |  (▼3x) 59.159 µs |      ★ 17.779 µs |         ★ 16.689 µs |
-| prepared-view-zeros   |        ★ 1.567 µs | (▼46x) 72.737 µs | (▼44x) 69.415 µs | (▼10x) 16.105 µs |          ★ 1.635 µs |
+```
+Dart:   3.13.0 (stable) on "macos_arm64"
+OS:     Version 26.5.2 (Build 25F84)
+CPUs:   14
+Mode:   AOT (dart compile exe)
+Runs:   5 (median of the series)
+Deps:   decimal 3.2.6, decimal_type 0.0.3, fixed 6.2.0, big_decimal 0.5.0
+```
 
-With this test I did not intend to advertise my package at all. It was only
-important for me to check myself whether I was doing everything right. I saw my
-mistakes, and I corrected them. That's why this test is not very fair: I didn't
-adapt the test to my package, but I “adapted” (i.e. optimized) my package to
-this test. And I did it with the code of the packages I've given here. Even if
-some of them didn't work for me or contain bugs, there are some very good
-solutions in them that I was inspired by.
+The two rightmost columns are this package: `Decimal` on `BigInt` and
+`ShortDecimal` on `int`. `ShortDecimal` stands outside the comparison — int64 is
+not the same job as `BigInt`, and it is in the table to show what that
+difference buys. The bench also runs
+[big_double](https://pub.dev/packages/big_double), which is left out here: it is
+a floating-point type, and on most of these rows its answer is not the exact
+one.
 
-In early January 2025, the column with the [decimal](https://pub.dev/packages/decimal)
-looked quite different. The values were two orders of magnitude higher.
-We can only be happy for such improvements.
+|                               |            decimal |        decimal_type |              fixed |       big_decimal |         Decimal | ShortDecimal |
+|:------------------------------|-------------------:|--------------------:|-------------------:|------------------:|----------------:|-------------:|
+| add-big-int                   |           1.705 µs |      (▼2x) 2.841 µs |           2.094 µs |          1.989 µs |      ★ 1.174 µs |            — |
+| add-int                       |           0.651 µs |      (▼2x) 1.042 µs |           0.794 µs |          0.749 µs |      ★ 0.421 µs |     0.131 µs |
+| add-dirty-big-int             |           0.845 µs |      (▼2x) 1.360 µs |           1.038 µs |          0.983 µs |      ★ 0.577 µs |            — |
+| add-dirty-int                 |           0.385 µs |      (▼2x) 0.600 µs |           0.470 µs |          0.445 µs |      ★ 0.259 µs |     0.081 µs |
+| multiply-large-big-int        |           0.129 µs |          ★ 0.115 µs |           0.158 µs |        ★ 0.117 µs |        0.128 µs |            — |
+| multiply-large-int            |           0.111 µs |          ★ 0.102 µs |           0.139 µs |        ★ 0.098 µs |        0.108 µs |     0.057 µs |
+| multiply-small-big-int        |           0.130 µs |          ★ 0.117 µs |    (▼46x) 5.390 µs |        ★ 0.117 µs |      ★ 0.127 µs |            — |
+| multiply-small-int            |           0.108 µs |          ★ 0.096 µs |    (▼35x) 3.416 µs |        ★ 0.096 µs |      ★ 0.103 µs |     0.057 µs |
+| multiply-dirty-big-int        |         ★ 0.101 µs |          ★ 0.093 µs |    (▼31x) 2.905 µs |        ★ 0.092 µs |      ★ 0.100 µs |            — |
+| multiply-dirty-int            |           0.041 µs |          ★ 0.037 µs |    (▼28x) 1.037 µs |        ★ 0.037 µs |      ★ 0.040 µs |     0.022 µs |
+| divide-large-big-int          |     (▼5x) 9.506 µs |               ERROR |           2.188 µs |          2.105 µs |      ★ 1.805 µs |            — |
+| divide-large-int              |     (▼5x) 8.218 µs |               ERROR |           1.819 µs |          1.767 µs |      ★ 1.511 µs |     0.053 µs |
+| divide-small-big-int          | (▼111x) 614.881 µs |               ERROR |              ERROR |             ERROR |      ★ 5.523 µs |            — |
+| divide-small-int              |  (▼53x) 142.656 µs |               ERROR |              ERROR |             ERROR |      ★ 2.689 µs |     0.108 µs |
+| divide-dirty-big-int          | (▼345x) 472.576 µs |               ERROR |     (▼2x) 3.512 µs |          1.916 µs |      ★ 1.366 µs |            — |
+| divide-dirty-int              |   (▼63x) 38.280 µs |               ERROR |     (▼2x) 1.305 µs |          0.830 µs |      ★ 0.605 µs |     0.021 µs |
+| divide-large-and-view-big-int |     (▼5x) 9.838 µs |               ERROR |           2.358 µs |          2.092 µs |      ★ 1.781 µs |            — |
+| divide-large-and-view-int     |     (▼5x) 8.405 µs |               ERROR |           2.006 µs |          1.766 µs |      ★ 1.518 µs |     0.057 µs |
+| divide-small-and-view-big-int |  (▼90x) 617.837 µs |               ERROR |              ERROR |             ERROR |      ★ 6.830 µs |            — |
+| divide-small-and-view-int     |  (▼43x) 144.010 µs |               ERROR |              ERROR |             ERROR |      ★ 3.284 µs |     0.314 µs |
+| raw-view-big-int              |          23.718 µs |     (▼2x) 51.016 µs |    (▼2x) 55.264 µs |       ★ 20.451 µs |     ★ 19.284 µs |            — |
+| raw-view-int                  |          10.841 µs |     (▼3x) 24.827 µs |    (▼3x) 24.987 µs |          8.475 µs |      ★ 7.283 µs |     1.678 µs |
+| raw-view-zeros-big-int        |   (▼6x) 121.695 µs |    (▼8x) 153.268 µs |    (▼3x) 64.852 µs |       ★ 19.555 µs |     ★ 18.688 µs |            — |
+| raw-view-zeros-int            |    (▼7x) 56.565 µs |     (▼7x) 54.232 µs |    (▼4x) 31.101 µs |          8.405 µs |      ★ 7.273 µs |     1.002 µs |
+| repeat-view-big-int           |  (▼792x) 19.012 µs |  (▼2084x) 50.028 µs | (▼2318x) 55.641 µs | (▼846x) 20.305 µs |      ★ 0.024 µs |            — |
+| repeat-view-int               |   (▼293x) 6.758 µs |  (▼1051x) 24.193 µs | (▼1083x) 24.913 µs |  (▼352x) 8.114 µs |      ★ 0.023 µs |     1.639 µs |
+| repeat-view-zeros-big-int     |    (▼53x) 1.293 µs | (▼6145x) 147.492 µs | (▼2710x) 65.045 µs | (▼806x) 19.367 µs |      ★ 0.024 µs |            — |
+| repeat-view-zeros-int         |    (▼43x) 1.052 µs |  (▼2170x) 52.101 µs | (▼1295x) 31.092 µs |  (▼339x) 8.138 µs |      ★ 0.024 µs |     0.964 µs |
+| parse                         |          14.684 µs |           14.917 µs |    (▼8x) 88.448 µs |       ★ 10.942 µs |     ★ 10.506 µs |     1.740 µs |
+| compare                       |           0.711 µs |      (▼7x) 2.728 µs |              ERROR |    (▼3x) 1.265 µs |      ★ 0.357 µs |     0.151 µs |
+| round                         |           4.123 µs |                   — |           4.551 µs |          4.482 µs |      ★ 3.497 µs |     0.341 µs |
+| to-double                     |     (▼2x) 2.002 µs |    (▼28x) 20.203 µs |                  — |    (▼3x) 2.341 µs |      ★ 0.705 µs |     0.102 µs |
+| to-string-as-fixed            |    (▼2x) 16.004 µs |                   — |                  — |                 — |      ★ 5.728 µs |     2.113 µs |
+| unrepresentable-divide        |  (▼25x) 130.357 µs |                   — |                  — |        ★ 5.093 µs | (▼2x) 13.788 µs |     7.682 µs |
+
+`ERROR` is not a crash. It means the package answered and the answer was wrong.
+[fixed](https://pub.dev/packages/fixed) and
+[decimal_type](https://pub.dev/packages/decimal_type) return 0 for
+`1 / 256 / 256 / …`, which is what a fixed scale does to a small number, and
+`fixed` puts 0.5 below 0.49 in `compare`, because its `compareTo` looks at the
+stored integers without first bringing the scales together.
+[big_decimal](https://pub.dev/packages/big_decimal) is the honest one in that
+column: it refuses with `Rounding necessary` instead of answering wrongly — but
+a refusal is not a result either, and it shows as `ERROR` all the same.
+
+Where a division is exact, the gap is not about `BigInt` against `int` but about
+what the algorithm can see. `divide-dirty` divides a product back by its own
+factors — every step exact, nothing about the numbers saying so in advance —
+and [decimal](https://pub.dev/packages/decimal) spends 345 times longer on it
+than this package.
+
+The row this package loses is `unrepresentable-divide`:
+[big_decimal](https://pub.dev/packages/big_decimal) rounds a non-terminating
+quotient nearly three times faster, because it scales and divides where this
+package builds the exact fraction first and rounds that. That fraction is what
+makes `divideOrNull` and `isDivisibleBy` possible at all, so the trade is
+deliberate — but it is a trade.
 
 #### Description of benchmarks
 
@@ -663,35 +712,48 @@ print(a); // 1, kept as base 1, scale 0
 
 ### Performance
 
-|                       |             decimal | yet_another_decimal Decimal | yet_another_decimal ShortDecimal |
-|:----------------------|--------------------:|----------------------------:|---------------------------------:|
-| add                   |      (▼4x) 0.713 µs |              (▼4x) 0.646 µs |                       ★ 0.155 µs |
-| multiply-large        |      (▼4x) 0.121 µs |              (▼3x) 0.115 µs |                       ★ 0.030 µs |
-| multiply-small        |      (▼4x) 0.120 µs |              (▼3x) 0.114 µs |                       ★ 0.030 µs |
-| divide-large          |    (▼103x) 6.455 µs |             (▼26x) 1.683 µs |                       ★ 0.063 µs |
-| divide-small          | (▼1196x) 114.617 µs |             (▼71x) 6.834 µs |                       ★ 0.096 µs |
-| divide-large-and-view |    (▼103x) 6.664 µs |             (▼26x) 1.686 µs |                       ★ 0.065 µs |
-| divide-small-and-view |  (▼339x) 116.035 µs |             (▼21x) 7.376 µs |                       ★ 0.342 µs |
-| raw-view              |     (▼4x) 10.474 µs |              (▼3x) 6.882 µs |                       ★ 2.137 µs |
-| raw-view-zeros        |    (▼30x) 37.261 µs |              (▼5x) 6.966 µs |                       ★ 1.232 µs |
-| prepared-view         |      (▼3x) 6.354 µs |              (▼3x) 6.640 µs |                       ★ 2.082 µs |
-| prepared-view-zeros   |          ★ 1.274 µs |                    1.339 µs |                       ★ 1.186 µs |
+The same bench, this package against
+[decimal](https://pub.dev/packages/decimal), on the sets that fit into an `int`
+so that both families can be shown at once:
+
+|                           |             decimal |         Decimal |    ShortDecimal |
+|:--------------------------|--------------------:|----------------:|----------------:|
+| add-int                   |      (▼4x) 0.651 µs |  (▼3x) 0.421 µs |      ★ 0.131 µs |
+| add-dirty-int             |      (▼4x) 0.385 µs |  (▼3x) 0.259 µs |      ★ 0.081 µs |
+| multiply-large-int        |            0.111 µs |        0.108 µs |      ★ 0.057 µs |
+| multiply-small-int        |            0.108 µs |        0.103 µs |      ★ 0.057 µs |
+| multiply-dirty-int        |            0.041 µs |        0.040 µs |      ★ 0.022 µs |
+| divide-large-int          |    (▼155x) 8.218 µs | (▼28x) 1.511 µs |      ★ 0.053 µs |
+| divide-small-int          | (▼1320x) 142.656 µs | (▼24x) 2.689 µs |      ★ 0.108 µs |
+| divide-dirty-int          |  (▼1822x) 38.280 µs | (▼28x) 0.605 µs |      ★ 0.021 µs |
+| divide-large-and-view-int |    (▼147x) 8.405 µs | (▼26x) 1.518 µs |      ★ 0.057 µs |
+| divide-small-and-view-int |  (▼458x) 144.010 µs | (▼10x) 3.284 µs |      ★ 0.314 µs |
+| raw-view-int              |     (▼6x) 10.841 µs |  (▼4x) 7.283 µs |      ★ 1.678 µs |
+| raw-view-zeros-int        |    (▼56x) 56.565 µs |  (▼7x) 7.273 µs |      ★ 1.002 µs |
+| repeat-view-int           |    (▼293x) 6.758 µs |      ★ 0.023 µs | (▼71x) 1.639 µs |
+| repeat-view-zeros-int     |     (▼43x) 1.052 µs |      ★ 0.024 µs | (▼40x) 0.964 µs |
+| parse                     |     (▼8x) 14.684 µs | (▼6x) 10.506 µs |      ★ 1.740 µs |
+| compare                   |      (▼4x) 0.711 µs |  (▼2x) 0.357 µs |      ★ 0.151 µs |
+| round                     |     (▼12x) 4.123 µs | (▼10x) 3.497 µs |      ★ 0.341 µs |
+| to-double                 |     (▼19x) 2.002 µs |  (▼6x) 0.705 µs |      ★ 0.102 µs |
+| to-string-as-fixed        |     (▼7x) 16.004 µs |  (▼2x) 5.728 µs |      ★ 2.113 µs |
+| unrepresentable-divide    |   (▼16x) 130.357 µs |       13.788 µs |      ★ 7.682 µs |
 
 *For a description of the tests, see [Package performance](#package-performance).*
 
-The `Decimal` and `ShortDecimal` use the same algorithms. The difference in
-performance is the difference between `BigInt` and `int`.
+`Decimal` and `ShortDecimal` run the same algorithms, so the distance between
+those two columns is the distance between `BigInt` and `int`: three to five
+times on arithmetic, twenty-five to thirty on division.
 
-Chances are, you will rarely use the division operation in your application.
-You probably won't have a large number of decimal calculations either. In this
-case, the difference 3-5x can be neglected. The use of `Decimal` in both
-packages will most likely not lead to significant performance losses in the
-whole application. That's why you can choose `Decimal` in
-[decimal](https://pub.dev/packages/decimal) as well as `Decimal` in
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal).
+Two rows are about something else. In `repeat-view` `Decimal` is seventy times
+ahead because it keeps the string it printed last time and `ShortDecimal` has
+nowhere to keep it — its constructors are `const`. In `unrepresentable-divide`
+the two are close, because both spend their time in the same rounding.
 
-But if you need both performance and maximum memory saving, choose
-`ShortDecimal`, but do not forget about its limitations.
+If your application does a handful of decimal operations, none of this matters
+and `Decimal` from either package will do. If it does a great many of them, or
+if memory is tight, `ShortDecimal` is several times cheaper — as long as you
+keep its limitations in mind.
 
 ### `Decimal` optimization
 
