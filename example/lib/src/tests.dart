@@ -15,6 +15,18 @@ enum Test {
     'Add numbers (int version).',
     {'int', 'add'},
   ),
+  addDirtyBigInt(
+    'add-dirty-big-int',
+    Op.add,
+    'Add numbers with nothing round about them (BigInt version).',
+    {'big-int', 'add', 'dirty'},
+  ),
+  addDirtyInt(
+    'add-dirty-int',
+    Op.add,
+    'Add numbers with nothing round about them (int version).',
+    {'int', 'add', 'dirty'},
+  ),
   multiplyLargeBigInt(
     'multiply-large-big-int',
     Op.multiply,
@@ -39,6 +51,20 @@ enum Test {
     'Multiply small numbers (int version).',
     {'int', 'multiply', 'multiply-small'},
   ),
+  multiplyDirtyBigInt(
+    'multiply-dirty-big-int',
+    Op.multiply,
+    'Multiply numbers with nothing round about them: no factor of the'
+        '\nresult cancels against another (BigInt version).',
+    {'big-int', 'multiply', 'dirty'},
+  ),
+  multiplyDirtyInt(
+    'multiply-dirty-int',
+    Op.multiply,
+    'Multiply numbers with nothing round about them: no factor of the'
+        '\nresult cancels against another (int version).',
+    {'int', 'multiply', 'dirty'},
+  ),
   divideLargeBigInt(
     'divide-large-big-int',
     Op.divide,
@@ -62,6 +88,20 @@ enum Test {
     Op.divide,
     'Divide small numbers (int version).',
     {'int', 'divide', 'divide-small'},
+  ),
+  divideDirtyBigInt(
+    'divide-dirty-big-int',
+    Op.divide,
+    'Divide a product back by its factors, none of them round:'
+        '\nthe division is exact, but only `gcd` can see it (BigInt version).',
+    {'big-int', 'divide', 'dirty'},
+  ),
+  divideDirtyInt(
+    'divide-dirty-int',
+    Op.divide,
+    'Divide a product back by its factors, none of them round:'
+        '\nthe division is exact, but only `gcd` can see it (int version).',
+    {'int', 'divide', 'dirty'},
   ),
   divideLargeAndViewBigInt(
     'divide-large-and-view-big-int',
@@ -144,6 +184,44 @@ enum Test {
     'Convert numbers with lots of leading and trailing zeros that have'
         '\nalready been converted once to a readable format (int version).',
     {'int', 'repeat-view', 'repeat-view-zeros'},
+  ),
+  parse(
+    'parse',
+    Op.parse,
+    'Read numbers out of decimal strings.',
+    {'int', 'parse', 'money'},
+  ),
+  compare(
+    'compare',
+    Op.compare,
+    'Compare neighbours of the same magnitude: the scales differ, so the'
+        '\ncomparison cannot be decided by the exponent alone.',
+    {'int', 'compare', 'money'},
+  ),
+  round(
+    'round',
+    Op.round,
+    'Round to two digits.',
+    {'int', 'round', 'money'},
+  ),
+  toDouble(
+    'to-double',
+    Op.toDouble,
+    'Convert to the nearest double.',
+    {'int', 'to-double', 'money'},
+  ),
+  toStringAsFixed(
+    'to-string-as-fixed',
+    Op.toStringAsFixed,
+    'Write out with exactly two digits after the point.',
+    {'int', 'to-string-as-fixed', 'money'},
+  ),
+  unrepresentableDivide(
+    'unrepresentable-divide',
+    Op.unrepresentableDivide,
+    'Divide by three. Not one of the results has a finite decimal form,'
+        '\nso every one of them has to be rounded to ten digits.',
+    {'int', 'unrepresentable-divide', 'money'},
   );
 
   final String id;
@@ -210,6 +288,29 @@ enum Test {
           result: '11111111.11111111',
         );
 
+      case Test.addDirtyBigInt:
+        final values = <(BigInt, int)>[
+          for (final (index, base) in _dirtyBigBases.indexed)
+            (BigInt.parse(base), index),
+        ];
+
+        return (
+          bigIntValues: values,
+          intValues: null,
+          result: '97576969007209553094.5667209055520561472',
+        );
+
+      case Test.addDirtyInt:
+        final values = <(int, int)>[
+          for (final (index, base) in _dirtyIntBases.indexed) (base, index),
+        ];
+
+        return (
+          bigIntValues: bigIntValuesFromIntValues(values),
+          intValues: values,
+          result: '78725.255535813',
+        );
+
       case Test.multiplyLargeBigInt:
         final values = List<(BigInt, int)>.generate(
           10,
@@ -262,6 +363,57 @@ enum Test {
           bigIntValues: bigIntValuesFromIntValues(values),
           intValues: values,
           result: '0.000000000000000006443858614676334363',
+        );
+
+      case Test.multiplyDirtyBigInt:
+        final values = <(BigInt, int)>[
+          for (final (index, base) in _dirtyBigFactors.indexed)
+            (BigInt.parse(base), index),
+        ];
+
+        return (
+          bigIntValues: values,
+          intValues: null,
+          result: '121699422226741716930046498844488893313223095339'
+              '.4836450636947381144674123776',
+        );
+
+      case Test.multiplyDirtyInt:
+        final values = <(int, int)>[
+          for (final (index, base) in _dirtyIntFactors.indexed)
+            (base, index + 1),
+        ];
+
+        return (
+          bigIntValues: bigIntValuesFromIntValues(values),
+          intValues: values,
+          result: '242429.5111104776',
+        );
+
+      case Test.divideDirtyBigInt:
+        final values = <(BigInt, int)>[
+          (BigInt.parse(_dirtyBigProduct), 28),
+          for (final (index, base) in _dirtyBigFactors.indexed)
+            (BigInt.parse(base), index),
+        ];
+
+        return (
+          bigIntValues: values,
+          intValues: null,
+          result: '1',
+        );
+
+      case Test.divideDirtyInt:
+        final values = <(int, int)>[
+          (_dirtyIntProduct, 10),
+          for (final (index, base) in _dirtyIntFactors.indexed)
+            (base, index + 1),
+        ];
+
+        return (
+          bigIntValues: bigIntValuesFromIntValues(values),
+          intValues: values,
+          result: '1',
         );
 
       case Test.divideLargeBigInt:
@@ -389,6 +541,48 @@ enum Test {
           result: result,
         );
 
+      case Test.parse:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyStrings,
+        );
+
+      case Test.compare:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyCompareSum,
+        );
+
+      case Test.round:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyRounded,
+        );
+
+      case Test.toDouble:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyDoubles,
+        );
+
+      case Test.toStringAsFixed:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyFixed,
+        );
+
+      case Test.unrepresentableDivide:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyThirds,
+        );
+
       case Test.rawViewZerosInt:
       case Test.repeatViewZerosInt:
         final values = List<(int, int)>.generate(
@@ -422,3 +616,232 @@ enum Test {
         return (value, scale);
       }).toList(growable: false);
 }
+
+/// Bases with nothing round about them.
+///
+/// Every other set here is built out of powers of ten or out of one factor
+/// repeated — the best case for stripping zeros, for `gcd` and for the fast
+/// path of division. Money does not look like that.
+///
+/// Generated once with a fixed seed and written out, so that the results the
+/// sets are checked against can be verified by hand and stay verifiable.
+const _dirtyBigBases = <String>[
+  '89125394327232142231',
+  '78429882591495295293',
+  '56988635373487688272',
+  '36748917985131948835',
+  '17525293135184895389',
+  '16296152677961238449',
+  '29355485286173934417',
+  '53848468499211452132',
+  '82684625543317326747',
+  '82326742493671271822',
+  '84125123933323594987',
+  '31324293129596129128',
+  '27196853555338264469',
+  '88442876716538737432',
+  '58886862882751846529',
+  '46914178876783797189',
+  '78854619947777993633',
+  '15911269627682577828',
+  '79372911559894344294',
+  '62535415685778912732',
+];
+
+const _dirtyIntBases = <int>[
+  72864,
+  56329,
+  13649,
+  86429,
+  47283,
+  61823,
+  85913,
+  35486,
+  47152,
+  72693,
+];
+
+/// Factors of [_dirtyBigProduct], each at the scale of its index.
+const _dirtyBigFactors = <String>[
+  '1732164824',
+  '3229214656',
+  '1295732572',
+  '1562979347',
+  '9627874111',
+  '2123976622',
+  '4467846511',
+  '1175859388',
+];
+
+/// The product of [_dirtyBigFactors], scale 28.
+const _dirtyBigProduct =
+    '1216994222267417169300464988444888933132230953394836450636947381144674123776';
+
+/// Factors of [_dirtyIntProduct], each at the scale of its index plus one.
+const _dirtyIntFactors = <int>[
+  4789,
+  8236,
+  7462,
+  8237,
+];
+
+/// The product of [_dirtyIntFactors], scale 10.
+const _dirtyIntProduct = 2424295111104776;
+
+/// Money-like values: a handful of digits before the point and three to
+/// eight after, none of them round, all of the same magnitude.
+///
+/// One set feeds [Test.parse], [Test.compare], [Test.round],
+/// [Test.toDouble], [Test.toStringAsFixed] and
+/// [Test.unrepresentableDivide]: the operations differ, the numbers do
+/// not. Generated once with a fixed seed; every expected answer below is
+/// computed from these values by exact rational arithmetic, outside Dart.
+const _moneyValues = <(int, int)>[
+  (8912539432, 3),
+  (88635373487, 4),
+  (688272367489, 5),
+  (1798513194883, 6),
+  (48953891629615, 7),
+  (267796123844929, 8),
+  (3554852861, 3),
+  (48468499211, 4),
+  (478232674249, 5),
+  (3671271822841, 6),
+  (59612912827196, 7),
+  (853555338264469, 8),
+  (8844287671, 3),
+  (65387374325, 4),
+  (184652946914, 5),
+  (1788767837971, 6),
+  (89788546199477, 7),
+  (372911559894344, 8),
+  (2946253541, 3),
+  (56857789127, 4),
+];
+
+/// [_moneyValues] written out: the input of [Test.parse] and its answer.
+const _moneyStrings = <String>[
+  '8912539.432',
+  '8863537.3487',
+  '6882723.67489',
+  '1798513.194883',
+  '4895389.1629615',
+  '2677961.23844929',
+  '3554852.861',
+  '4846849.9211',
+  '4782326.74249',
+  '3671271.822841',
+  '5961291.2827196',
+  '8535553.38264469',
+  '8844287.671',
+  '6538737.4325',
+  '1846529.46914',
+  '1788767.837971',
+  '8978854.6199477',
+  '3729115.59894344',
+  '2946253.541',
+  '5685778.9127',
+];
+
+/// [_moneyValues] rounded to two digits, half away from zero.
+const _moneyRounded = <String>[
+  '8912539.43',
+  '8863537.35',
+  '6882723.67',
+  '1798513.19',
+  '4895389.16',
+  '2677961.24',
+  '3554852.86',
+  '4846849.92',
+  '4782326.74',
+  '3671271.82',
+  '5961291.28',
+  '8535553.38',
+  '8844287.67',
+  '6538737.43',
+  '1846529.47',
+  '1788767.84',
+  '8978854.62',
+  '3729115.6',
+  '2946253.54',
+  '5685778.91',
+];
+
+/// [_moneyValues] as `toStringAsFixed(2)` writes them.
+const _moneyFixed = <String>[
+  '8912539.43',
+  '8863537.35',
+  '6882723.67',
+  '1798513.19',
+  '4895389.16',
+  '2677961.24',
+  '3554852.86',
+  '4846849.92',
+  '4782326.74',
+  '3671271.82',
+  '5961291.28',
+  '8535553.38',
+  '8844287.67',
+  '6538737.43',
+  '1846529.47',
+  '1788767.84',
+  '8978854.62',
+  '3729115.60',
+  '2946253.54',
+  '5685778.91',
+];
+
+/// [_moneyValues] as the nearest `double` prints itself.
+const _moneyDoubles = <String>[
+  '8912539.432',
+  '8863537.3487',
+  '6882723.67489',
+  '1798513.194883',
+  '4895389.1629615',
+  '2677961.23844929',
+  '3554852.861',
+  '4846849.9211',
+  '4782326.74249',
+  '3671271.822841',
+  '5961291.2827196',
+  '8535553.38264469',
+  '8844287.671',
+  '6538737.4325',
+  '1846529.46914',
+  '1788767.837971',
+  '8978854.6199477',
+  '3729115.59894344',
+  '2946253.541',
+  '5685778.9127',
+];
+
+/// [_moneyValues] divided by three, rounded to ten digits.
+///
+/// None of the bases is a multiple of three, so not one of these
+/// divisions has a finite decimal form.
+const _moneyThirds = <String>[
+  '2970846.4773333333',
+  '2954512.4495666667',
+  '2294241.2249633333',
+  '599504.3982943333',
+  '1631796.3876538333',
+  '892653.7461497633',
+  '1184950.9536666667',
+  '1615616.6403666667',
+  '1594108.9141633333',
+  '1223757.2742803333',
+  '1987097.0942398667',
+  '2845184.4608815633',
+  '2948095.8903333333',
+  '2179579.1441666667',
+  '615509.8230466667',
+  '596255.9459903333',
+  '2992951.5399825667',
+  '1243038.5329811467',
+  '982084.5136666667',
+  '1895259.6375666667',
+];
+
+/// The sum of the signs of `compareTo` over the neighbours in
+/// [_moneyValues].
+const _moneyCompareSum = 3;

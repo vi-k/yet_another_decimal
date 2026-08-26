@@ -21,8 +21,24 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   /// Scores of every run of the series, µs per cycle, in the order measured.
   final List<double> scores = <double>[];
 
+  /// The input of [Op.parse], the same strings for every package.
+  ///
+  /// Filled in by the runner before the benchmark is measured: every adapter
+  /// gets the values in its own type, and the strings they were built from
+  /// must not depend on how a package prints them.
+  List<String> inputs = const <String>[];
+
   String? resultMessage;
   String? error;
+
+  /// How many digits [round] and [toStringAsFixed] keep: money.
+  static const int moneyDigits = 2;
+
+  /// How many digits [unrepresentableDivide] keeps.
+  ///
+  /// Ten and no more: the result has to stay inside int64, otherwise
+  /// `ShortDecimal` would be measured overflowing instead of dividing.
+  static const int infiniteDigits = 10;
 
   MyBenchmarkBase(
     this.package,
@@ -172,6 +188,36 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         for (var i = 0; i < count; i++) {
           blackhole = result = repeatView();
         }
+
+      case Op.parse:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = parse();
+        }
+
+      case Op.compare:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = compare();
+        }
+
+      case Op.round:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = round();
+        }
+
+      case Op.toDouble:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = toDouble();
+        }
+
+      case Op.toStringAsFixed:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = toStringAsFixed();
+        }
+
+      case Op.unrepresentableDivide:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = unrepresentableDivide();
+        }
     }
 
     return result;
@@ -198,6 +244,36 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   }
 
   List<String> repeatView();
+
+  /// Everything below is optional: a package that has no such operation says
+  /// so by throwing [UnsupportedOperation].
+  Object parse() => throw UnsupportedOperation(package, operation);
+
+  Object compare() => throw UnsupportedOperation(package, operation);
+
+  Object round() => throw UnsupportedOperation(package, operation);
+
+  Object toDouble() => throw UnsupportedOperation(package, operation);
+
+  List<String> toStringAsFixed() =>
+      throw UnsupportedOperation(package, operation);
+
+  Object unrepresentableDivide() =>
+      throw UnsupportedOperation(package, operation);
+}
+
+/// Raised by a benchmark for an operation the package does not have.
+///
+/// Not an error: an absent method is not a wrong answer, and a package must
+/// not be shown as failing for the lack of one.
+final class UnsupportedOperation implements Exception {
+  const UnsupportedOperation(this.package, this.operation);
+
+  final Package package;
+  final Op operation;
+
+  @override
+  String toString() => '${package.id} has no ${operation.id}';
 }
 
 extension on String {

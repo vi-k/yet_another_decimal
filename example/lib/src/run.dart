@@ -59,6 +59,13 @@ void run({
 
     _printValues(bigIntValues, test.operation.sign, result);
 
+    // The same input for every package: what a package prints is its own
+    // business, what it is given must not be.
+    final inputs = [
+      for (final (base, scale) in bigIntValues)
+        Decimal.fromBigInt(base, shiftRight: scale).toString(),
+    ];
+
     _measureBigIntTestsAndPrint(
       summary,
       packages,
@@ -66,6 +73,7 @@ void run({
       test,
       result,
       runs,
+      inputs,
     );
 
     if (intValues != null) {
@@ -76,6 +84,7 @@ void run({
         test,
         result,
         runs,
+        inputs,
       );
     }
   }
@@ -252,12 +261,14 @@ void _measureBigIntTestsAndPrint(
   Test test,
   Object result,
   int runs,
+  List<String> inputs,
 ) {
   for (final MapEntry(key: package, value: create) in _bigIntPackages.entries) {
     if (packages.contains(package)) {
-      final benchmark = create(values, test.operation, result);
-      results[(package, test)] = benchmark;
-      _measureTest(benchmark, runs);
+      final benchmark = create(values, test.operation, result)..inputs = inputs;
+      if (_measureTest(benchmark, runs)) {
+        results[(package, test)] = benchmark;
+      }
     }
   }
 }
@@ -269,17 +280,20 @@ void _measureIntTestsAndPrint(
   Test test,
   Object result,
   int runs,
+  List<String> inputs,
 ) {
   for (final MapEntry(key: package, value: create) in _intPackages.entries) {
     if (packages.contains(package)) {
-      final benchmark = create(values, test.operation, result);
-      results[(package, test)] = benchmark;
-      _measureTest(benchmark, runs);
+      final benchmark = create(values, test.operation, result)..inputs = inputs;
+      if (_measureTest(benchmark, runs)) {
+        results[(package, test)] = benchmark;
+      }
     }
   }
 }
 
-void _measureTest(MyBenchmarkBase benchmark, int runs) {
+/// Measures one benchmark, `false` if the package has no such operation.
+bool _measureTest(MyBenchmarkBase benchmark, int runs) {
   try {
     for (var i = 0; i < runs; i++) {
       benchmark.scores.add(
@@ -301,11 +315,19 @@ void _measureTest(MyBenchmarkBase benchmark, int runs) {
         )}'
       '${msg == null ? '' : ' $msg'}',
     );
+
+    return true;
+  } on UnsupportedOperation catch (e) {
+    print('${accent(benchmark.package.id)}: ${faintAccent('$e')}');
+
+    return false;
     // ignore: unused_catch_stack
   } on Object catch (e, s) {
     benchmark.error = e.toString();
     print('${accent(benchmark.name)} ${accentError('ERROR')} ${error('$e')}');
     // print(s);
+
+    return true;
   }
 }
 

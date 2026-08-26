@@ -4,7 +4,13 @@ enum Op {
   divide('divide', '/', 1000),
   divideAndView('divide-and-view', '/', 100),
   rawView('raw-view', null, 100),
-  repeatView('repeat-view', null, 100);
+  repeatView('repeat-view', null, 100),
+  parse('parse', null, 100),
+  compare('compare', null, 100),
+  round('round', null, 100),
+  toDouble('to-double', null, 100),
+  toStringAsFixed('to-string-as-fixed', null, 100),
+  unrepresentableDivide('unrepresentable-divide', '/', 100);
 
   final String id;
   final String? sign;
