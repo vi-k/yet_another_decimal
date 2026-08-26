@@ -465,7 +465,42 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Converts this decimal to [double].
-  double toDouble() => double.parse(toString());
+  double toDouble() {
+    final base = this.base;
+    final scale = this.scale;
+
+    // Both ends of the division are exact in a double when the base fits into
+    // 53 bits and the power of ten into 10^22, so the single rounding of the
+    // division is the correctly rounded answer. Outside that the string is the
+    // only honest path: it rounds once too, where an inexact division would
+    // round twice.
+    if (scale >= -_maxExactPow10 &&
+        scale <= _maxExactPow10 &&
+        base.abs().bitLength <= _exactBits) {
+      final value = base.toDouble();
+      final power = _doublePow10[scale.abs()];
+
+      return scale >= 0 ? value / power : value * power;
+    }
+
+    return double.parse(toString());
+  }
+
+  /// How many bits of an integer a double keeps exactly.
+  static const _exactBits = 53;
+
+  /// The largest power of ten a double holds exactly.
+  static const _maxExactPow10 = 22;
+
+  /// Powers of ten that a double holds exactly.
+  static final List<double> _doublePow10 = () {
+    final table = List<double>.filled(_maxExactPow10 + 1, 1);
+    for (var i = 1; i < table.length; i++) {
+      table[i] = table[i - 1] * 10;
+    }
+
+    return table;
+  }();
 
   /// Compares this to [other].
   ///

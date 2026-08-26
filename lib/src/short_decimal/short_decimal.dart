@@ -527,7 +527,41 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Converts this decimal to [double].
-  double toDouble() => double.parse(toString());
+  double toDouble() {
+    final base = this.base;
+    final scale = this.scale;
+
+    // The same reasoning as in Decimal: a base of 53 bits and a power of ten
+    // up to 10^22 are both exact in a double, so the division rounds once and
+    // the answer is correctly rounded. Everything else goes through the string.
+    if (scale >= -_maxExactPow10 &&
+        scale <= _maxExactPow10 &&
+        base >= -_maxExactInt &&
+        base <= _maxExactInt) {
+      final value = base.toDouble();
+      final power = _doublePow10[scale.abs()];
+
+      return scale >= 0 ? value / power : value * power;
+    }
+
+    return double.parse(toString());
+  }
+
+  /// The largest integer a double holds exactly: 2^53.
+  static const _maxExactInt = 9007199254740992;
+
+  /// The largest power of ten a double holds exactly.
+  static const _maxExactPow10 = 22;
+
+  /// Powers of ten that a double holds exactly.
+  static final List<double> _doublePow10 = () {
+    final table = List<double>.filled(_maxExactPow10 + 1, 1);
+    for (var i = 1; i < table.length; i++) {
+      table[i] = table[i - 1] * 10;
+    }
+
+    return table;
+  }();
 
   /// Compares this to [other].
   ///

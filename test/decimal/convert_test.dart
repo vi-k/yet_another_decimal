@@ -245,5 +245,86 @@ void main() {
         '12345678901234567890',
       );
     });
+
+    // П4: прямой путь `base / 10^scale` вместо разбора строки. Оба операнда
+    // точны в double, поэтому округление одно — и ответ обязан совпасть с
+    // разбором строки **побитово**, а не приблизительно. Границы 2^53 и 10^22
+    // — то место, где легко молча потерять точность.
+    group('toDouble совпадает с разбором строки', () {
+      const bases = [
+        0, 1, -1, 123456789, 999999999999999,
+        4503599627370496, // 2^52
+        9007199254740991, // 2^53 - 1
+        9007199254740992, // 2^53
+        // 2^53 + 1 — первое целое, которого в double уже нет. Пишется
+        // сложением, чтобы не вносить в тест литерал, который сам не
+        // переживает JavaScript-число.
+        9007199254740992 + 1,
+        -9007199254740991, -9007199254740992, -9007199254740992 - 1,
+      ];
+
+      for (final base in bases) {
+        test('база $base на масштабах от -25 до 25', () {
+          for (var scale = -25; scale <= 25; scale++) {
+            // Сдвиг оператором, а не аргументом: `shiftRight` не берёт
+            // отрицательное.
+            final value = Decimal(base) >> scale;
+            final viaString = double.parse(value.toString());
+
+            expect(
+              value.toDouble(),
+              viaString,
+              reason: 'база $base, масштаб $scale',
+            );
+            expect(
+              value.toDouble().toString(),
+              viaString.toString(),
+              reason: 'побитово, база $base, масштаб $scale',
+            );
+          }
+        });
+      }
+
+      test('за границами быстрого пути — тот же ответ', () {
+        for (final source in [
+          '1${'0' * 30}.5',
+          '0.${'0' * 30}1',
+          '123456789012345678901234567890',
+          '1e23',
+          '1e-23',
+        ]) {
+          final value = Decimal.parse(source);
+
+          expect(
+            value.toDouble(),
+            double.parse(value.toString()),
+            reason: source,
+          );
+        }
+      });
+
+      test('значения, на которых double обычно врёт', () {
+        for (final source in [
+          '0.1',
+          '0.2',
+          '0.3',
+          '1.005',
+          '2.675',
+          '1234.5678',
+          '-1234.5678',
+          '0.000001',
+          '1e22',
+          '1e-22',
+        ]) {
+          final value = Decimal.parse(source);
+
+          expect(
+            value.toDouble(),
+            double.parse(value.toString()),
+            reason: source,
+          );
+        }
+      });
+    });
   });
 }
