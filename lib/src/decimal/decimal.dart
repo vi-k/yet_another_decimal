@@ -569,7 +569,7 @@ final class Decimal implements Comparable<Decimal> {
     }
   }
 
-  Decimal get _requirePacked => _packed ??= _dropTrailingZeros(base, scale);
+  Decimal get _requirePacked => _packed ??= Decimal._pack(base, scale);
 
   /// [base] without its trailing zeros, with [scale] moved to match.
   ///
@@ -581,7 +581,7 @@ final class Decimal implements Comparable<Decimal> {
   ///
   /// The middle step is not decoration: without it the search loses to the
   /// loop it replaces on every even number that ends in a nonzero digit.
-  static Decimal _dropTrailingZeros(BigInt base, int scale) {
+  factory Decimal._pack(BigInt base, int scale) {
     // A trailing zero needs both a two and a five, so an odd base has none.
     if (base.isOdd) {
       return Decimal._asIs(base, scale);
