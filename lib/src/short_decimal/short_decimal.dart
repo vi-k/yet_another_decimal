@@ -168,7 +168,13 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
     final a = base;
     final b = other.base;
 
-    return _productFits(a, b)
+    // The approximate product decides the common case: a double is off by a
+    // part in 2^52 at worst, which against the gap between the threshold and
+    // int.max — more than 2·10^17 — is nothing. Everything close to the
+    // boundary goes the careful way, where the check costs a division.
+    final approximate = a.toDouble() * b.toDouble();
+
+    return approximate > -_productThreshold && approximate < _productThreshold
         ? ShortDecimal._pack(a * b, scale + other.scale)
         : _multiplyCarefully(other);
   }
