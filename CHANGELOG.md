@@ -55,7 +55,10 @@ fix or an addition.
 ### Performance
 
 Division is several times faster, printing the same value twice costs almost
-nothing, and `toDouble` no longer goes through a string. The table in the
+nothing, `toDouble` no longer goes through a string, and rounding a quotient
+that has no finite decimal form — `divide(other, scaleOnInfinitePrecision: n)`
+— is about 1.6 times faster than it was, having stopped building an exact
+fraction only to divide it again. The table in the
 README is a fresh run of the bench in `example/`, which was rebuilt for this
 release: it checks every answer before timing it, measures a series and reports
 the median, and no longer reports an absent method as a failure.
