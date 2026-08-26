@@ -19,6 +19,10 @@ void printUsage() {
     '${accent('--runs=N')} - measure every benchmark N times'
     ' and take the median (default: $defaultRuns)',
   );
+  print(
+    '${accent('--passes=N')} - sweep every test N times and take the best'
+    ' of the passes (default: $defaultPasses)',
+  );
 
   print('\nPackages:');
   for (final package in Package.values) {
@@ -57,6 +61,10 @@ void printUsage() {
   print('');
   print('All packages and all tests, one run instead of a series:');
   print('> ${accent('dart benchmark.dart all --runs=1')}');
+
+  print('');
+  print('Numbers worth quoting: two passes over the whole set');
+  print('> ${accent('dart benchmark.dart all --passes=2')}');
 }
 
 void main(List<String> arguments) {
@@ -72,6 +80,7 @@ void main(List<String> arguments) {
       }
 
       var runs = defaultRuns;
+      var passes = defaultPasses;
       final includePackages = <Package>{};
       final excludePackages = <Package>{};
       final includeTests = <Test>{};
@@ -92,6 +101,16 @@ void main(List<String> arguments) {
               return;
             }
             runs = value;
+
+          case final String a when a.startsWith('--passes='):
+            final value = int.tryParse(a.substring('--passes='.length));
+            if (value == null || value < 1) {
+              print('${error('Not a number of passes:')} ${accentError(arg)}');
+              print('');
+              printUsage();
+              return;
+            }
+            passes = value;
 
           default:
             final exclude = arg.startsWith('-');
@@ -152,6 +171,7 @@ void main(List<String> arguments) {
         packages: packages,
         tests: tests,
         runs: runs,
+        passes: passes,
       );
     },
   );

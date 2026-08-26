@@ -18,8 +18,12 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   final Op operation;
   final Object? expectedExerciseResult;
 
-  /// Scores of every run of the series, µs per cycle, in the order measured.
+  /// Scores of every run of the current pass, µs per cycle, in the order
+  /// measured.
   final List<double> scores = <double>[];
+
+  /// The median of every pass closed so far, µs per cycle.
+  final List<double> passes = <double>[];
 
   /// The input of [Op.parse], the same strings for every package.
   ///
@@ -48,11 +52,30 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
 
   bool get hasError => error != null;
 
-  /// The median of [scores], `null` until the benchmark has been measured.
+  /// The number the summary shows: the best pass.
+  ///
+  /// A whole pass can be swallowed by unrelated load on the machine — a burst
+  /// that outlasts the eleven seconds of one series leaves its median as
+  /// wrong as any single run, and the spread looks respectable throughout.
+  /// Load can only ever make a benchmark slower, so the best of several
+  /// passes is the honest estimate, and the median is what defends each pass
+  /// against a single bad run inside it.
+  double? get score => passes.isEmpty ? currentPass : passes.reduce(min);
+
+  /// Closes the current pass: its median joins [passes], its runs are dropped.
+  void endPass() {
+    final median = currentPass;
+    if (median != null) {
+      passes.add(median);
+      scores.clear();
+    }
+  }
+
+  /// The median of [scores], `null` until the pass has been measured.
   ///
   /// The median rather than the mean: a single run interrupted by the OS must
   /// not drag the whole series with it.
-  double? get score {
+  double? get currentPass {
     if (scores.isEmpty) {
       return null;
     }
@@ -65,9 +88,10 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         : (sorted[middle - 1] + sorted[middle]) / 2;
   }
 
-  /// The best and the worst run of the series, µs per cycle.
+  /// The best and the worst run of the current pass, µs per cycle.
   ///
-  /// Printed next to [score] to make the drift of the machine visible.
+  /// Printed next to the pass median to make the drift of the machine
+  /// visible.
   (double, double)? get spread {
     if (scores.isEmpty) {
       return null;

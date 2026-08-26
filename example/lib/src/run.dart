@@ -24,6 +24,14 @@ import 'utils/output.dart';
 /// nothing. The summary shows the median of the series.
 const int defaultRuns = 5;
 
+/// How many times the whole sweep is measured when the number is not given.
+///
+/// One pass is enough to see where a package stands; numbers worth quoting
+/// need two. A burst of unrelated load outlasts the series of a single
+/// benchmark, and then its median is as wrong as any one run of it — only a
+/// pass measured at another time can tell.
+const int defaultPasses = 1;
+
 typedef Summary = Map<(Package, Test), MyBenchmarkBase>;
 
 typedef CreateBigIntTestCallback = MyBenchmarkBase Function(
@@ -42,13 +50,39 @@ void run({
   required Set<Package> packages,
   required Set<Test> tests,
   int runs = defaultRuns,
+  int passes = defaultPasses,
 }) {
-  _printEnvironment(packages, runs);
+  _printEnvironment(packages, runs, passes);
   _printPackages(packages);
   _printTests(tests);
 
   // ignore: omit_local_variable_types
   final Summary summary = {};
+
+  for (var pass = 1; pass <= passes; pass++) {
+    _measurePass(summary, packages, tests, runs, pass, passes);
+
+    for (final benchmark in summary.values) {
+      benchmark.endPass();
+    }
+  }
+
+  _printSummary(packages, tests, summary, passes);
+}
+
+/// One sweep over every test, filling a pass into every benchmark.
+void _measurePass(
+  Summary summary,
+  Set<Package> packages,
+  Set<Test> tests,
+  int runs,
+  int pass,
+  int passes,
+) {
+  if (passes > 1) {
+    print('');
+    print(special('Pass $pass of $passes'));
+  }
 
   for (final test in tests) {
     _printTitle(test);
@@ -56,7 +90,10 @@ void run({
     final (bigIntValues: bigIntValues, intValues: intValues, result: result) =
         test.data();
 
-    _printValues(bigIntValues, test.operation.sign, result);
+    // The values are the same in every pass; printing them once is enough.
+    if (pass == 1) {
+      _printValues(bigIntValues, test.operation.sign, result);
+    }
 
     // The same input for every package: what a package prints is its own
     // business, what it is given must not be.
@@ -73,6 +110,7 @@ void run({
       result,
       runs,
       inputs,
+      pass,
     );
 
     if (intValues != null) {
@@ -84,11 +122,10 @@ void run({
         result,
         runs,
         inputs,
+        pass,
       );
     }
   }
-
-  _printSummary(packages, tests, summary);
 }
 
 final _bigIntPackages = <Package, CreateBigIntTestCallback>{
@@ -108,7 +145,7 @@ final _intPackages = <Package, CreateIntTestCallback>{
 ///
 /// Goes under the table in `README.md`: without it the numbers cannot be
 /// compared with a run made a year later on another machine.
-void _printEnvironment(Set<Package> packages, int runs) {
+void _printEnvironment(Set<Package> packages, int runs, int passes) {
   const isProduct = bool.fromEnvironment('dart.vm.product');
 
   print('Environment:');
@@ -123,6 +160,10 @@ void _printEnvironment(Set<Package> packages, int runs) {
   print(
     '${faintAccent('Runs:  ')} '
     '${accent(runs == 1 ? '1' : '$runs (median of the series)')}',
+  );
+  print(
+    '${faintAccent('Passes:')} '
+    '${accent(passes == 1 ? '1' : '$passes (the best of them per cell)')}',
   );
 
   final versions = _lockedVersions();
@@ -263,13 +304,26 @@ void _measureBigIntTestsAndPrint(
   Object result,
   int runs,
   List<String> inputs,
+  int pass,
 ) {
   for (final MapEntry(key: package, value: create) in _bigIntPackages.entries) {
-    if (packages.contains(package)) {
-      final benchmark = create(values, test.operation, result)..inputs = inputs;
-      if (_measureTest(benchmark, runs)) {
-        results[(package, test)] = benchmark;
+    if (!packages.contains(package)) {
+      continue;
+    }
+
+    // A pair missing from the summary after the first pass is one the package
+    // cannot do: asking it again every pass would only reprint the answer.
+    var benchmark = results[(package, test)];
+    if (benchmark == null) {
+      if (pass > 1) {
+        continue;
       }
+
+      benchmark = create(values, test.operation, result)..inputs = inputs;
+    }
+
+    if (_measureTest(benchmark, runs)) {
+      results[(package, test)] = benchmark;
     }
   }
 }
@@ -282,13 +336,26 @@ void _measureIntTestsAndPrint(
   Object result,
   int runs,
   List<String> inputs,
+  int pass,
 ) {
   for (final MapEntry(key: package, value: create) in _intPackages.entries) {
-    if (packages.contains(package)) {
-      final benchmark = create(values, test.operation, result)..inputs = inputs;
-      if (_measureTest(benchmark, runs)) {
-        results[(package, test)] = benchmark;
+    if (!packages.contains(package)) {
+      continue;
+    }
+
+    // A pair missing from the summary after the first pass is one the package
+    // cannot do: asking it again every pass would only reprint the answer.
+    var benchmark = results[(package, test)];
+    if (benchmark == null) {
+      if (pass > 1) {
+        continue;
       }
+
+      benchmark = create(values, test.operation, result)..inputs = inputs;
+    }
+
+    if (_measureTest(benchmark, runs)) {
+      results[(package, test)] = benchmark;
     }
   }
 }
@@ -302,7 +369,7 @@ bool _measureTest(MyBenchmarkBase benchmark, int runs) {
       );
     }
 
-    final score = benchmark.score!;
+    final score = benchmark.currentPass!;
     final (best, worst) = benchmark.spread!;
 
     final msg = benchmark.resultMessage;
@@ -403,6 +470,7 @@ void _printSummary(
   Set<Package> packages,
   Set<Test> tests,
   Summary summary,
+  int passes,
 ) {
   final table = <List<String>>[];
   final widths = List<int>.filled(packages.length + 1, 0);
@@ -492,6 +560,22 @@ void _printSummary(
 
   print('');
   print('Summary:');
+  print('');
+  if (passes == 1) {
+    print(
+      warning(
+        'Measured in a single pass. A burst of load outlasts the series of one'
+        ' benchmark, and no median inside it can tell. For numbers worth'
+        ' quoting use --passes=2.',
+      ),
+    );
+  } else {
+    print(
+      faintAccent(
+        'Each cell is the best of $passes passes; every pass is above.',
+      ),
+    );
+  }
   print('');
 
   for (final (index, row) in table.indexed) {
