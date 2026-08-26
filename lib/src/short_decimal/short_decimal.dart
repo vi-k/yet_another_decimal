@@ -528,7 +528,20 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw UnsupportedError('division by zero');
     }
 
-    // Straight from the exact pair rather than through [ShortFraction]: the
+    // Where both ends convert to a double exactly, IEEE division rounds once
+    // and is already right — and costs no BigInt.
+    final aligned = _alignOrNull(other);
+    if (aligned != null) {
+      final (a, b, _) = aligned;
+      if (a >= -_maxExactInDouble &&
+          a <= _maxExactInDouble &&
+          b >= -_maxExactInDouble &&
+          b <= _maxExactInDouble) {
+        return a / b;
+      }
+    }
+
+    // Otherwise from the exact pair rather than through [ShortFraction]: the
     // double is representable even where the fraction is not, and dividing one
     // int by another rounds twice on operands past 2^53.
     final (a, b, _) = _alignExactly(other);
@@ -1109,6 +1122,9 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
         ? _pow10Table[exponent]
         : math.pow(10, exponent) as int;
   }
+
+  /// The largest integer a double holds exactly, `2^53`.
+  static const _maxExactInDouble = 9007199254740992;
 
   /// The largest power of ten that fits into int64.
   static const _maxPow10Exponent = 18;
