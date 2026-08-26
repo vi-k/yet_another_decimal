@@ -117,31 +117,33 @@ enum Test {
         '\n to a readable format (int version).',
     {'int', 'raw-view', 'raw-view-zeros'},
   ),
-  preparedViewBigInt(
-    'prepared-view-big-int',
-    Op.preparedView,
-    'Convert prepared numbers to a readable format (BigInt version).',
-    {'big-int', 'prepared-view'},
+  repeatViewBigInt(
+    'repeat-view-big-int',
+    Op.repeatView,
+    'Convert numbers that have already been converted once'
+        '\nto a readable format (BigInt version).',
+    {'big-int', 'repeat-view'},
   ),
-  preparedViewInt(
-    'prepared-view-int',
-    Op.preparedView,
-    'Convert prepared numbers to a readable format (int version).',
-    {'int', 'prepared-view'},
+  repeatViewInt(
+    'repeat-view-int',
+    Op.repeatView,
+    'Convert numbers that have already been converted once'
+        '\nto a readable format (int version).',
+    {'int', 'repeat-view'},
   ),
-  preparedViewZerosBigInt(
-    'prepared-view-zeros-big-int',
-    Op.preparedView,
-    'Convert prepared numbers with lots of leading and trailing zeros'
-        '\n to a readable format (BigInt version).',
-    {'big-int', 'prepared-view', 'prepared-view-zeros'},
+  repeatViewZerosBigInt(
+    'repeat-view-zeros-big-int',
+    Op.repeatView,
+    'Convert numbers with lots of leading and trailing zeros that have'
+        '\nalready been converted once to a readable format (BigInt version).',
+    {'big-int', 'repeat-view', 'repeat-view-zeros'},
   ),
-  preparedViewZerosInt(
-    'prepared-view-zeros-int',
-    Op.preparedView,
-    'Convert prepared numbers with lots of leading and trailing zeros'
-        '\n to a readable format (int version).',
-    {'int', 'prepared-view', 'prepared-view-zeros'},
+  repeatViewZerosInt(
+    'repeat-view-zeros-int',
+    Op.repeatView,
+    'Convert numbers with lots of leading and trailing zeros that have'
+        '\nalready been converted once to a readable format (int version).',
+    {'int', 'repeat-view', 'repeat-view-zeros'},
   );
 
   final String id;
@@ -327,7 +329,7 @@ enum Test {
         );
 
       case Test.rawViewBigInt:
-      case Test.preparedViewBigInt:
+      case Test.repeatViewBigInt:
         const v = '123456789012345678901234567890123456789';
         final values = List<(BigInt, int)>.generate(
           20,
@@ -347,7 +349,7 @@ enum Test {
         );
 
       case Test.rawViewInt:
-      case Test.preparedViewInt:
+      case Test.repeatViewInt:
         final values = List<(int, int)>.generate(
           19,
           (index) => (1234567890123456789, index),
@@ -367,7 +369,7 @@ enum Test {
         );
 
       case Test.rawViewZerosBigInt:
-      case Test.preparedViewZerosBigInt:
+      case Test.repeatViewZerosBigInt:
         final values = List<(BigInt, int)>.generate(
           20,
           (index) => (
@@ -388,7 +390,7 @@ enum Test {
         );
 
       case Test.rawViewZerosInt:
-      case Test.preparedViewZerosInt:
+      case Test.repeatViewZerosInt:
         final values = List<(int, int)>.generate(
           20,
           (index) => (1000000000000000000, index * 2 - 1),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
@@ -18,6 +19,12 @@ import 'tests/yet_another_decimal_short_test.dart';
 import 'tests/yet_another_decimal_test.dart';
 import 'utils/output.dart';
 
+/// How many times every benchmark is measured when the number is not given.
+///
+/// The machine drifts by up to 15 % between runs, so a single measurement says
+/// nothing. The summary shows the median of the series.
+const int defaultRuns = 5;
+
 typedef Summary = Map<(Package, Test), MyBenchmarkBase>;
 
 typedef CreateBigIntTestCallback = MyBenchmarkBase Function(
@@ -35,7 +42,9 @@ typedef CreateIntTestCallback = MyBenchmarkBase Function(
 void run({
   required Set<Package> packages,
   required Set<Test> tests,
+  int runs = defaultRuns,
 }) {
+  _printEnvironment(packages, runs);
   _printPackages(packages);
   _printTests(tests);
 
@@ -56,6 +65,7 @@ void run({
       bigIntValues,
       test,
       result,
+      runs,
     );
 
     if (intValues != null) {
@@ -65,6 +75,7 @@ void run({
         intValues,
         test,
         result,
+        runs,
       );
     }
   }
@@ -84,6 +95,141 @@ final _bigIntPackages = <Package, CreateBigIntTestCallback>{
 final _intPackages = <Package, CreateIntTestCallback>{
   Package.yetAnotherDecimalShort: YetAnotherDecimalShortTest.new,
 };
+
+/// Everything the numbers depend on but the table does not show.
+///
+/// Goes under the table in `README.md`: without it the numbers cannot be
+/// compared with a run made a year later on another machine.
+void _printEnvironment(Set<Package> packages, int runs) {
+  const isProduct = bool.fromEnvironment('dart.vm.product');
+
+  print('Environment:');
+  print('${faintAccent('Dart:  ')} ${accent(Platform.version)}');
+  print('${faintAccent('OS:    ')} ${accent(Platform.operatingSystemVersion)}');
+  final cpus = Platform.numberOfProcessors;
+  print('${faintAccent('CPUs:  ')} ${accent('$cpus')}');
+  print(
+    '${faintAccent('Mode:  ')} '
+    '${accent(isProduct ? 'AOT (dart compile exe)' : 'JIT (dart run)')}',
+  );
+  print(
+    '${faintAccent('Runs:  ')} '
+    '${accent(runs == 1 ? '1' : '$runs (median of the series)')}',
+  );
+
+  final versions = _lockedVersions();
+  if (versions.isEmpty) {
+    return;
+  }
+
+  final named = <String>[];
+  for (final package in packages) {
+    final name = package.pubName;
+    final version = versions[name];
+    if (version != null && !named.any((e) => e.startsWith('$name '))) {
+      named.add('$name $version');
+    }
+  }
+
+  if (named.isNotEmpty) {
+    print('${faintAccent('Deps:  ')} ${accent(named.join(', '))}');
+  }
+}
+
+/// Versions of the compared packages, read from `pubspec.lock`.
+///
+/// The lock file is looked up next to the current directory and above it: the
+/// benchmark is run both by `dart run` from `example/` and as a compiled
+/// executable from the root of the repository.
+Map<String, String> _lockedVersions() {
+  final file = _findLock();
+  if (file == null) {
+    return const {};
+  }
+
+  final packageLine = RegExp(r'^  ([a-z_0-9]+):$');
+  final versionLine = RegExp(r'^    version: "([^"]+)"$');
+  final versions = <String, String>{};
+  String? name;
+
+  for (final line in file.readAsLinesSync()) {
+    final package = packageLine.firstMatch(line);
+    if (package != null) {
+      name = package[1];
+      continue;
+    }
+
+    final version = versionLine.firstMatch(line);
+    if (version != null && name != null) {
+      versions[name] = version[1]!;
+      name = null;
+    }
+  }
+
+  // The package under test is a path dependency: the lock file has no version
+  // for it, only `pubspec.yaml` has.
+  final own = _findOwnVersion();
+  if (own != null) {
+    versions['yet_another_decimal'] = own;
+  }
+
+  return versions;
+}
+
+File? _findLock() => _findUp(
+      (dir) => [
+        File('${dir.path}/pubspec.lock'),
+        File('${dir.path}/example/pubspec.lock'),
+      ],
+    );
+
+String? _findOwnVersion() {
+  var dir = Directory.current;
+
+  for (var i = 0; i < 4; i++) {
+    final pubspec = File('${dir.path}/pubspec.yaml');
+    if (pubspec.existsSync()) {
+      final lines = pubspec.readAsLinesSync();
+      // `example/pubspec.yaml` is found first and has a version of its own.
+      if (lines.contains('name: yet_another_decimal')) {
+        for (final line in lines) {
+          final match = RegExp(r'^version: (.+)$').firstMatch(line);
+          if (match != null) {
+            return match[1]!.trim();
+          }
+        }
+      }
+    }
+
+    final parent = dir.parent;
+    if (parent.path == dir.path) {
+      break;
+    }
+    dir = parent;
+  }
+
+  return null;
+}
+
+File? _findUp(List<File> Function(Directory dir) candidates) {
+  var dir = Directory.current;
+
+  for (var i = 0; i < 4; i++) {
+    for (final file in candidates(dir)) {
+      if (file.existsSync()) {
+        return file;
+      }
+    }
+
+    final parent = dir.parent;
+    if (parent.path == dir.path) {
+      break;
+    }
+    dir = parent;
+  }
+
+  return null;
+}
 
 void _printPackages(Set<Package> packages) {
   print('Packages:');
@@ -105,12 +251,13 @@ void _measureBigIntTestsAndPrint(
   List<(BigInt, int)> values,
   Test test,
   Object result,
+  int runs,
 ) {
   for (final MapEntry(key: package, value: create) in _bigIntPackages.entries) {
     if (packages.contains(package)) {
       final benchmark = create(values, test.operation, result);
       results[(package, test)] = benchmark;
-      _measureTest(benchmark);
+      _measureTest(benchmark, runs);
     }
   }
 }
@@ -121,20 +268,27 @@ void _measureIntTestsAndPrint(
   List<(int, int)> values,
   Test test,
   Object result,
+  int runs,
 ) {
   for (final MapEntry(key: package, value: create) in _intPackages.entries) {
     if (packages.contains(package)) {
       final benchmark = create(values, test.operation, result);
       results[(package, test)] = benchmark;
-      _measureTest(benchmark);
+      _measureTest(benchmark, runs);
     }
   }
 }
 
-void _measureTest(MyBenchmarkBase benchmark) {
+void _measureTest(MyBenchmarkBase benchmark, int runs) {
   try {
-    final score = benchmark.measure() / benchmark.operation.numberOfCycles;
-    benchmark.score = score;
+    for (var i = 0; i < runs; i++) {
+      benchmark.scores.add(
+        benchmark.measure() / benchmark.operation.numberOfCycles,
+      );
+    }
+
+    final score = benchmark.score!;
+    final (best, worst) = benchmark.spread!;
 
     final msg = benchmark.resultMessage;
     final package = benchmark.package;
@@ -142,6 +296,9 @@ void _measureTest(MyBenchmarkBase benchmark) {
     print(
       '${accent(package.id)} (${package.type}):'
       ' ${accent('${format('{:.3f}', score)} µs')}'
+      '${runs == 1 ? '' : faintAccent(
+          ' [${format('{:.3f}', best)}…${format('{:.3f}', worst)}]',
+        )}'
       '${msg == null ? '' : ' $msg'}',
     );
     // ignore: unused_catch_stack

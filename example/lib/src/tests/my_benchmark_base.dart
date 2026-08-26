@@ -8,13 +8,21 @@ import '../packages.dart';
 import '../utils/output.dart';
 
 abstract base class MyBenchmarkBase extends BenchmarkBase {
+  /// A sink for the results of the measured cycles.
+  ///
+  /// Only the last cycle escapes from [exercise]; without a sink the optimizer
+  /// is free to drop the rest. A write to a static field it cannot drop.
+  static Object? blackhole;
+
   final Package package;
   final Op operation;
   final Object? expectedExerciseResult;
 
+  /// Scores of every run of the series, µs per cycle, in the order measured.
+  final List<double> scores = <double>[];
+
   String? resultMessage;
   String? error;
-  double? score;
 
   MyBenchmarkBase(
     this.package,
@@ -23,6 +31,34 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   ]) : super(package.id);
 
   bool get hasError => error != null;
+
+  /// The median of [scores], `null` until the benchmark has been measured.
+  ///
+  /// The median rather than the mean: a single run interrupted by the OS must
+  /// not drag the whole series with it.
+  double? get score {
+    if (scores.isEmpty) {
+      return null;
+    }
+
+    final sorted = scores.toList()..sort();
+    final middle = sorted.length ~/ 2;
+
+    return sorted.length.isOdd
+        ? sorted[middle]
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  /// The best and the worst run of the series, µs per cycle.
+  ///
+  /// Printed next to [score] to make the drift of the machine visible.
+  (double, double)? get spread {
+    if (scores.isEmpty) {
+      return null;
+    }
+
+    return (scores.reduce(min), scores.reduce(max));
+  }
 
   @override
   void setup() {
@@ -108,33 +144,33 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
     switch (operation) {
       case Op.add:
         for (var i = 0; i < count; i++) {
-          result = add();
+          blackhole = result = add();
         }
 
       case Op.multiply:
         for (var i = 0; i < count; i++) {
-          result = multiply();
+          blackhole = result = multiply();
         }
 
       case Op.divide:
         for (var i = 0; i < count; i++) {
-          result = divide();
+          blackhole = result = divide();
         }
 
       case Op.divideAndView:
         for (var i = 0; i < count; i++) {
-          result = divideAndView();
+          blackhole = result = divideAndView();
         }
 
       case Op.rawView:
         for (var i = 0; i < count; i++) {
-          result = rawView();
+          blackhole = result = rawView();
         }
 
-      case Op.preparedView:
+      case Op.repeatView:
         prepareValues();
         for (var i = 0; i < count; i++) {
-          result = preparedView();
+          blackhole = result = repeatView();
         }
     }
 
@@ -153,9 +189,15 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
 
   List<String> rawView();
 
-  void prepareValues();
+  /// Warms up whatever the package caches on the first conversion.
+  ///
+  /// Runs the very code [repeatView] measures, so that the measured cycles see
+  /// only the second and later conversion of the same value.
+  void prepareValues() {
+    repeatView();
+  }
 
-  List<String> preparedView();
+  List<String> repeatView();
 }
 
 extension on String {

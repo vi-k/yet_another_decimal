@@ -85,10 +85,7 @@ final class YetAnotherDecimalShortTest extends MyBenchmarkBase {
   }
 
   @override
-  void prepareValues() {}
-
-  @override
-  List<String> preparedView() {
+  List<String> repeatView() {
     final length = values.length;
     for (var i = 0; i < length; i++) {
       _convertToStringResult[i] = values[i].toString();

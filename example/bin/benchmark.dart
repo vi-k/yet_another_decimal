@@ -13,6 +13,13 @@ void printUsage() {
 
   print('${accent('all')} - all packages and all tests');
 
+  print('');
+  print('Options:');
+  print(
+    '${accent('--runs=N')} - measure every benchmark N times'
+    ' and take the median (default: $defaultRuns)',
+  );
+
   print('\nPackages:');
   for (final package in Package.values) {
     final tags = package.tags;
@@ -46,6 +53,10 @@ void printUsage() {
   print('');
   print('All tests for all packages excluding "yet_another_decimal"');
   print('> ${accent('dart benchmark.dart -yet_another_decimal')}');
+
+  print('');
+  print('All packages and all tests, one run instead of a series:');
+  print('> ${accent('dart benchmark.dart all --runs=1')}');
 }
 
 void main(List<String> arguments) {
@@ -60,6 +71,7 @@ void main(List<String> arguments) {
         return;
       }
 
+      var runs = defaultRuns;
       final includePackages = <Package>{};
       final excludePackages = <Package>{};
       final includeTests = <Test>{};
@@ -70,6 +82,16 @@ void main(List<String> arguments) {
           case 'all':
             includePackages.addAll(Package.values);
             includeTests.addAll(Test.values);
+
+          case final String a when a.startsWith('--runs='):
+            final value = int.tryParse(a.substring('--runs='.length));
+            if (value == null || value < 1) {
+              print('${error('Not a number of runs:')} ${accentError(arg)}');
+              print('');
+              printUsage();
+              return;
+            }
+            runs = value;
 
           default:
             final exclude = arg.startsWith('-');
@@ -129,6 +151,7 @@ void main(List<String> arguments) {
       run(
         packages: packages,
         tests: tests,
+        runs: runs,
       );
     },
   );

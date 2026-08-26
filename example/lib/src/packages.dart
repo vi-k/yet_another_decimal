@@ -35,6 +35,12 @@ enum Package {
     this.ignoreMatchingErrors = false,
   });
 
+  /// The name of the package on pub.dev.
+  ///
+  /// Two of the ids name a type inside a package, not the package itself:
+  /// `yet_another_decimal-decimal` and `yet_another_decimal-short-decimal`.
+  String get pubName => id.split('-').first;
+
   static Package? byId(String id) {
     for (final value in values) {
       if (value.id == id) {

@@ -4,7 +4,7 @@ enum Op {
   divide('divide', '/', 1000),
   divideAndView('divide-and-view', '/', 100),
   rawView('raw-view', null, 100),
-  preparedView('prepared-view', null, 100);
+  repeatView('repeat-view', null, 100);
 
   final String id;
   final String? sign;
