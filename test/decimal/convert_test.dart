@@ -237,12 +237,16 @@ void main() {
     });
 
     test('расширения int и BigInt', () {
-      // Расширение помечено устаревшим — конфликтует с одноимённым из
-      // `decimal`, — но до удаления обязано работать.
+      // Расширения помечены устаревшими — конфликтуют с одноимёнными из
+      // `decimal`, — но до удаления обязаны работать.
+      // ignore: deprecated_member_use_from_same_package
       expectDecimal(5.toDecimal(), '5');
+      // ignore: deprecated_member_use_from_same_package
       expectDecimal((-5).toDecimal(), '-5');
+      // ignore: deprecated_member_use_from_same_package
       expectDecimal(BigInt.from(5).toDecimal(), '5');
       expectDecimal(
+        // ignore: deprecated_member_use_from_same_package
         BigInt.parse('12345678901234567890').toDecimal(),
         '12345678901234567890',
       );

@@ -1197,29 +1197,29 @@ final class DecimalDivideException implements Exception {
 }
 
 /// Conversion from `BigInt`.
-@Deprecated(
-  'Conflicts with the same extension from package:decimal, so the two '
-  'cannot be used together. Use Decimal.fromBigInt(value) instead',
-)
 extension DecimalBigIntExtension on BigInt {
   /// This integer as a [Decimal].
   ///
   /// ```dart
   /// print(BigInt.from(42).toDecimal()); // 42
   /// ```
+  @Deprecated(
+    'Conflicts with the same extension from package:decimal, so the two '
+    'cannot be used together. Use Decimal.fromBigInt(value) instead',
+  )
   Decimal toDecimal() => Decimal.fromBigInt(this);
 }
 
 /// Conversion from `int`.
-@Deprecated(
-  'Conflicts with the same extension from package:decimal, so the two '
-  'cannot be used together. Use Decimal(value) instead',
-)
 extension DecimalIntExtension on int {
   /// This integer as a [Decimal].
   ///
   /// ```dart
   /// print(42.toDecimal()); // 42
   /// ```
+  @Deprecated(
+    'Conflicts with the same extension from package:decimal, so the two '
+    'cannot be used together. Use Decimal(value) instead',
+  )
   Decimal toDecimal() => Decimal(this);
 }
