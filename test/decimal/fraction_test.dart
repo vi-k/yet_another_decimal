@@ -106,6 +106,39 @@ void main() {
       expectFraction(Fraction.parse('-123'), '-123');
     });
 
+    test('parse принимает пробелы вокруг, как и числа', () {
+      expectFraction(Fraction.parse(' 3 / 4 '), '3/4');
+      expectFraction(Fraction.parse('\t-3\n'), '-3');
+    });
+
+    test('parse не принимает того, чего не принимают числа', () {
+      // Р9: разбор шёл через `BigInt.parse`, а тот берёт шестнадцатеричное —
+      // то самое, что для чисел закрыто дефектом Д10.
+      for (final source in [
+        '0x10',
+        '-0x10',
+        '0X1F',
+        '0x3/4',
+        '3/0x4',
+        '',
+        '/',
+        '3/',
+        '/4',
+        '+',
+        '-/4',
+        '3 4',
+        '1.5',
+        '1e3',
+        '3/4/5',
+      ]) {
+        expect(
+          () => Fraction.parse(source),
+          throwsFormatException,
+          reason: 'на "$source"',
+        );
+      }
+    });
+
     group('операторы', () {
       test('умножение сокращает', () {
         expectFraction(

@@ -739,5 +739,20 @@ void main() {
         );
       });
     });
+
+    group('конструктор', () {
+      test('отрицательный сдвиг отвергается, а не проверяется ассертом', () {
+        // Р16: проверка стояла `assert`, то есть в release её не было вовсе,
+        // и `Decimal(1, shiftRight: -3)` молча считался за 1000.
+        expect(() => Decimal(1, shiftRight: -3), throwsArgumentError);
+        expect(
+          () => Decimal.fromBigInt(BigInt.one, shiftRight: -1),
+          throwsArgumentError,
+        );
+
+        expectDecimal(Decimal(1), '1');
+        expectDecimal(Decimal(1, shiftRight: 3), '0.001');
+      });
+    });
   });
 }

@@ -637,5 +637,22 @@ void main() {
         );
       });
     });
+
+    group('конструктор', () {
+      test('отрицательный сдвиг отвергается, а не проверяется ассертом', () {
+        // Р16: проверки стояли `assert`, то есть в release их не было вовсе,
+        // и `ShortDecimal(1, shiftRight: -3)` молча считался за 1000.
+        expect(() => ShortDecimal(1, shiftRight: -3), throwsArgumentError);
+        expect(() => ShortDecimal(1, shiftLeft: -3), throwsArgumentError);
+        expect(
+          () => ShortDecimal(1, shiftLeft: 1, shiftRight: 1),
+          throwsArgumentError,
+        );
+
+        expectShortDecimal(ShortDecimal(1), '1');
+        expectShortDecimal(ShortDecimal(1, shiftRight: 3), '0.001');
+        expectShortDecimal(ShortDecimal(1, shiftLeft: 3), '1000');
+      });
+    });
   });
 }

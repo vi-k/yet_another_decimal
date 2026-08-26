@@ -91,18 +91,28 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// Decimal(1, shiftLeft: 2); // 100
   /// ```
   factory ShortDecimal(int base, {int shiftLeft = 0, int shiftRight = 0}) {
-    assert(
-      shiftLeft == 0 || shiftRight == 0,
-      'Use either `shiftLeft` or `shiftRight`',
-    );
-    assert(
-      shiftLeft >= 0,
-      'Use `shiftRight` instead of the negative `shiftLeft`',
-    );
-    assert(
-      shiftRight >= 0,
-      'Use `shiftLeft` instead of the negative `shiftRight`',
-    );
+    // Not asserts: the three of them would be gone in release, where the two
+    // shifts would then cancel each other and a negative one would quietly
+    // turn into its opposite.
+    if (shiftLeft != 0 && shiftRight != 0) {
+      throw ArgumentError('Use either `shiftLeft` or `shiftRight`, not both');
+    }
+
+    if (shiftLeft < 0) {
+      throw ArgumentError.value(
+        shiftLeft,
+        'shiftLeft',
+        'Use `shiftRight` instead of a negative `shiftLeft`',
+      );
+    }
+
+    if (shiftRight < 0) {
+      throw ArgumentError.value(
+        shiftRight,
+        'shiftRight',
+        'Use `shiftLeft` instead of a negative `shiftRight`',
+      );
+    }
 
     return ShortDecimal._pack(base, shiftRight - shiftLeft);
   }
@@ -481,7 +491,21 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw ShortDecimalDivideException._(this, other);
     }
 
-    return divideToFraction(other).round(scaleOnInfinitePrecision);
+    final (dividend, divisor) = _fractionPair(other);
+    final fraction = ShortFraction._orNull(dividend, divisor);
+    if (fraction != null) {
+      return fraction.round(scaleOnInfinitePrecision);
+    }
+
+    // A divisor of 2^63 has no fraction to be rounded: int64 has no room for
+    // that denominator with a positive sign. The rounded quotient is an
+    // ordinary number all the same, so it is taken from the pair itself.
+    return ShortFraction._roundExactly(
+      BigInt.from(dividend),
+      BigInt.from(divisor),
+      scaleOnInfinitePrecision,
+      _Rounding.round,
+    );
   }
 
   /// Whether dividing by [other] has a finite decimal form.
@@ -550,7 +574,19 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   }
 
   /// Calculates the result of division as fraction.
+  ///
+  /// Throws `ArgumentError` where the ratio has no fraction in int64 — a
+  /// divisor of 2^63 leaves the denominator nowhere to be positive. [divide]
+  /// answers such a division anyway: it needs the rounded quotient, and that
+  /// one is an ordinary number.
   ShortFraction divideToFraction(ShortDecimal other) {
+    final (dividend, divisor) = _fractionPair(other);
+
+    return ShortFraction(dividend, divisor);
+  }
+
+  /// The pair a fraction of this division is built from.
+  (int, int) _fractionPair(ShortDecimal other) {
     if (other.isZero) {
       throw UnsupportedError('division by zero');
     }
@@ -559,7 +595,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     if (aligned != null) {
       final (dividend, divisor, _) = aligned;
 
-      return ShortFraction(dividend, divisor);
+      return (dividend, divisor);
     }
 
     // Reduced first: the aligned pair can leave int64 while the same ratio in
@@ -567,7 +603,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final (a, b, _) = _alignExactly(other);
     final gcd = a.fastGcd(b);
 
-    return ShortFraction((a ~/ gcd).toInt(), (b ~/ gcd).toInt());
+    return ((a ~/ gcd).toInt(), (b ~/ gcd).toInt());
   }
 
   /// Calculates the result of division as an integer quotient and remainder.

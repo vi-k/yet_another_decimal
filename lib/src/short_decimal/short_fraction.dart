@@ -24,8 +24,23 @@ final class ShortFraction implements Comparable<ShortFraction> {
   /// A ratio of [dividend] over [divisor], reduced to lowest terms.
   ///
   /// The sign is carried by the numerator: the denominator is always positive.
-  /// Throws `UnsupportedError` when [divisor] is zero.
-  factory ShortFraction(int dividend, int divisor) {
+  /// Throws `UnsupportedError` when [divisor] is zero, and `ArgumentError`
+  /// when the ratio has no fraction in int64 — see [_orNull].
+  factory ShortFraction(int dividend, int divisor) =>
+      _orNull(dividend, divisor) ??
+      (throw ArgumentError(
+        'The fraction $dividend/$divisor cannot be normalized:'
+        ' its denominator does not fit into int64 with a positive sign',
+      ));
+
+  /// The same ratio, or null where int64 has no room for its sign.
+  ///
+  /// Only a denominator of 2^63 lands here: its magnitude is one past the
+  /// largest int64, so the ratio cannot be written with the positive
+  /// denominator a fraction promises. The division it came from is often
+  /// answerable all the same — [ShortDecimal.divide] rounds the pair without
+  /// the fraction — and that is what this factory is for.
+  static ShortFraction? _orNull(int dividend, int divisor) {
     if (divisor == 0) {
       throw UnsupportedError('division by zero');
     }
@@ -49,16 +64,20 @@ final class ShortFraction implements Comparable<ShortFraction> {
     }
 
     if (denominator == -denominator || numerator == -numerator) {
-      throw ArgumentError(
-        'The fraction $dividend/$divisor cannot be normalized:'
-        ' its denominator does not fit into int64 with a positive sign',
-      );
+      return null;
     }
 
     return ShortFraction._(-numerator, -denominator);
   }
 
   /// Reads a ratio written as `numerator/denominator`, or a bare integer.
+  ///
+  /// Each side is a whole number with an optional sign, and whitespace around
+  /// it is allowed — the same as [ShortDecimal.parse] allows. Hexadecimal is
+  /// not a number here any more than it is there.
+  ///
+  /// Throws [FormatException] on failure, and `UnsupportedError` when the
+  /// denominator is zero.
   ///
   /// ```dart
   /// print(ShortFraction.parse('3/4')); // 3/4
@@ -68,14 +87,24 @@ final class ShortFraction implements Comparable<ShortFraction> {
     final fractionBar = str.indexOf('/');
 
     if (fractionBar == -1) {
-      final numerator = int.parse(str);
-      return ShortFraction._(numerator, 1);
+      return ShortFraction._(_parseSide(str, str), 1);
     }
 
-    final dividend = int.parse(str.substring(0, fractionBar));
-    final divisor = int.parse(str.substring(fractionBar + 1));
+    return ShortFraction(
+      _parseSide(str.substring(0, fractionBar), str),
+      _parseSide(str.substring(fractionBar + 1), str),
+    );
+  }
 
-    return ShortFraction(dividend, divisor);
+  /// One side of a written ratio, [source] being the whole of it for the
+  /// error message.
+  static int _parseSide(String side, String source) {
+    final digits = side.scanInteger();
+    if (digits == null) {
+      throw FormatException('Could not parse $ShortFraction: $source');
+    }
+
+    return int.parse(digits);
   }
 
   const ShortFraction._(this.numerator, this.denominator)
@@ -288,25 +317,45 @@ final class ShortFraction implements Comparable<ShortFraction> {
   }
 
   /// The same rounding for the case where int64 is not wide enough for it.
+  ShortDecimal _dropFractionExactly(int fractionDigits, _Rounding rounding) =>
+      _roundExactly(
+        BigInt.from(numerator),
+        BigInt.from(denominator),
+        fractionDigits,
+        rounding,
+      );
+
+  /// The rounding of [dividend] over [divisor] done in `BigInt`.
   ///
   /// This is the one place in the family that reaches for BigInt, and it is
   /// reached only when the int path would answer with a wrapped-around number.
   /// The alternative was the defect this replaces: a positive fraction coming
   /// back negative.
   ///
-  /// When even the result does not fit — asking a fraction for more digits
-  /// than int64 holds — the closest representable value is returned instead:
-  /// the scale is reduced with rounding until the value fits. Losing the last
-  /// digits keeps the sign and the magnitude; wrapping around keeps neither.
-  ShortDecimal _dropFractionExactly(int fractionDigits, _Rounding rounding) {
+  /// When even the result does not fit — asking for more digits than int64
+  /// holds — the closest representable value is returned instead: the scale is
+  /// reduced with rounding until the value fits. Losing the last digits keeps
+  /// the sign and the magnitude; wrapping around keeps neither.
+  ///
+  /// The pair need not be a fraction: [ShortDecimal.divide] rounds through
+  /// here when the ratio has none in int64, and its divisor arrives with
+  /// whatever sign it had. Bringing the denominator back to positive is
+  /// exactly what int64 could not do and `BigInt` always can.
+  static ShortDecimal _roundExactly(
+    BigInt dividend,
+    BigInt divisor,
+    int fractionDigits,
+    _Rounding rounding,
+  ) {
     final ten = BigInt.from(10);
     final power = ten.pow(fractionDigits.abs());
-    final numerator = fractionDigits >= 0
-        ? BigInt.from(this.numerator) * power
-        : BigInt.from(this.numerator);
-    final denominator = fractionDigits >= 0
-        ? BigInt.from(this.denominator)
-        : BigInt.from(this.denominator) * power;
+    var numerator = fractionDigits >= 0 ? dividend * power : dividend;
+    var denominator = fractionDigits >= 0 ? divisor : divisor * power;
+
+    if (denominator.isNegative) {
+      numerator = -numerator;
+      denominator = -denominator;
+    }
 
     final remainder = numerator.remainder(denominator).abs();
     var value = numerator ~/ denominator +

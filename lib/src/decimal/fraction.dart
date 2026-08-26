@@ -42,6 +42,13 @@ final class Fraction implements Comparable<Fraction> {
 
   /// Reads a ratio written as `numerator/denominator`, or a bare integer.
   ///
+  /// Each side is a whole number with an optional sign, and whitespace around
+  /// it is allowed — the same as [Decimal.parse] allows. Hexadecimal is not a
+  /// number here any more than it is there.
+  ///
+  /// Throws [FormatException] on failure, and `UnsupportedError` when the
+  /// denominator is zero.
+  ///
   /// ```dart
   /// print(Fraction.parse('3/4')); // 3/4
   /// print(Fraction.parse('5'));   // 5
@@ -50,14 +57,24 @@ final class Fraction implements Comparable<Fraction> {
     final fractionBar = str.indexOf('/');
 
     if (fractionBar == -1) {
-      final numerator = BigInt.parse(str);
-      return Fraction._asIs(numerator, BigInt.one);
+      return Fraction._asIs(_parseSide(str, str), BigInt.one);
     }
 
-    final dividend = BigInt.parse(str.substring(0, fractionBar));
-    final divisor = BigInt.parse(str.substring(fractionBar + 1));
+    return Fraction(
+      _parseSide(str.substring(0, fractionBar), str),
+      _parseSide(str.substring(fractionBar + 1), str),
+    );
+  }
 
-    return Fraction(dividend, divisor);
+  /// One side of a written ratio, [source] being the whole of it for the
+  /// error message.
+  static BigInt _parseSide(String side, String source) {
+    final digits = side.scanInteger();
+    if (digits == null) {
+      throw FormatException('Could not parse $Fraction: $source');
+    }
+
+    return BigInt.parse(digits);
   }
 
   Fraction._asIs(this.numerator, this.denominator)

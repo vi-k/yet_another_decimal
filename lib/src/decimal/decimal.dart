@@ -135,8 +135,8 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Decimal(1, shiftRight: 1); // 0.1
   /// Decimal(1, shiftRight: 2); // 0.01
   /// ```
-  Decimal(int base, {int shiftRight = 0})
-      : this.fromBigInt(BigInt.from(base), shiftRight: shiftRight);
+  factory Decimal(int base, {int shiftRight = 0}) =>
+      Decimal.fromBigInt(BigInt.from(base), shiftRight: shiftRight);
 
   /// Returns [Decimal] from `BigInt` [base].
   ///
@@ -148,9 +148,13 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Decimal.fromBigInt(BigInt.one, shiftRight: 1); // 0.1
   /// Decimal.fromBigInt(BigInt.one, shiftRight: 2); // 0.01
   /// ```
-  Decimal.fromBigInt(this.base, {int shiftRight = 0})
-      : assert(shiftRight >= 0, 'shiftRight must be positive'),
-        scale = shiftRight;
+  factory Decimal.fromBigInt(BigInt base, {int shiftRight = 0}) {
+    // Not an assert: the two of them would part ways in release, where the
+    // check is gone and a negative shift quietly multiplies instead.
+    _checkNonNegativeArgument(shiftRight, 'shiftRight');
+
+    return Decimal._asIs(base, shiftRight);
+  }
 
   /// Parse the [string] to [Decimal].
   ///

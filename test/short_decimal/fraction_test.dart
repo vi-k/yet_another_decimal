@@ -112,6 +112,39 @@ void main() {
       expectShortFraction(ShortFraction.parse('-123'), '-123');
     });
 
+    test('parse принимает пробелы вокруг, как и числа', () {
+      expectShortFraction(ShortFraction.parse(' 3 / 4 '), '3/4');
+      expectShortFraction(ShortFraction.parse('\t-3\n'), '-3');
+    });
+
+    test('parse не принимает того, чего не принимают числа', () {
+      // Р9: разбор шёл через `int.parse`, а тот берёт шестнадцатеричное — то
+      // самое, что для чисел закрыто дефектом Д10.
+      for (final source in [
+        '0x10',
+        '-0x10',
+        '0X1F',
+        '0x3/4',
+        '3/0x4',
+        '',
+        '/',
+        '3/',
+        '/4',
+        '+',
+        '-/4',
+        '3 4',
+        '1.5',
+        '1e3',
+        '3/4/5',
+      ]) {
+        expect(
+          () => ShortFraction.parse(source),
+          throwsFormatException,
+          reason: 'на "$source"',
+        );
+      }
+    });
+
     group('операторы', () {
       test('умножение сокращает', () {
         expectShortFraction(ShortFraction(1, 2) * ShortFraction(2, 3), '1/3');

@@ -819,6 +819,43 @@ void main() {
         );
       });
 
+      test('делитель int.min: divide с числом знаков отвечает', () {
+        // Р11: округление шло через `ShortFraction`, а дробь 3/2^63 в int64 не
+        // помещается — знаменателю негде быть положительным, и наружу летел
+        // `ArgumentError` про нормализацию. Само округлённое частное при этом
+        // самое обычное число, и семейство на BigInt его называет.
+        const min = -9223372036854775808;
+        final wideMin = Decimal.parse('$min');
+
+        // Ожидание — точный ответ семейства на BigInt, округлённый до того же
+        // числа знаков: у него 3/2^63 представимо целиком, у int64 — нет.
+        for (final digits in [0, 1, 4, 19, 25]) {
+          expectShortDecimal(
+            ShortDecimal(3).divide(
+              ShortDecimal(min),
+              scaleOnInfinitePrecision: digits,
+            ),
+            (Decimal(3) / wideMin).round(digits).toString(),
+          );
+        }
+
+        // То же, когда int.min приходит делителем после выравнивания.
+        expectShortDecimal(
+          ShortDecimal(3).divide(
+            ShortDecimal(min, shiftRight: 2),
+            scaleOnInfinitePrecision: 4,
+          ),
+          (Decimal(3) / (wideMin >> 2)).round(4).toString(),
+        );
+
+        // А дробью такое отношение действительно не записать, и об этом
+        // сказано прямо, а не молчаливым переполнением.
+        expect(
+          () => ShortDecimal(3).divideToFraction(ShortDecimal(min)),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
       test('прибавление нуля не меняет значения', () {
         // Р1: при разрыве масштабов больше 18 выравнивание переполнялось, и
         // домножалась база самого числа, а не нуля.

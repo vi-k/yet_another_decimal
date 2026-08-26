@@ -165,6 +165,41 @@ extension StringInternals on String {
   (String, String) splitByIndex(int index) =>
       (substring(0, index), substring(index));
 
+  /// Reads a whole number and returns it with its sign, ready for parsing.
+  ///
+  /// `' -42 '` reads as `'-42'`; a dot, an exponent, a hexadecimal prefix, an
+  /// inner space and a bare sign all read as null. Surrounding whitespace is
+  /// allowed, exactly as [scanDecimal] allows it.
+  ///
+  /// This is what the two sides of a fraction are written with. Handing them
+  /// to [BigInt.parse] or [int.parse] instead — which is what this replaces —
+  /// let hexadecimal through, and a fraction was reading `'0x10'` as sixteen
+  /// while a decimal had stopped doing so.
+  String? scanInteger() {
+    final source = trim();
+    final length = source.length;
+    var index = 0;
+
+    if (index < length) {
+      final code = source.codeUnitAt(index);
+      if (code == _charMinus || code == _charPlus) {
+        index++;
+      }
+    }
+
+    final digitsStart = index;
+    while (index < length && _isDigit(source.codeUnitAt(index))) {
+      index++;
+    }
+
+    // At least one digit, and nothing after them.
+    if (index == digitsStart || index != length) {
+      return null;
+    }
+
+    return source;
+  }
+
   /// Reads a decimal number and returns its digits and their scale.
   ///
   /// The digits come with their sign and without the dot; the scale is what
