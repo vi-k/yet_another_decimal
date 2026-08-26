@@ -57,6 +57,12 @@ A few rules keep the answers honest:
 - **Every benchmark is measured five times** (`--runs=N`), and the summary
   shows the median; the console shows the whole spread next to it. One run
   says nothing: the machine drifts by up to 15 % between them.
+- **For numbers worth publishing, run the whole sweep twice**, hours apart, and
+  take the better of the two medians for each cell. A median of five protects
+  against one bad run, not against a burst of unrelated load that outlasts the
+  whole series — and such a burst can only make a benchmark look slower, never
+  faster. Two separated passes disagreed on 15 cells out of 190 the last time
+  the README table was measured.
 - **The result of every measured cycle goes into a sink**, so that the
   optimizer cannot drop the work the cycle was there to do.
 - **What the run depends on is printed above it**: the Dart version, the OS,
