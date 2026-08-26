@@ -187,8 +187,19 @@ void main() {
       expectDecimal(-Decimal.parse('1.5'), '-1.5');
     });
 
-    test('отрицательный аргумент pow', () {
-      expect(() => Decimal(2).pow(-1), throwsA(isA<ArgumentError>()));
+    test('отрицательный показатель pow', () {
+      expectDecimal(Decimal(2).pow(-1), '0.5');
+      expectDecimal(Decimal(2).pow(-2), '0.25');
+      expectDecimal(Decimal(10).pow(-3), '0.001');
+      expectDecimal(Decimal.parse('0.5').pow(-1), '2');
+
+      // Бросает ровно то же, что деление.
+      expect(() => Decimal(3).pow(-1), throwsA(isA<DecimalDivideException>()));
+      expect(() => Decimal(0).pow(-1), throwsA(isA<UnsupportedError>()));
+      expect(
+        () => Decimal(2).pow(-9223372036854775808),
+        throwsA(isA<ArgumentError>()),
+      );
     });
   });
 }

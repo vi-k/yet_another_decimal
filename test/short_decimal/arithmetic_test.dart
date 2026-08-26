@@ -366,8 +366,22 @@ void main() {
       );
     });
 
-    test('отрицательный аргумент pow', () {
-      expect(() => ShortDecimal(2).pow(-1), throwsA(isA<ArgumentError>()));
+    test('отрицательный показатель pow', () {
+      expectShortDecimal(ShortDecimal(2).pow(-1), '0.5');
+      expectShortDecimal(ShortDecimal(2).pow(-2), '0.25');
+      expectShortDecimal(ShortDecimal(10).pow(-3), '0.001');
+      expectShortDecimal(ShortDecimal.parse('0.5').pow(-1), '2');
+
+      // Бросает ровно то же, что деление.
+      expect(
+        () => ShortDecimal(3).pow(-1),
+        throwsA(isA<ShortDecimalDivideException>()),
+      );
+      expect(() => ShortDecimal(0).pow(-1), throwsA(isA<UnsupportedError>()));
+      expect(
+        () => ShortDecimal(2).pow(-9223372036854775808),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('расширение int', () {

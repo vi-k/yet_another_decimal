@@ -273,6 +273,32 @@ void main() {
     });
   });
 
+  group('precision совпадает с decimal', () {
+    for (final source in [
+      '0',
+      '1',
+      '1.5',
+      '0.5',
+      '0.05',
+      '-0.05',
+      '100',
+      '100.00',
+      '1234.5678',
+      '0.000000001',
+      '12345678901234567890.12345',
+    ]) {
+      test(source, () {
+        final other = rival.Decimal.parse(source);
+
+        expect(Decimal.parse(source).precision, other.precision);
+        final short = ShortDecimal.tryParse(source);
+        if (short != null) {
+          expect(short.precision, other.precision);
+        }
+      });
+    }
+  });
+
   group('осознанное расхождение: точка без дробной части', () {
     // `decimal` принимает '1.' и читает его как 1. Мы отвергаем — это решение
     // принято до переработки и закреплено тестами разбора: у точки обязана

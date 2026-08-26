@@ -77,6 +77,11 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
       tryParse(string) ??
       (throw FormatException('Could not parse $ShortDecimal: $string'));
 
+  /// Reads a decimal from its [toJson] form.
+  ///
+  /// Throw [FormatException] on failure.
+  factory ShortDecimal.fromJson(String json) => ShortDecimal.parse(json);
+
   // The three-step zero removal that Decimal uses is not mirrored here: it was
   // tried and measured, and every case came out slower — the loop below runs
   // on machine words and there is nothing to save.
@@ -510,13 +515,77 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   }
 
   /// Returns this decimal to the power of [exponent].
+  ///
+  /// A negative [exponent] is one over the positive power, so it throws what
+  /// division throws: [ShortDecimalDivideException] when the result has no
+  /// finite decimal form, [UnsupportedError] on zero.
+  ///
+  /// ```dart
+  /// print(ShortDecimal(2).pow(-2)); // 0.25
+  /// ```
   ShortDecimal pow(int exponent) {
-    _checkNonNegativeArgument(exponent, 'exponent');
+    if (exponent >= 0) {
+      return ShortDecimal._pack(
+        math.pow(base, exponent) as int,
+        scale * exponent,
+      );
+    }
 
-    return ShortDecimal._pack(
-      math.pow(base, exponent) as int,
-      scale * exponent,
-    );
+    // The minimum integer has no positive counterpart to raise to.
+    if (exponent == -exponent) {
+      throw ArgumentError.value(exponent, 'exponent', 'The value is too small');
+    }
+
+    return one / pow(-exponent);
+  }
+
+  /// The number of digits in the unscaled value.
+  ///
+  /// Zero has a precision of one, the same as `decimal` reports.
+  ///
+  /// ```dart
+  /// print(ShortDecimal.parse('0').precision); // 1
+  /// print(ShortDecimal.parse('1.5').precision); // 2
+  /// print(ShortDecimal.parse('0.05').precision); // 3
+  /// ```
+  int get precision {
+    final integer = toBigInt().toString();
+
+    return fractionDigits +
+        (integer.codeUnitAt(0) == _charCodeMinus
+            ? integer.length - 1
+            : integer.length);
+  }
+
+  /// Whether this decimal is greater than zero.
+  ///
+  /// Zero is neither positive nor [isNegative].
+  bool get isPositive => base.sign > 0;
+
+  /// One divided by this decimal, as an exact [ShortFraction].
+  ///
+  /// A fraction rather than a decimal because the inverse of three has no
+  /// finite decimal form.
+  ///
+  /// Throws [UnsupportedError] if this decimal is zero.
+  ShortFraction get inverse => scale >= 0
+      ? ShortFraction(_pow10(scale), base)
+      : ShortFraction(1, base * _pow10(-scale));
+
+  /// A JSON representation of this decimal: the string [toString] returns.
+  String toJson() => toString();
+
+  /// Returns [BigInt], discarding all fractional digits from this decimal.
+  ///
+  /// Unlike [toInt] this one never overflows: a decimal shifted far to the
+  /// left holds a value no int64 can.
+  BigInt toBigInt() {
+    final truncated = truncate();
+    final base = BigInt.from(truncated.base);
+
+    return truncated.scale < 0
+        ? base * BigInt.from(10).pow(-truncated.scale)
+        : base;
   }
 
   /// Returns [int], discarding all fractional digits from this decimal.

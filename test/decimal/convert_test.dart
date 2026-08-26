@@ -326,5 +326,69 @@ void main() {
         }
       });
     });
+
+    group('precision', () {
+      for (final (source, expected) in [
+        ('0', 1),
+        ('-0', 1),
+        ('1', 1),
+        ('1.5', 2),
+        ('0.5', 2),
+        ('0.05', 3),
+        ('-0.05', 3),
+        ('100', 3),
+        ('100.00', 3),
+        ('1234.5678', 8),
+      ]) {
+        test('$source даёт $expected', () {
+          expect(Decimal.parse(source).precision, expected);
+        });
+      }
+    });
+
+    test('isPositive', () {
+      expect(Decimal.parse('1').isPositive, isTrue);
+      expect(Decimal.parse('0.0001').isPositive, isTrue);
+      expect(Decimal.parse('0').isPositive, isFalse);
+      expect(Decimal.parse('-0').isPositive, isFalse);
+      expect(Decimal.parse('-1').isPositive, isFalse);
+
+      // Ноль не положителен и не отрицателен.
+      expect(Decimal.parse('0').isNegative, isFalse);
+    });
+
+    test('inverse даёт точную дробь', () {
+      expect(Decimal.parse('0.5').inverse.toString(), '2');
+      expect(Decimal.parse('2').inverse.toString(), '1/2');
+      expect(Decimal.parse('3').inverse.toString(), '1/3');
+      expect(Decimal.parse('100').inverse.toString(), '1/100');
+      expect(Decimal.parse('-0.25').inverse.toString(), '-4');
+
+      expect(
+        () => Decimal.parse('0').inverse,
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('toJson и fromJson', () {
+      for (final source in ['0', '1.5', '-0.05', '1234.5678', '100']) {
+        final value = Decimal.parse(source);
+
+        expect(value.toJson(), value.toString());
+        expect(Decimal.fromJson(value.toJson()), value);
+      }
+
+      expect(() => Decimal.fromJson('мусор'), throwsA(isA<FormatException>()));
+    });
+
+    test('toInt рядом с toBigInt', () {
+      expect(Decimal.parse('1.9').toInt(), 1);
+      expect(Decimal.parse('-1.9').toInt(), -1);
+      expect((Decimal(1) << 3).toInt(), 1000);
+      expect(Decimal.parse('0').toInt(), 0);
+
+      // Согласовано с семейством на int.
+      expect(Decimal.parse('-1.9').toInt(), ShortDecimal.parse('-1.9').toInt());
+    });
   });
 }

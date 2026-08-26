@@ -367,5 +367,66 @@ void main() {
         );
       });
     });
+
+    test('модуль', () {
+      expectShortFraction(ShortFraction(-1, 2).abs(), '1/2');
+      expectShortFraction(ShortFraction(1, 2).abs(), '1/2');
+      expectShortFraction(ShortFraction(0, 2).abs(), '0');
+
+      // Числитель int.min: положительного двойника у него нет.
+      expect(
+        () => ShortFraction(-9223372036854775808, 7).abs(),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('обратная дробь', () {
+      expectShortFraction(ShortFraction(1, 2).inverse, '2');
+      expectShortFraction(ShortFraction(-3, 4).inverse, '-4/3');
+      expect(
+        () => ShortFraction(0, 2).inverse,
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('сравнение', () {
+      const max = 9223372036854775807;
+      final half = ShortFraction(1, 2);
+      final third = ShortFraction(1, 3);
+
+      expect(half.compareTo(third), 1);
+      expect(third.compareTo(half), -1);
+      expect(half.compareTo(ShortFraction(2, 4)), 0);
+      final minusThird = ShortFraction(-1, 3);
+      expect(ShortFraction(-1, 2).compareTo(third), -1);
+
+      final sorted = [half, minusThird, third]..sort();
+      expect(sorted.map((e) => '$e').toList(), ['-1/3', '1/3', '1/2']);
+
+      // Перекрёстное произведение не помещается в int64 — ответ всё равно
+      // точный.
+      expect(ShortFraction(max, 2).compareTo(ShortFraction(max - 2, 2)), 1);
+      expect(
+        ShortFraction(max, max - 1).compareTo(ShortFraction(max - 1, max)),
+        1,
+      );
+      expect(
+        ShortFraction(max, max - 1).compareTo(ShortFraction(max, max - 1)),
+        0,
+      );
+    });
+
+    test('в double и в ShortDecimal', () {
+      expect(ShortFraction(1, 2).toDouble(), 0.5);
+      expect(ShortFraction(1, 3).toDouble(), 1 / 3);
+      expect(ShortFraction(0, 2).toDouble(), 0.0);
+
+      expectShortDecimal(ShortFraction(1, 2).toShortDecimal(), '0.5');
+      expectShortDecimal(ShortFraction(10, 4).toShortDecimal(), '2.5');
+      expect(
+        () => ShortFraction(1, 3).toShortDecimal(),
+        throwsA(isA<ShortDecimalDivideException>()),
+      );
+    });
   });
 }

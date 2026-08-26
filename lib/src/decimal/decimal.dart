@@ -9,6 +9,7 @@ part 'fraction.dart';
 
 final class Decimal implements Comparable<Decimal> {
   static final _char0 = '0'.codeUnitAt(0);
+  static final _charMinus = '-'.codeUnitAt(0);
   static final _bigInt5 = BigInt.from(5);
   static final _bigInt10 = BigInt.from(10);
 
@@ -126,6 +127,11 @@ final class Decimal implements Comparable<Decimal> {
   factory Decimal.parse(String string) =>
       tryParse(string) ??
       (throw FormatException('Could not parse $Decimal: $string'));
+
+  /// Reads a decimal from its [toJson] form.
+  ///
+  /// Throw [FormatException] on failure.
+  factory Decimal.fromJson(String json) => Decimal.parse(json);
 
   Decimal._asIs(this.base, this.scale);
 
@@ -457,11 +463,68 @@ final class Decimal implements Comparable<Decimal> {
   }
 
   /// Returns this decimal to the power of [exponent].
+  ///
+  /// A negative [exponent] is one over the positive power, so it throws what
+  /// division throws: [DecimalDivideException] when the result has no finite
+  /// decimal form, [UnsupportedError] on zero.
+  ///
+  /// ```dart
+  /// print(Decimal(2).pow(-2)); // 0.25
+  /// ```
   Decimal pow(int exponent) {
-    _checkNonNegativeArgument(exponent, 'exponent');
+    if (exponent >= 0) {
+      return Decimal._asIs(base.pow(exponent), scale * exponent);
+    }
 
-    return Decimal._asIs(base.pow(exponent), scale * exponent);
+    // The minimum integer has no positive counterpart to raise to.
+    if (exponent == -exponent) {
+      throw ArgumentError.value(exponent, 'exponent', 'The value is too small');
+    }
+
+    return one / pow(-exponent);
   }
+
+  /// The number of digits in the unscaled value.
+  ///
+  /// Zero has a precision of one, the same as `decimal` reports.
+  ///
+  /// ```dart
+  /// print(Decimal.parse('0').precision); // 1
+  /// print(Decimal.parse('1.5').precision); // 2
+  /// print(Decimal.parse('0.05').precision); // 3
+  /// ```
+  int get precision {
+    final integer = toBigInt().toString();
+
+    return fractionDigits +
+        (integer.codeUnitAt(0) == _charMinus
+            ? integer.length - 1
+            : integer.length);
+  }
+
+  /// Whether this decimal is greater than zero.
+  ///
+  /// Zero is neither positive nor [isNegative].
+  bool get isPositive => base.sign > 0;
+
+  /// One divided by this decimal, as an exact [Fraction].
+  ///
+  /// A fraction rather than a decimal because the inverse of three has no
+  /// finite decimal form.
+  ///
+  /// Throws [UnsupportedError] if this decimal is zero.
+  Fraction get inverse => scale >= 0
+      ? Fraction(_pow10(scale), base)
+      : Fraction(BigInt.one, base * _pow10(-scale));
+
+  /// A JSON representation of this decimal: the string [toString] returns.
+  String toJson() => toString();
+
+  /// Returns [int], discarding all fractional digits from this decimal.
+  ///
+  /// A value that does not fit is truncated to 64 bits, exactly as
+  /// [BigInt.toInt] does; [toBigInt] keeps it whole.
+  int toInt() => toBigInt().toInt();
 
   /// Returns [BigInt], discarding all fractional digits from this decimal.
   BigInt toBigInt() {

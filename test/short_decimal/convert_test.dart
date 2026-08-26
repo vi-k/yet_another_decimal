@@ -318,5 +318,78 @@ void main() {
         }
       });
     });
+
+    group('precision', () {
+      for (final (source, expected) in [
+        ('0', 1),
+        ('-0', 1),
+        ('1', 1),
+        ('1.5', 2),
+        ('0.5', 2),
+        ('0.05', 3),
+        ('-0.05', 3),
+        ('100', 3),
+        ('100.00', 3),
+        ('1234.5678', 8),
+      ]) {
+        test('$source даёт $expected', () {
+          expect(ShortDecimal.parse(source).precision, expected);
+        });
+      }
+    });
+
+    test('isPositive', () {
+      expect(ShortDecimal.parse('1').isPositive, isTrue);
+      expect(ShortDecimal.parse('0.0001').isPositive, isTrue);
+      expect(ShortDecimal.parse('0').isPositive, isFalse);
+      expect(ShortDecimal.parse('-0').isPositive, isFalse);
+      expect(ShortDecimal.parse('-1').isPositive, isFalse);
+
+      // Ноль не положителен и не отрицателен.
+      expect(ShortDecimal.parse('0').isNegative, isFalse);
+    });
+
+    test('inverse даёт точную дробь', () {
+      expect(ShortDecimal.parse('0.5').inverse.toString(), '2');
+      expect(ShortDecimal.parse('2').inverse.toString(), '1/2');
+      expect(ShortDecimal.parse('3').inverse.toString(), '1/3');
+      expect(ShortDecimal.parse('100').inverse.toString(), '1/100');
+      expect(ShortDecimal.parse('-0.25').inverse.toString(), '-4');
+
+      expect(
+        () => ShortDecimal.parse('0').inverse,
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('toJson и fromJson', () {
+      for (final source in ['0', '1.5', '-0.05', '1234.5678', '100']) {
+        final value = ShortDecimal.parse(source);
+
+        expect(value.toJson(), value.toString());
+        expect(ShortDecimal.fromJson(value.toJson()), value);
+      }
+
+      expect(
+        () => ShortDecimal.fromJson('мусор'),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('toBigInt рядом с toInt', () {
+      expect(ShortDecimal.parse('1.9').toBigInt(), BigInt.one);
+      expect(ShortDecimal.parse('-1.9').toBigInt(), -BigInt.one);
+      expect((ShortDecimal(1) << 3).toBigInt(), BigInt.from(1000));
+
+      // Согласовано с семейством на BigInt.
+      expect(
+        ShortDecimal.parse('-1.9').toBigInt(),
+        Decimal.parse('-1.9').toBigInt(),
+      );
+
+      // toInt переполняется там, где toBigInt точен.
+      final huge = ShortDecimal(1) << 25;
+      expect(huge.toBigInt(), BigInt.parse('1${'0' * 25}'));
+    });
   });
 }

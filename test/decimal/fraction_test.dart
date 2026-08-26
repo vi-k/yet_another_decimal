@@ -240,5 +240,43 @@ void main() {
         }
       });
     });
+
+    test('модуль', () {
+      expectFraction(Fraction(BigInt.from(-1), BigInt.two).abs(), '1/2');
+      expectFraction(Fraction(BigInt.one, BigInt.two).abs(), '1/2');
+      expectFraction(Fraction(BigInt.zero, BigInt.two).abs(), '0');
+    });
+
+    test('обратная дробь', () {
+      expectFraction(Fraction(BigInt.one, BigInt.two).inverse, '2');
+      expectFraction(Fraction(BigInt.from(-3), BigInt.from(4)).inverse, '-4/3');
+      expect(
+        () => Fraction(BigInt.zero, BigInt.two).inverse,
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('сравнение', () {
+      final half = Fraction(BigInt.one, BigInt.two);
+      final third = Fraction(BigInt.one, BigInt.from(3));
+
+      expect(half.compareTo(third), 1);
+      expect(third.compareTo(half), -1);
+      expect(half.compareTo(Fraction(BigInt.two, BigInt.from(4))), 0);
+      final minusThird = Fraction(BigInt.from(-1), BigInt.from(3));
+      final minusHalf = Fraction(BigInt.from(-1), BigInt.two);
+      expect(half.compareTo(minusThird), 1);
+      expect(minusHalf.compareTo(third), -1);
+
+      final sorted = [half, minusThird, third]..sort();
+      expect(sorted.map((e) => '$e').toList(), ['-1/3', '1/3', '1/2']);
+    });
+
+    test('в double', () {
+      expect(Fraction(BigInt.one, BigInt.two).toDouble(), 0.5);
+      expect(Fraction(BigInt.one, BigInt.from(3)).toDouble(), 1 / 3);
+      expect(Fraction(BigInt.from(-1), BigInt.from(3)).toDouble(), -1 / 3);
+      expect(Fraction(BigInt.zero, BigInt.two).toDouble(), 0.0);
+    });
   });
 }

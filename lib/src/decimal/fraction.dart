@@ -1,7 +1,7 @@
 part of 'decimal.dart';
 
 @immutable
-final class Fraction {
+final class Fraction implements Comparable<Fraction> {
   /// Numerator.
   final BigInt numerator;
 
@@ -59,6 +59,27 @@ final class Fraction {
     numerator * other.denominator - other.numerator * denominator,
     denominator * other.denominator,
   );
+
+  /// The absolute value of this fraction.
+  Fraction abs() =>
+      numerator.isNegative ? Fraction._asIs(-numerator, denominator) : this;
+
+  /// One divided by this fraction.
+  ///
+  /// Throws [UnsupportedError] if this fraction is zero.
+  Fraction get inverse => Fraction(denominator, numerator);
+
+  /// Compares this to [other].
+  ///
+  /// Returns a negative number if this is less than other, zero if they are
+  /// equal, and a positive number if this is greater than other.
+  @override
+  int compareTo(Fraction other) => (numerator * other.denominator)
+      .compareTo(other.numerator * denominator)
+      .sign;
+
+  /// Converts this fraction to [double].
+  double toDouble() => Decimal._ratioToDouble(numerator, denominator);
 
   Decimal toDecimal() =>
       Decimal.fromBigInt(numerator) / Decimal.fromBigInt(denominator);

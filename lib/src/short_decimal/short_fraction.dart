@@ -1,7 +1,7 @@
 part of 'short_decimal.dart';
 
 @immutable
-final class ShortFraction {
+final class ShortFraction implements Comparable<ShortFraction> {
   /// Numerator.
   final int numerator;
 
@@ -157,6 +157,59 @@ final class ShortFraction {
         ? ShortFraction._(reducedNumerator.toInt(), reducedDenominator.toInt())
         : null;
   }
+
+  /// The absolute value of this fraction.
+  ///
+  /// Throws [ArgumentError] when the numerator is the minimum integer: its
+  /// positive counterpart does not fit into int64.
+  ShortFraction abs() {
+    if (!numerator.isNegative) {
+      return this;
+    }
+
+    final positive = ShortDecimal._negateOrNull(numerator);
+    if (positive == null) {
+      throw ArgumentError(
+        'The absolute value of $this does not fit into int64',
+      );
+    }
+
+    return ShortFraction._(positive, denominator);
+  }
+
+  /// One divided by this fraction.
+  ///
+  /// Throws [UnsupportedError] if this fraction is zero.
+  ShortFraction get inverse => ShortFraction(denominator, numerator);
+
+  /// Compares this to [other].
+  ///
+  /// Returns a negative number if this is less than other, zero if they are
+  /// equal, and a positive number if this is greater than other.
+  @override
+  int compareTo(ShortFraction other) {
+    final own = ShortDecimal._productOrNull(numerator, other.denominator);
+    final theirs = ShortDecimal._productOrNull(other.numerator, denominator);
+
+    if (own != null && theirs != null) {
+      return own.compareTo(theirs).sign;
+    }
+
+    // The cross products do not fit; the comparison is exact anyway.
+    return (BigInt.from(numerator) * BigInt.from(other.denominator))
+        .compareTo(BigInt.from(other.numerator) * BigInt.from(denominator))
+        .sign;
+  }
+
+  /// Converts this fraction to [double].
+  double toDouble() => numerator / denominator;
+
+  /// Converts this fraction to [ShortDecimal].
+  ///
+  /// Throws [ShortDecimalDivideException] if the value has no finite decimal
+  /// form.
+  ShortDecimal toShortDecimal() =>
+      ShortDecimal(numerator) / ShortDecimal(denominator);
 
   /// Rounds the fraction towards negative infinity to [fractionDigits].
   ShortDecimal floor([int fractionDigits = 0]) =>
