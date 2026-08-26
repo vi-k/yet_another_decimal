@@ -23,6 +23,9 @@ dart run bin/benchmark.dart all
 dart run bin/benchmark.dart divide
 dart run bin/benchmark.dart money --runs=1
 
+# numbers worth quoting: two sweeps, the best of them per cell
+dart run bin/benchmark.dart all --passes=2
+
 # everything except one package
 dart run bin/benchmark.dart -yet_another_decimal
 
@@ -34,7 +37,8 @@ For numbers worth quoting, compile it first — the JIT and the AOT answers are
 not the same:
 
 ```bash
-dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe all
+dart compile exe example/bin/benchmark.dart
+example/bin/benchmark.exe all --passes=2
 ```
 
 ### What it measures, and how
@@ -57,12 +61,13 @@ A few rules keep the answers honest:
 - **Every benchmark is measured five times** (`--runs=N`), and the summary
   shows the median; the console shows the whole spread next to it. One run
   says nothing: the machine drifts by up to 15 % between them.
-- **For numbers worth publishing, run the whole sweep twice**, hours apart, and
-  take the better of the two medians for each cell. A median of five protects
-  against one bad run, not against a burst of unrelated load that outlasts the
-  whole series — and such a burst can only make a benchmark look slower, never
-  faster. Two separated passes disagreed on 15 cells out of 190 the last time
-  the README table was measured.
+- **For numbers worth publishing, sweep twice** (`--passes=N`): each cell then
+  shows the better of the two medians. A median of five protects against one
+  bad run, not against a burst of unrelated load that outlasts the whole
+  series — and such a burst can only make a benchmark look slower, never
+  faster. The second sweep reaches a given benchmark some twenty minutes after
+  the first, which is what makes the two independent. They disagreed on 15
+  cells out of 190 the last time the README table was measured.
 - **The result of every measured cycle goes into a sink**, so that the
   optimizer cannot drop the work the cycle was there to do.
 - **What the run depends on is printed above it**: the Dart version, the OS,

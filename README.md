@@ -283,9 +283,9 @@ The short of it:
 
 - every answer is checked before it is timed, so a wrong answer is never
   reported as a fast one;
-- every benchmark is measured five times, and the whole sweep is run twice,
-  hours apart; the table shows the best of the two medians, because unrelated
-  load on the machine can only ever make a benchmark look slower;
+- every benchmark is measured five times, and the whole sweep is run twice
+  (`--passes=2`); the table shows the best of the two medians, because
+  unrelated load on the machine can only ever make a benchmark look slower;
 - the result of every measured cycle goes into a sink the optimizer is not
   allowed to drop;
 - a package that has no such operation shows `—`, not an error.
@@ -299,7 +299,8 @@ the point.
 *Running the tests:*
 
 ```bash
-dart compile exe example/bin/benchmark.dart && example/bin/benchmark.exe all
+dart compile exe example/bin/benchmark.dart
+example/bin/benchmark.exe all --passes=2
 ```
 
 ```
