@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 import '../support/expect.dart';
+import '../support/reference.dart';
 
 void main() {
   group('ShortDecimal', () {
@@ -918,25 +919,39 @@ void main() {
         expect(ShortDecimal(0).isDivisibleBy(ShortDecimal(7)), isTrue);
       });
 
-      test('согласовано с оператором на множестве случаев', () {
+      test('согласовано с моделью на множестве случаев', () {
+        // Сверять три члена пакета друг с другом мало: они сходились бы и на
+        // общей ошибке. Ожидание берётся у точной рациональной модели, а
+        // согласованность между членами проверяется поверх него.
         for (var a = -20; a <= 20; a++) {
           for (var b = -20; b <= 20; b++) {
             if (b == 0) continue;
             final left = ShortDecimal(a);
             final right = ShortDecimal(b);
+            final model = Ref.fromInt(a) / Ref.fromInt(b);
             final total = left.divideOrNull(right);
             final why = '$a / $b';
 
-            if (total == null) {
-              expect(left.isDivisibleBy(right), isFalse, reason: why);
+            expect(
+              left.isDivisibleBy(right),
+              model.hasFiniteDecimal,
+              reason: why,
+            );
+
+            if (model.hasFiniteDecimal) {
+              expect(total?.toString(), model.toDecimalString(), reason: why);
+              expect(
+                (left / right).toString(),
+                model.toDecimalString(),
+                reason: why,
+              );
+            } else {
+              expect(total, isNull, reason: why);
               expect(
                 () => left / right,
                 throwsA(isA<ShortDecimalDivideException>()),
                 reason: why,
               );
-            } else {
-              expect(left.isDivisibleBy(right), isTrue, reason: why);
-              expect((left / right).toString(), total.toString(), reason: why);
             }
           }
         }

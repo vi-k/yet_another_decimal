@@ -215,25 +215,27 @@ void main() {
     test('divide округляет непредставимое так же, как модель', () {
       final gen = Gen(14);
       for (var i = 0; i < _cases; i++) {
-        final sa = gen.wideString();
-        final sb = gen.wideString();
+        // Половина случаев — на коротких значениях: у пары произвольной
+        // величины деление представимо примерно никогда, и ветка точного
+        // ответа не исполнялась ни разу на двух тысячах случаев.
+        final narrow = gen.nextBool;
+        final sa = narrow ? gen.shortSafeString() : gen.wideString();
+        final sb = narrow ? gen.shortSafeString() : gen.wideString();
         final a = Decimal.parse(sa);
         final b = Decimal.parse(sb);
         if (b.isZero) {
           continue;
         }
 
-        // Только неотрицательное число знаков: у модели `_shift` при
-        // отрицательном сперва делит числитель нацело и теряет остаток.
-        // Отрицательные проверяются точечно в test/decimal/divide_test.dart.
-        final digits = gen.fractionDigits(12);
+        final digits = gen.signedFractionDigits(12);
         final model = Ref.parse(sa) / Ref.parse(sb);
         final result = a.divide(b, scaleOnInfinitePrecision: digits);
         final why = 'случай $i: $sa / $sb до $digits знаков';
 
         if (model.hasFiniteDecimal) {
           // Представимое возвращается точным, а не урезанным до digits.
-          expect(result, a / b, reason: why);
+          // Сверять с `a / b` здесь нельзя: это тот же самый вызов.
+          expect(result.toString(), model.toDecimalString(), reason: why);
         } else {
           expect(
             result,
@@ -360,7 +362,10 @@ void main() {
           reason: why,
         );
 
-        final digits = gen.fractionDigits();
+        // В том числе отрицательное: округление частного к десяткам и сотням
+        // у короткого семейства не проверялось, и зажатие такого числа знаков
+        // к нулю прошло бы незамеченным.
+        final digits = gen.signedFractionDigits();
         expect(
           na.divide(nb, scaleOnInfinitePrecision: digits).toString(),
           wa.divide(wb, scaleOnInfinitePrecision: digits).toString(),

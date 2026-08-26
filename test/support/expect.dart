@@ -5,6 +5,11 @@
 /// арифметических проверках `base` и `scale` не передаются: форма результата
 /// там артефакт алгоритма, и быстрый путь деления законно даёт другую форму
 /// при том же значении.
+///
+/// `expectDecimal` печатает значение дважды: как есть и после заполнения
+/// канонической формы. `Decimal.toString` идёт по разным веткам в этих двух
+/// случаях, и вторая не исполнялась ни одним тестом корпуса печати — мутация
+/// в ней выживала при ста процентах покрытия строк.
 library;
 
 import 'package:test/test.dart';
@@ -18,6 +23,7 @@ void expectDecimal(
   int? fractionDigits,
 }) {
   expect(d.toString(), str);
+  expectPackedPrint(d, str);
 
   if (base != null) {
     expect(d.base, base);
@@ -30,6 +36,21 @@ void expectDecimal(
   if (fractionDigits != null) {
     expect(d.fractionDigits, fractionDigits);
   }
+}
+
+/// Печать после заполнения канонической формы даёт то же самое.
+///
+/// Близнец с тем же представлением нужен потому, что у самого [d] строка уже
+/// закеширована в `_text`: второй `toString()` вернул бы её, не дойдя до
+/// печати. `normalized()` заполняет каноническую форму, и печать идёт по
+/// второй своей ветке — по той, где хвостовые нули снимать уже не надо.
+///
+/// У `ShortDecimal` пары к этому хелперу нет и не нужно: канонической формы
+/// про запас он не держит, его база упакована всегда.
+void expectPackedPrint(Decimal d, String str) {
+  final twin = (Decimal.fromBigInt(d.base) >> d.scale)..normalized();
+
+  expect(twin.toString(), str, reason: 'печать после упаковки');
 }
 
 void expectShortDecimal(
