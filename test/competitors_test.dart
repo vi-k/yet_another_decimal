@@ -204,7 +204,6 @@ void main() {
       '-.',
       '+',
       '--1',
-      '1.',
       '1.2.3',
       '1 2',
       '1\t0',
@@ -230,7 +229,7 @@ void main() {
           reason: 'конкурент на ${jsonish(source)}',
         );
       }
-    }, skip: 'Д10: tryParse принимает шестнадцатеричное');
+    });
 
     test('ShortDecimal', () {
       for (final source in garbage) {
@@ -240,7 +239,7 @@ void main() {
           reason: 'вход ${jsonish(source)}',
         );
       }
-    }, skip: 'Д10 и Д12: tryParse принимает hex, "-" и табуляцию');
+    });
 
     test('корректные записи принимаются обоими', () {
       const valid = ['0', '-0', '007', '0.000', '+5', '.5', '-.5', '1.50'];
@@ -272,13 +271,45 @@ void main() {
       final rivalResult = rival.Decimal.fromInt(1) / rival.Decimal.fromInt(3);
       expect(rivalResult.hasFinitePrecision, isFalse);
     });
+  });
 
-    test('экспоненциальная запись пока не поддерживается', () {
-      // Конкурент разбирает, мы нет. Пункт из `docs/backlog.md`; когда будет
-      // сделано, этот тест переедет в группу совпадений.
-      expect(Decimal.tryParse('1e21'), isNull);
-      expect(ShortDecimal.tryParse('1e21'), isNull);
-      expect(rival.Decimal.tryParse('1e21'), isNotNull);
+  group('осознанное расхождение: точка без дробной части', () {
+    // `decimal` принимает '1.' и читает его как 1. Мы отвергаем — это решение
+    // принято до переработки и закреплено тестами разбора: у точки обязана
+    // быть дробная часть.
+    test("'1.' — не число", () {
+      expect(Decimal.tryParse('1.'), isNull);
+      expect(ShortDecimal.tryParse('1.'), isNull);
+      expect(rival.Decimal.tryParse('1.'), isNotNull);
+    });
+  });
+
+  group('экспоненциальная запись совпадает с decimal', () {
+    // Была пунктом бэклога владельца и осознанным расхождением; поддержана в
+    // волне 2 вместе с переписанным разбором строк.
+    for (final source in [
+      '1e21',
+      '1E21',
+      '1e+21',
+      '1e-21',
+      '-1.5e3',
+      '+1.5e-3',
+      '0.5e1',
+      '12345678901234567890e-10',
+    ]) {
+      test(source, () {
+        final other = rival.Decimal.tryParse(source);
+        expect(other, isNotNull, reason: 'конкурент не разобрал $source');
+        expect(Decimal.parse(source).toString(), other.toString());
+        expect(ShortDecimal.parse(source).toString(), other.toString());
+      });
+    }
+
+    test('мусор после экспоненты — не число', () {
+      for (final source in ['1e', '1e+', '1e1.5', '1ee1', '1e 1', 'e1']) {
+        expect(Decimal.tryParse(source), isNull, reason: jsonish(source));
+        expect(ShortDecimal.tryParse(source), isNull, reason: jsonish(source));
+      }
     });
   });
 }

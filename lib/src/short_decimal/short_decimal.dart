@@ -10,9 +10,8 @@ part 'short_division.dart';
 @immutable
 final class ShortDecimal implements Comparable<ShortDecimal> {
   static final _charCode0 = '0'.codeUnitAt(0);
-  static final _charCodePoint = '.'.codeUnitAt(0);
+  static final _charCode9 = '9'.codeUnitAt(0);
   static final _charCodeMinus = '-'.codeUnitAt(0);
-  static final _charCodeSpace = ' '.codeUnitAt(0);
 
   /// A decimal with the numerical value 0.
   static const ShortDecimal zero = ShortDecimal._asIs(0, 0);
@@ -97,66 +96,34 @@ final class ShortDecimal implements Comparable<ShortDecimal> {
   ///
   /// Returns null on failure.
   static ShortDecimal? tryParse(String string) {
-    try {
-      string = string.trim();
-
-      // Dot.
-      final dot = string.indexOf('.');
-
-      // "123." and "" is invalid.
-      if (dot == string.length - 1) {
-        return null;
-      }
-
-      // Remove trailing zeros after dot.
-      var end = string.length;
-      if (dot != -1) {
-        // `end` always > 0
-        while (string.codeUnitAt(end - 1) == _charCode0) {
-          end--;
-        }
-
-        final lastCharCode = string.codeUnitAt(end - 1);
-        if (lastCharCode == _charCodePoint) {
-          end--;
-        } else {
-          if (lastCharCode == _charCodeSpace) {
-            throw const FormatException();
-          }
-
-          return ShortDecimal._asIs(
-            int.parse(
-              '${string.substring(0, dot)}'
-              '${string.substring(dot + 1, end)}',
-            ),
-            end - dot - 1,
-          );
-        }
-      }
-
-      // Remove trailing zeros before dot.
-      var scale = 0;
-      while (end > 0 && string.codeUnitAt(end - 1) == _charCode0) {
-        end--;
-        scale--;
-      }
-
-      if (end == 0) {
-        return zero;
-      }
-
-      final lastCharCode = string.codeUnitAt(end - 1);
-      if (lastCharCode == _charCodeSpace) {
-        throw const FormatException();
-      }
-
-      return end == 1 && lastCharCode == _charCodeMinus
-          ? zero
-          : ShortDecimal._asIs(int.parse(string.substring(0, end)), scale);
-    } on FormatException {
+    final scanned = string.scanDecimal();
+    if (scanned == null) {
       return null;
     }
+
+    final (digits, scale) = scanned;
+
+    // Trailing zeros are dropped from the text, before the digits become a
+    // number: that is what keeps '9223372036854775807000' in range — as a base
+    // with a scale of minus three.
+    var end = digits.length;
+    var packedScale = scale;
+    while (end > 0 && digits.codeUnitAt(end - 1) == _charCode0) {
+      end--;
+      packedScale--;
+    }
+
+    // Nothing but a sign is left of a zero.
+    if (end == 0 || (end == 1 && !_isDigit(digits.codeUnitAt(0)))) {
+      return zero;
+    }
+
+    final base = int.tryParse(digits.substring(0, end));
+
+    return base == null ? null : ShortDecimal._asIs(base, packedScale);
   }
+
+  static bool _isDigit(int code) => code >= _charCode0 && code <= _charCode9;
 
   /// Returns number of digits after the decimal point.
   int get fractionDigits {

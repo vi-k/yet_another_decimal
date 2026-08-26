@@ -11,9 +11,6 @@ library;
 import 'package:test/test.dart';
 import 'package:yet_another_decimal/yet_another_decimal.dart';
 
-const _skip10 = 'Д10: tryParse принимает шестнадцатеричное';
-const _skip12 = 'Д12: ShortDecimal.tryParse принимает "+0" и табуляцию иначе';
-
 void main() {
   group('Д1 деление на отрицательное', () {
     test('Decimal', () {
@@ -187,12 +184,12 @@ void main() {
       expect(Decimal.tryParse('0X1F'), isNull);
       expect(Decimal.tryParse('0x1.8'), isNull);
       expect(Decimal.tryParse('-0x10'), isNull);
-    }, skip: _skip10);
+    });
 
     test('ShortDecimal', () {
       expect(ShortDecimal.tryParse('0x10'), isNull);
       expect(ShortDecimal.tryParse('0X1F'), isNull);
-    }, skip: _skip10);
+    });
   });
 
   group('Д11 ShortFraction и округление к 19+ знакам', () {
@@ -212,17 +209,17 @@ void main() {
       expect(ShortDecimal.tryParse('+1').toString(), '1');
       expect(ShortDecimal.tryParse('+0').toString(), '0');
       expect(ShortDecimal.tryParse('+0.0').toString(), '0');
-    }, skip: _skip12);
+    });
 
     test('голый знак — не число', () {
       expect(ShortDecimal.tryParse('-'), isNull);
       expect(ShortDecimal.tryParse('  -  '), isNull);
-    }, skip: _skip12);
+    });
 
     test('пробельные символы внутри числа — не число', () {
       expect(ShortDecimal.tryParse('1\t0'), isNull);
       expect(ShortDecimal.tryParse('1.5\t0'), isNull);
-    }, skip: _skip12);
+    });
   });
 
   group('Д13 ShortDecimal * до нормализации', () {

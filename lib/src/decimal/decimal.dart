@@ -74,29 +74,23 @@ final class Decimal implements Comparable<Decimal> {
 
   /// Parse the [string] to [Decimal].
   ///
-  /// Returns null on failure.
+  /// Accepts an optional sign, an optional exponent and surrounding
+  /// whitespace: `'1'`, `'-0.5'`, `'.5'`, `'+1e21'`. Returns null on anything
+  /// else — hexadecimal included, which [BigInt.parse] would have accepted.
+  ///
+  /// ```dart
+  /// Decimal.tryParse('1e21'); // 1000000000000000000000
+  /// Decimal.tryParse('0x10'); // null
+  /// ```
   static Decimal? tryParse(String string) {
-    try {
-      string = string.trim();
-
-      // Remove dot.
-      final dot = string.indexOf('.');
-      if (dot == -1) {
-        return Decimal._asIs(BigInt.parse(string), 0);
-      }
-
-      // "123." is invalid.
-      if (dot == string.length - 1) {
-        return null;
-      }
-
-      final packedStr =
-          '${string.substring(0, dot)}${string.substring(dot + 1)}';
-
-      return Decimal._asIs(BigInt.parse(packedStr), string.length - dot - 1);
-    } on FormatException {
+    final scanned = string.scanDecimal();
+    if (scanned == null) {
       return null;
     }
+
+    final (digits, scale) = scanned;
+
+    return Decimal._asIs(BigInt.parse(digits), scale);
   }
 
   /// Returns number of digits after the decimal point.
