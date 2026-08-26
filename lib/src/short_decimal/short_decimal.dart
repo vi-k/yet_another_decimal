@@ -77,18 +77,19 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// point:
   ///
   /// ```dart
-  /// Decimal(1); // 1
-  /// Decimal(1, shiftRight: 1); // 0.1
-  /// Decimal(1, shiftRight: 2); // 0.01
+  /// ShortDecimal(1); // 1
+  /// ShortDecimal(1, shiftRight: 1); // 0.1
+  /// ShortDecimal(1, shiftRight: 2); // 0.01
   /// ```
   ///
   /// Parameter [shiftLeft] shifts [base] to the left relative to the decimal
-  /// point:
+  /// point. `Decimal` has no such parameter — there the shift left is the
+  /// `<<` operator and nothing else:
   ///
   /// ```dart
-  /// Decimal(1); // 1
-  /// Decimal(1, shiftLeft: 1); // 10
-  /// Decimal(1, shiftLeft: 2); // 100
+  /// ShortDecimal(1); // 1
+  /// ShortDecimal(1, shiftLeft: 1); // 10
+  /// ShortDecimal(1, shiftLeft: 2); // 100
   /// ```
   factory ShortDecimal(int base, {int shiftLeft = 0, int shiftRight = 0}) {
     // Not asserts: the three of them would be gone in release, where the two
@@ -363,9 +364,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// Dividing by zero still throws [UnsupportedError]: that is not a result
   /// nobody can write down, that is a question nobody can answer.
   ///
-  /// Catching an exception costs about two thousand times more than reading a
-  /// null, so this is the form to reach for when the divisor is not known in
-  /// advance.
+  /// Reading a null is more than a hundred times cheaper than catching the
+  /// exception: the division itself costs a few nanoseconds on int64, and the
+  /// throw costs the better part of a microsecond whatever it reports on. This
+  /// is the form to reach for when the divisor is not known in advance.
   ///
   /// ```dart
   /// print(ShortDecimal(1).divideOrNull(ShortDecimal(4))); // 0.25
@@ -842,9 +844,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     return one / pow(-exponent);
   }
 
-  /// The number of digits in the unscaled value.
+  /// The number of digits this decimal is written with, sign and point aside.
   ///
-  /// Zero has a precision of one, the same as `decimal` reports.
+  /// Not the digit count of [unscaledValue], which is a different number: a
+  /// thousand is written with four digits and its unscaled value is one. Zero
+  /// has a precision of one, the same as `decimal` reports.
   ///
   /// ```dart
   /// print(ShortDecimal.parse('0').precision); // 1
@@ -1371,8 +1375,9 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 /// ```
 ///
 /// Catching is the slow way round, though: [ShortDecimal.divideOrNull] asks the
-/// same question about four times faster, and [ShortDecimal.divide] rounds in
-/// one call.
+/// same question more than a hundred times faster — a throw costs about a
+/// microsecond, an int64 division a few nanoseconds — and [ShortDecimal.divide]
+/// rounds in one call.
 final class ShortDecimalDivideException implements Exception {
   /// The number that was divided.
   final ShortDecimal dividend;

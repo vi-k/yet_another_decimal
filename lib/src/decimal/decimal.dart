@@ -274,9 +274,10 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Dividing by zero still throws [UnsupportedError]: that is not a result
   /// nobody can write down, that is a question nobody can answer.
   ///
-  /// Catching an exception costs about two thousand times more than reading a
-  /// null, so this is the form to reach for when the divisor is not known in
-  /// advance.
+  /// Reading a null is about five times cheaper than catching the exception:
+  /// the throw costs the better part of a microsecond by itself, several times
+  /// the division it reports on. This is the form to reach for when the divisor
+  /// is not known in advance.
   ///
   /// ```dart
   /// print(Decimal(1).divideOrNull(Decimal(4))); // 0.25
@@ -697,9 +698,11 @@ final class Decimal implements FixedPoint<Decimal> {
     return one / pow(-exponent);
   }
 
-  /// The number of digits in the unscaled value.
+  /// The number of digits this decimal is written with, sign and point aside.
   ///
-  /// Zero has a precision of one, the same as `decimal` reports.
+  /// Not the digit count of [unscaledValue], which is a different number: a
+  /// thousand is written with four digits and its unscaled value is one. Zero
+  /// has a precision of one, the same as `decimal` reports.
   ///
   /// ```dart
   /// print(Decimal.parse('0').precision); // 1
@@ -1022,7 +1025,19 @@ final class Decimal implements FixedPoint<Decimal> {
     }
   }
 
-  Decimal get _requirePacked => _packed ??= Decimal._pack(base, scale);
+  Decimal get _requirePacked {
+    var packed = _packed;
+    if (packed == null) {
+      packed = Decimal._pack(base, scale);
+      // The canonical form is its own: without this line `normalized()` on the
+      // result would pack and allocate all over again, and the promise that
+      // the second call is free would not be one.
+      packed._packed = packed;
+      _packed = packed;
+    }
+
+    return packed;
+  }
 
   /// [base] without its trailing zeros, with [scale] moved to match.
   ///
@@ -1139,7 +1154,7 @@ final class Decimal implements FixedPoint<Decimal> {
 /// ```
 ///
 /// Catching is the slow way round, though: [Decimal.divideOrNull] asks the same
-/// question about four times faster, and [Decimal.divide] rounds in one call.
+/// question about five times faster, and [Decimal.divide] rounds in one call.
 final class DecimalDivideException implements Exception {
   /// The number that was divided.
   final Decimal dividend;

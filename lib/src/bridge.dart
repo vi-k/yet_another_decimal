@@ -32,12 +32,18 @@ extension DecimalBridge on Decimal {
   /// This decimal as a [ShortDecimal], or null when it does not fit.
   ///
   /// The conversion down has to be able to fail: a [Decimal] holds numbers no
-  /// int64 can. Null is returned rather than an exception because a value out
-  /// of range is a normal answer here, not a mistake.
+  /// int64 can. It fails on the count of significant digits rather than on
+  /// magnitude — an int64 carries a scale of its own, so `1e30` crosses over
+  /// intact. Null is returned rather than an exception because a value out of
+  /// range is a normal answer here, not a mistake.
   ///
   /// ```dart
   /// print(Decimal.parse('1.5').toShortDecimalOrNull()); // 1.5
-  /// print(Decimal.parse('1e30').toShortDecimalOrNull()); // null
+  /// // 1000000000000000000000000000000
+  /// print(Decimal.parse('1e30').toShortDecimalOrNull());
+  /// // null: twenty-nine significant digits
+  /// print(Decimal.parse('12345678901234567890.123456789')
+  ///     .toShortDecimalOrNull());
   /// ```
   ShortDecimal? toShortDecimalOrNull() {
     // ignore: invalid_use_of_visible_for_testing_member

@@ -44,43 +44,47 @@ The package has difficulty dividing. You can't just do a 1 / 8 operation and
 get the expected 0.125:
 
 ```dart
-final a = Fixed.fromInt(1, scale: 0); // 1
-final b = Fixed.fromInt(8, scale: 0); // 8
+final a = Fixed.fromInt(1, decimalDigits: 0); // 1
+final b = Fixed.fromInt(8, decimalDigits: 0); // 8
 print('$a / $b = ${a / b}'); // 1 / 8 = 0
 
-final c = Fixed.fromInt(10, scale: 1); // 1.0
-final d = Fixed.fromInt(80, scale: 1); // 8.0
+final c = Fixed.fromInt(10, decimalDigits: 1); // 1.0
+final d = Fixed.fromInt(80, decimalDigits: 1); // 8.0
 print('$c / $d = ${c / d}'); // 1.0 / 8.0 = 0.1
 
-final e = Fixed.fromInt(100, scale: 2); // 1.00
-final f = Fixed.fromInt(800, scale: 2); // 8.00
+final e = Fixed.fromInt(100, decimalDigits: 2); // 1.00
+final f = Fixed.fromInt(800, decimalDigits: 2); // 8.00
 print('$e / $f = ${e / f}'); // 1.00 / 8.00 = 0.13
 ```
 
-The result depends on the scale of the numerator and denominator. That is, the
-division method does not calculate the scale of the result. You have to do it
-yourself.
+The result depends on the scale of the numerator and denominator: the division
+keeps the larger of the two and rounds the answer to it. An eighth has an exact
+decimal form, and it is rounded away all the same, without a word. You have to
+know the answer's scale in advance and ask for it:
 
 ```dart
-final a = Fixed.fromInt(1, scale: 0).copyWith(scale: 3); // 1.000
-final b = Fixed.fromInt(8, scale: 0); // 8
+final a = Fixed.fromInt(1, decimalDigits: 0).copyWith(decimalDigits: 3); // 1.000
+final b = Fixed.fromInt(8, decimalDigits: 0); // 8
 print('$a / $b = ${a / b}'); // 1.000 / 8 = 0.125
 ```
 
-But the main drawback of the package is not even that, but the fact that
-`double` is used for the division operation under the hood:
+Until this README was rewritten it went on to say that the division ran through
+`double`, and showed `Fixed.parse('111111111111111111')` squared and divided
+back as `111111111111111120`. That is no longer true, and the claim has been
+taken out: `fixed` divides in `BigInt` today, rounding half away from zero.
+Checked on 6.1.1 and 6.2.0 — the answer comes back exact:
 
 ```dart
 final a = Fixed.parse('111111111111111111');
 final b = a * a;
 print(b); // 12345679012345678987654320987654321
-print(b / a); // 111111111111111120 (!)
+print(b / a); // 111111111111111111
 ```
 
-The reason for the error is that double has limited precision, and in this
-example we have gone beyond the limits of that precision. But fixed point
-decimals are used to avoid errors in floating-point operations, not the other
-way around. In my opinion, this is a very bad solution.
+What remains is the first point, and it is the reason this package exists: the
+division rounds to a scale nobody asked for. Here `Decimal(1) / Decimal(8)` is
+`0.125` whatever the two sides were built from, and a division that has no
+finite decimal form says so instead of quietly rounding.
 
 #### [decimal_type](https://pub.dev/packages/decimal_type)
 
@@ -205,9 +209,16 @@ print(a / b); // throws DecimalDivideException
 ```
 
 `divideOrNull` is the one to reach for by default: it asks the same question as
-catching the exception and is about four times faster at it. `operator /` is the
-fast form for the case where the division is known to be exact in advance —
-money split by a whole number of parts, a value scaled by a power of ten.
+catching the exception and is several times faster at it — about five times in
+`Decimal`, and more than a hundred in `ShortDecimal`, where the division costs
+nanoseconds while a throw still costs about a microsecond. `operator /` is the
+fast form for the case where the division is known to be exact in advance: a
+value scaled by a power of ten, or a divisor that is a factor of the dividend.
+Splitting money by a number of parts is not such a case: a third of 23.99 has
+no finite decimal form, and `Decimal.parse('23.99') / Decimal(3)` throws. A
+money split goes to the smallest unit first, and then nothing is lost:
+`Decimal.parse('23.99') << 2` is 2399 cents, `~/ Decimal(3)` gives each part
+799 of them, and `%` says which two are left over.
 
 When it does throw, the exception is not a dead end: it carries every other
 answer the division had.
@@ -822,24 +833,23 @@ keep its limitations in mind.
 
 ### `Decimal` optimization
 
-When it is necessary to return to the user the properties of a number,
-understandable to human perception, for example, the number of significant
-digits after the decimal point, it is impossible to do without packing the
-number. And having a packed number, you can do some operations, for example,
-converting a number into a string, much faster. This packing of a number is
-what optimization consists in, due to which some tests are executed much faster
-and some, on the contrary, much slower, when optimization costs do not pay off
-in time.
+Some of what a decimal can be asked — how many digits it has after the point,
+what its unscaled value is, whether it equals another decimal — has an answer
+only in the canonical form: the base with its trailing zeros taken off and the
+scale moved to match. `Decimal` does not hold every value that way, because
+getting there costs `BigInt` arithmetic and most values are never asked those
+questions. It packs a value the first time something needs the canonical form,
+and keeps the result on hand.
 
-In `Decimal` I tried to find a balance: pack a number only where it is needed,
-and use it only if it is there, and do without it if it is not. But there has
-to be a way to pack a number by hand, for when the algorithm does not do it
-itself, and that is `normalized()`. It answers with the value in its canonical
-form; calling it again on the result costs nothing.
+There has to be a way to ask for it by hand, for when the algorithm does not do
+it itself, and that is `normalized()`:
 
 ```dart
 final packed = value.normalized();
 ```
+
+It answers with the value in its canonical form, and calling it again on the
+result costs nothing — the canonical form is its own.
 
 Until 1.2.0 the same thing was done by `optimize()`, which returned nothing and
 changed the receiver instead. That method still works and is deprecated: a
@@ -850,62 +860,51 @@ The user does not need to know about packing and scaling, nor about `base` and
 that is what `unscaledValue` and `exponent` are for — both read the canonical
 form, so equal decimals answer equally whatever produced them.
 
-In the following example, the optimization significantly speeds up the
-conversion of a number to a string:
+#### What packing does to printing
+
+Nothing, most of the time. This is a correction: earlier versions of this
+section showed packing making `toString` fifty times faster, and those numbers
+were measured before `toString` began keeping the string it had produced.
+
+Printing one and the same value over and over is free either way now — the
+first call prints, the rest read the kept string. Ten million `toString()`
+calls on a single number, AOT, on the machine the tables above were measured
+on, with the result going into a sink the optimizer may not drop:
+
+| ten million prints of one value | |
+|:--|--:|
+| as it comes | 0.02 s |
+| after `normalized()` | 0.02 s |
+
+Where the difference shows is values that are each printed once, and it points
+the other way:
 
 ```dart
-var v = Decimal(1000000000000000000) >> 18; // = 1
+var v = Decimal(1000000000000000000) >> 18; // = 1, and not in canonical form
 
-final sw = Stopwatch()..start();
 for (var i = 0; i < 10000000; i++) {
-  v.toString(); // "1"
+  final next = i.isEven ? -v : v; // a new number every time round
+  sink += next.toString().length; // and 'normalized()' before it, in the second run
 }
-sw.stop();
-print(sw.elapsed); // 0:00:02.445964
-
-v = v.normalized();
-
-sw
-  ..reset()
-  ..start();
-for (var i = 0; i < 10000000; i++) {
-  v.toString(); // "1"
-}
-sw.stop();
-print(sw.elapsed); // 0:00:00.048106
 ```
 
-But if we get new numbers each time, and we do optimization along with each
-conversion to a string, we will lose performance. Whereas the absence of
-unjustified optimization would save resources. That's why I didn't make it
-mandatory inside `toString`.
+| ten million values, each printed once | |
+|:--|--:|
+| as it comes | 1.36 s |
+| `normalized()` before each print | 5.38 s |
 
-```dart
-var v = Decimal(1000000000000000000) >> 18; // = 1
+Packing a number costs several times more than printing it. `toString` takes
+the trailing zeros off the string it is building anyway, and that is cheaper
+than taking them off a `BigInt` and allocating a decimal to hold the result.
+This is why normalization is not built into `toString`: everyone who prints a
+number once and drops it would be paying for a canonical form nobody asked for.
 
-final sw = Stopwatch()..start();
-for (var i = 0; i < 10000000; i++) {
-  // Simulate the situation when new numbers arrive.
-  v = -v;
-  v.toString(); // "1" or "-1"
-}
-sw.stop();
-print(sw.elapsed); // 0:00:02.568405
+And where the value is already canonical, there is nothing to pay and nothing
+to gain — 1.58 s against 1.61 s on the same ten million.
 
-sw
-  ..reset()
-  ..start();
-for (var i = 0; i < 10000000; i++) {
-  v = -v; // "1" or "-1"
-  // If we only need to output numbers once and will not use them anywhere
-  // else, this normalisation is unnecessary. It will still be a
-  // normalisation, but we will pay too much for it.
-  v = v.normalized();
-  v.toString(); // 0:00:15.578125
-}
-sw.stop();
-print(sw.elapsed);
-```
+So: `normalized()` is for the canonical form itself — for `unscaledValue`, for
+`exponent`, for a decimal that will be compared or used as a map key many times
+over. It is not a way to print faster; the kept string is that.
 
 `ShortDecimal` needs none of this: it normalises the value in every operation,
 and its `normalized()` answers with the receiver itself.

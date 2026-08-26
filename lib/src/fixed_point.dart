@@ -31,7 +31,7 @@ abstract interface class FixedPoint<T extends FixedPoint<T>>
   /// The number of digits after the decimal point.
   int get fractionDigits;
 
-  /// The number of digits in the unscaled value.
+  /// The number of digits the value is written with, sign and point aside.
   int get precision;
 
   /// The power of ten the unscaled value is multiplied by.

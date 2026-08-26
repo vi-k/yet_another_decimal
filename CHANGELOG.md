@@ -90,6 +90,8 @@ Changed.
   of `int.min`.
 - `ShortDecimal` multiplication overflowed where the exact result fits.
 - Assertions crashed a debug build on values a release build handled.
+- `normalized()` did not recognise its own answer as canonical, so calling it
+  on the result packed and allocated all over again.
 - `ShortDecimal.divide(other, scaleOnInfinitePrecision: n)` threw
   `ArgumentError` when the divisor was `int.min`. The ratio has no fraction in
   int64 — a denominator of 2^63 cannot be positive there — but the rounded

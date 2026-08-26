@@ -419,6 +419,19 @@ void main() {
         final d = Decimal.parse('1.5');
         expect(d.normalized(), d);
       });
+
+      test('повторный вызов не строит ничего нового', () {
+        // Р26: каноническая форма не знала, что она каноническая, и
+        // упаковывалась заново на каждом вызове. README обещает обратное.
+        for (final source in ['1.500', '1.5', '1000', '0', '1e30']) {
+          final packed = Decimal.parse(source).normalized();
+          expect(
+            identical(packed.normalized(), packed),
+            isTrue,
+            reason: 'на "$source"',
+          );
+        }
+      });
     });
 
     group('movePointLeft и movePointRight', () {
