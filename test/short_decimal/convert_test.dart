@@ -338,8 +338,11 @@ void main() {
       test('пара восстанавливает значение', () {
         for (final source in ['0', '1.5', '1.50', '100', '-0.05']) {
           final d = ShortDecimal.parse(source);
-          expect(ShortDecimal(d.unscaledValue) << d.exponent, d,
-              reason: source);
+          expect(
+            ShortDecimal(d.unscaledValue) << d.exponent,
+            d,
+            reason: source,
+          );
         }
       });
     });

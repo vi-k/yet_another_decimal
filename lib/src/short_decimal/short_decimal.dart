@@ -29,6 +29,10 @@ part 'short_division.dart';
 /// finite decimal form. [divideOrNull] returns null there, [divide] rounds to
 /// as many digits as it is told, [isDivisibleBy] asks the question in advance,
 /// and [operator /] throws [ShortDecimalDivideException].
+// Both fields are `int`, so the class qualifies: the VM may share its
+// instances between isolates. `Decimal` never will — a field of type `BigInt`
+// is rejected outright, and that is the whole difference.
+@pragma('vm:deeply-immutable')
 @immutable
 final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static final _charCode0 = '0'.codeUnitAt(0);
@@ -458,7 +462,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   ///
   /// Truncating division is division where a fractional result is converted to
   /// an integer by rounding towards zero.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero, the same as every other
+  /// division here does.
   int operator ~/(ShortDecimal other) {
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
+
     final (a, b, _) = _align(other);
 
     return a ~/ b;
@@ -489,8 +500,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// Euclidean modulo of this number by [other].
   ///
   /// The sign of the returned value is always positive.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero.
   @override
   ShortDecimal operator %(ShortDecimal other) {
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
+
     final (a, b, scale) = _align(other);
 
     return ShortDecimal._pack(a % b, scale);
@@ -501,8 +518,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// The result r of this operation satisfies:
   /// this == (this ~/ other) * other + r. As a consequence, the remainder r
   /// has the same sign as the dividend this.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero.
   @override
   ShortDecimal remainder(ShortDecimal other) {
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
+
     final (a, b, scale) = _align(other);
 
     return ShortDecimal._pack(a.remainder(b), scale);

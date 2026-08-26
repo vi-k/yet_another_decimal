@@ -441,7 +441,14 @@ final class Decimal implements FixedPoint<Decimal> {
   ///
   /// Truncating division is division where a fractional result is converted to
   /// an integer by rounding towards zero.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero, the same as every other
+  /// division here does.
   BigInt operator ~/(Decimal other) {
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
+
     final (a, b, _) = _align(other);
 
     return a ~/ b;
@@ -498,8 +505,14 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Euclidean modulo of this number by [other].
   ///
   /// The sign of the returned value is always positive.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero.
   @override
   Decimal operator %(Decimal other) {
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
+
     final (a, b, scale) = _align(other);
 
     return Decimal._asIs(a % b, scale);
@@ -510,8 +523,14 @@ final class Decimal implements FixedPoint<Decimal> {
   /// The result r of this operation satisfies:
   /// this == (this ~/ other) * other + r. As a consequence, the remainder r
   /// has the same sign as the dividend this.
+  ///
+  /// Throws [UnsupportedError] if [other] is zero.
   @override
   Decimal remainder(Decimal other) {
+    if (other.isZero) {
+      throw UnsupportedError('division by zero');
+    }
+
     final (a, b, scale) = _align(other);
 
     return Decimal._asIs(a.remainder(b), scale);

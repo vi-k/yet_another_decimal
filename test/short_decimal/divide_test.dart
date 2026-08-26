@@ -738,6 +738,29 @@ void main() {
         expect(ShortDecimal(1).divideOrNull(ShortDecimal(7)), isNull);
       });
 
+      test('на ноль все деления бросают один и тот же тип', () {
+        // До 1.2.0 `~/`, `%` и `remainder` бросали
+        // IntegerDivisionByZeroException, а `/` — UnsupportedError: одна
+        // ошибка, два типа. Старый тип в SDK помечен устаревшим и сам
+        // реализует UnsupportedError, так что ловившие второй ничего не
+        // заметили.
+        final one = ShortDecimal(1);
+        final zero = ShortDecimal(0);
+
+        for (final (name, body) in <(String, void Function())>[
+          ('/', () => one / zero),
+          ('~/', () => one ~/ zero),
+          ('%', () => one % zero),
+          ('remainder', () => one.remainder(zero)),
+          ('divideOrNull', () => one.divideOrNull(zero)),
+          ('divideToFraction', () => one.divideToFraction(zero)),
+          ('divideWithRemainder', () => one.divideWithRemainder(zero)),
+          ('isDivisibleBy', () => one.isDivisibleBy(zero)),
+        ]) {
+          expect(body, throwsA(isA<UnsupportedError>()), reason: name);
+        }
+      });
+
       test('деление на ноль по-прежнему бросает', () {
         expect(
           () => ShortDecimal(1).divideOrNull(ShortDecimal(0)),
