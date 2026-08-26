@@ -165,6 +165,22 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   static bool _isDigit(int code) => code >= _charCode0 && code <= _charCode9;
 
+  /// The whole number the value is stored as.
+  ///
+  /// The number is `unscaledValue × 10^exponent`. This family stores the
+  /// canonical form always, so the pair is a function of the value:
+  ///
+  /// ```dart
+  /// final a = ShortDecimal.parse('1.50');
+  /// print(a.unscaledValue); // 15
+  /// print(a.exponent); // -1
+  /// ```
+  int get unscaledValue => base;
+
+  /// The power of ten [unscaledValue] is multiplied by.
+  @override
+  int get exponent => -scale;
+
   /// Returns number of digits after the decimal point.
   @override
   int get fractionDigits {
@@ -541,6 +557,34 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   @override
   ShortDecimal operator >>(int shiftAmount) =>
       base == 0 ? this : ShortDecimal._pack(base, scale + shiftAmount);
+
+  /// This decimal divided by `10^places`: the point moves left.
+  ///
+  /// The readable name of [operator >>].
+  ///
+  /// ```dart
+  /// print(ShortDecimal(100).movePointLeft(2)); // 1
+  /// ```
+  @override
+  ShortDecimal movePointLeft(int places) => this >> places;
+
+  /// This decimal multiplied by `10^places`: the point moves right.
+  ///
+  /// The readable name of [operator <<].
+  ///
+  /// ```dart
+  /// print(ShortDecimal(1).movePointRight(2)); // 100
+  /// ```
+  @override
+  ShortDecimal movePointRight(int places) => this << places;
+
+  /// This decimal in its canonical form — that is, itself.
+  ///
+  /// Unlike the BigInt family, this one normalises on construction: there is
+  /// no other form to be in. The member exists so that code written against
+  /// the shared contract can call it.
+  @override
+  ShortDecimal normalized() => this;
 
   /// Returns the absolute value of this decimal.
   ///

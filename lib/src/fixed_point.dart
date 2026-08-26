@@ -34,6 +34,12 @@ abstract interface class FixedPoint<T extends FixedPoint<T>>
   /// The number of digits in the unscaled value.
   int get precision;
 
+  /// The power of ten the unscaled value is multiplied by.
+  ///
+  /// The number is `unscaledValue × 10^exponent`, and both come from the
+  /// canonical form, so equal values answer equally.
+  int get exponent;
+
   /// The sign: -1, 0 or 1.
   int get sign;
 
@@ -99,6 +105,15 @@ abstract interface class FixedPoint<T extends FixedPoint<T>>
 
   /// Shifts this relative to the decimal point to the right.
   T operator >>(int shiftAmount);
+
+  /// This value divided by `10^places`: the point moves left.
+  T movePointLeft(int places);
+
+  /// This value multiplied by `10^places`: the point moves right.
+  T movePointRight(int places);
+
+  /// This value in its canonical form.
+  T normalized();
 
   /// The absolute value of this.
   T abs();

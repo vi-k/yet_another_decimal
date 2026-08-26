@@ -190,6 +190,25 @@ final class Decimal implements FixedPoint<Decimal> {
   @override
   int get fractionDigits => scale <= 0 ? 0 : math.max(_requirePacked.scale, 0);
 
+  /// The whole number the value is stored as, in canonical form.
+  ///
+  /// The number is `unscaledValue × 10^exponent`. Both come from the canonical
+  /// form rather than from the pair actually stored, so equal decimals answer
+  /// equally whatever operation produced them:
+  ///
+  /// ```dart
+  /// final a = Decimal.parse('1.50');
+  /// final b = Decimal.parse('1.5');
+  /// print(a.unscaledValue); // 15
+  /// print(a.exponent); // -1
+  /// print(a.unscaledValue == b.unscaledValue); // true
+  /// ```
+  BigInt get unscaledValue => _requirePacked.base;
+
+  /// The power of ten [unscaledValue] is multiplied by.
+  @override
+  int get exponent => -_requirePacked.scale;
+
   /// Returns the sign of this decimal.
   ///
   /// Returns 0 for zero, -1 for values less than zero and +1 for values
@@ -558,9 +577,45 @@ final class Decimal implements FixedPoint<Decimal> {
       Decimal._asIs(base, scale + shiftAmount);
 
   /// Optimize number to improve performance.
+  @Deprecated(
+    'Use normalized() instead: it answers with the value rather than '
+    'changing this one',
+  )
   void optimize() {
     _requirePacked;
   }
+
+  /// This decimal in its canonical form.
+  ///
+  /// The value does not change; the stored form loses the trailing zeros it
+  /// may have picked up. This family normalises lazily, so here is where that
+  /// work happens — and the result is kept for the next caller.
+  ///
+  /// ```dart
+  /// print((Decimal(150) >> 2).normalized() == Decimal.parse('1.5')); // true
+  /// ```
+  @override
+  Decimal normalized() => _requirePacked;
+
+  /// This decimal divided by `10^places`: the point moves left.
+  ///
+  /// The readable name of [operator >>].
+  ///
+  /// ```dart
+  /// print(Decimal(100).movePointLeft(2)); // 1
+  /// ```
+  @override
+  Decimal movePointLeft(int places) => this >> places;
+
+  /// This decimal multiplied by `10^places`: the point moves right.
+  ///
+  /// The readable name of [operator <<].
+  ///
+  /// ```dart
+  /// print(Decimal(1).movePointRight(2)); // 100
+  /// ```
+  @override
+  Decimal movePointRight(int places) => this << places;
 
   /// Returns the absolute value of this decimal.
   @override
@@ -1123,6 +1178,10 @@ final class DecimalDivideException implements Exception {
 }
 
 /// Conversion from `BigInt`.
+@Deprecated(
+  'Conflicts with the same extension from package:decimal, so the two '
+  'cannot be used together. Use Decimal.fromBigInt(value) instead',
+)
 extension DecimalBigIntExtension on BigInt {
   /// This integer as a [Decimal].
   ///
@@ -1133,6 +1192,10 @@ extension DecimalBigIntExtension on BigInt {
 }
 
 /// Conversion from `int`.
+@Deprecated(
+  'Conflicts with the same extension from package:decimal, so the two '
+  'cannot be used together. Use Decimal(value) instead',
+)
 extension DecimalIntExtension on int {
   /// This integer as a [Decimal].
   ///

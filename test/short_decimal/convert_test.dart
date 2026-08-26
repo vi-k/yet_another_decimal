@@ -319,6 +319,57 @@ void main() {
       });
     });
 
+    group('unscaledValue и exponent', () {
+      for (final (source, value, exponent) in [
+        ('0', 0, 0),
+        ('1', 1, 0),
+        ('1.5', 15, -1),
+        ('1.50', 15, -1),
+        ('100', 1, 2),
+        ('-0.05', -5, -2),
+      ]) {
+        test('$source даёт $value и $exponent', () {
+          final d = ShortDecimal.parse(source);
+          expect(d.unscaledValue, value);
+          expect(d.exponent, exponent);
+        });
+      }
+
+      test('пара восстанавливает значение', () {
+        for (final source in ['0', '1.5', '1.50', '100', '-0.05']) {
+          final d = ShortDecimal.parse(source);
+          expect(ShortDecimal(d.unscaledValue) << d.exponent, d,
+              reason: source);
+        }
+      });
+    });
+
+    group('normalized', () {
+      test('отдаёт то же самое: форма здесь канонична всегда', () {
+        for (final source in ['0', '1.5', '1.50', '100', '-0.05']) {
+          final d = ShortDecimal.parse(source);
+          expect(identical(d.normalized(), d), isTrue, reason: source);
+        }
+      });
+    });
+
+    group('movePointLeft и movePointRight', () {
+      for (final (source, places) in [
+        ('1', 2),
+        ('100', 2),
+        ('1.5', 3),
+        ('-0.05', 1),
+        ('0', 5),
+        ('12345', -3),
+      ]) {
+        test('$source на $places совпадает с операторами', () {
+          final d = ShortDecimal.parse(source);
+          expect(d.movePointLeft(places), d >> places);
+          expect(d.movePointRight(places), d << places);
+        });
+      }
+    });
+
     group('precision', () {
       for (final (source, expected) in [
         ('0', 1),

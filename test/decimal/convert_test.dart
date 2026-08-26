@@ -237,6 +237,8 @@ void main() {
     });
 
     test('расширения int и BigInt', () {
+      // Расширение помечено устаревшим — конфликтует с одноимённым из
+      // `decimal`, — но до удаления обязано работать.
       expectDecimal(5.toDecimal(), '5');
       expectDecimal((-5).toDecimal(), '-5');
       expectDecimal(BigInt.from(5).toDecimal(), '5');
@@ -324,6 +326,86 @@ void main() {
             reason: source,
           );
         }
+      });
+    });
+
+    group('unscaledValue и exponent берутся от канонической формы', () {
+      for (final (source, value, exponent) in [
+        ('0', 0, 0),
+        ('1', 1, 0),
+        ('1.5', 15, -1),
+        // Хвостовые нули не видны снаружи: 1.50 и 1.5 — одно значение.
+        ('1.50', 15, -1),
+        ('100', 1, 2),
+        ('100.00', 1, 2),
+        ('-0.05', -5, -2),
+        ('1e21', 1, 21),
+      ]) {
+        test('$source даёт $value и $exponent', () {
+          final d = Decimal.parse(source);
+          expect(d.unscaledValue, BigInt.from(value));
+          expect(d.exponent, exponent);
+        });
+      }
+
+      test('пара восстанавливает значение', () {
+        for (final source in ['0', '1.5', '1.50', '100', '-0.05', '1e21']) {
+          final d = Decimal.parse(source);
+          expect(
+            Decimal.fromBigInt(d.unscaledValue) << d.exponent,
+            d,
+            reason: source,
+          );
+        }
+      });
+
+      test('форма хранения на ответ не влияет', () {
+        // Слева пара (150, 2), справа (15, 1) — значение одно.
+        final shifted = Decimal(150) >> 2;
+        final parsed = Decimal.parse('1.5');
+        expect(shifted.unscaledValue, parsed.unscaledValue);
+        expect(shifted.exponent, parsed.exponent);
+      });
+    });
+
+    group('normalized', () {
+      test('приводит к канонической форме, не меняя значения', () {
+        final shifted = Decimal(150) >> 2;
+        expectDecimal(shifted, '1.5', base: BigInt.from(150), scale: 2);
+        expectDecimal(
+          shifted.normalized(),
+          '1.5',
+          base: BigInt.from(15),
+          scale: 1,
+        );
+        expect(shifted.normalized(), shifted);
+      });
+
+      test('на уже канонической форме отдаёт равное значение', () {
+        final d = Decimal.parse('1.5');
+        expect(d.normalized(), d);
+      });
+    });
+
+    group('movePointLeft и movePointRight', () {
+      for (final (source, places) in [
+        ('1', 2),
+        ('100', 2),
+        ('1.5', 3),
+        ('-0.05', 1),
+        ('0', 5),
+        ('12345', -3),
+      ]) {
+        test('$source на $places совпадает с операторами', () {
+          final d = Decimal.parse(source);
+          expect(d.movePointLeft(places), d >> places);
+          expect(d.movePointRight(places), d << places);
+        });
+      }
+
+      test('движение туда и обратно возвращает то же значение', () {
+        final d = Decimal.parse('1.5');
+        expect(d.movePointLeft(3).movePointRight(3), d);
       });
     });
 

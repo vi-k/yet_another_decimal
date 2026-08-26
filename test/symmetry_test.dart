@@ -34,6 +34,7 @@ const _typeDivergences = <String, String>{
   'divideToFraction': 'Fraction против ShortFraction',
   'divideWithRemainder': 'Division против ShortDivision',
   'operator ~/': 'BigInt против int',
+  'unscaledValue': 'BigInt против int — та же причина, что у base',
 };
 
 /// Публичные члены класса из его исходника.
