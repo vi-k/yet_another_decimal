@@ -17,6 +17,7 @@ dependencies:
   # picks it.
   fixed: ^6.1.1
   format: ^4.1.0
+  precise_decimal: ^0.0.1
   yet_another_decimal:
     path: ..
 

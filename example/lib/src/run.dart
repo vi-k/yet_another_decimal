@@ -14,6 +14,7 @@ import 'tests/decimal_test.dart';
 import 'tests/decimal_type_test.dart';
 import 'tests/fixed_test.dart';
 import 'tests/my_benchmark_base.dart';
+import 'tests/precise_decimal_test.dart';
 import 'tests/yet_another_decimal_short_test.dart';
 import 'tests/yet_another_decimal_test.dart';
 import 'utils/output.dart';
@@ -133,6 +134,7 @@ final _bigIntPackages = <Package, CreateBigIntTestCallback>{
   Package.fixed: FixedTest.new,
   Package.decimalType: DecimalTypeTest.new,
   Package.bigDecimal: BigDecimalTest.new,
+  Package.preciseDecimal: PreciseDecimalTest.new,
   Package.yetAnotherDecimal: YetAnotherDecimalTest.new,
   Package.bigDouble: BigDoubleTest.new,
 };

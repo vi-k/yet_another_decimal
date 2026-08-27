@@ -43,11 +43,13 @@ example/bin/benchmark.exe all --passes=2
 
 ### What it measures, and how
 
-Six packages are compared on the same values: this one in both of its families,
+Seven packages are compared on the same values: this one in both of its
+families,
 [decimal](https://pub.dev/packages/decimal),
 [fixed](https://pub.dev/packages/fixed),
 [big_decimal](https://pub.dev/packages/big_decimal),
-[decimal_type](https://pub.dev/packages/decimal_type) and
+[decimal_type](https://pub.dev/packages/decimal_type),
+[precise_decimal](https://pub.dev/packages/precise_decimal) and
 [big_double](https://pub.dev/packages/big_double).
 
 A few rules keep the answers honest:
@@ -68,6 +70,20 @@ A few rules keep the answers honest:
   which marks a package that is faster than everyone inside the comparison.
   The point of it is the absence: a row where `ShortDecimal` has no `★★` is a
   row where int64 buys nothing. A wrong answer never earns the mark.
+- **A cache is not a faster algorithm.** `raw-view` is meant to be a first
+  conversion and `repeat-view` every later one, so the pair tells them apart:
+  quick in one and slow in the other means an algorithm, quick in both means a
+  cache. The diagnostic holds only while the cache is per value-object, as it
+  is here — a fresh object misses it, and `raw-view` builds one.
+  [precise_decimal](https://pub.dev/packages/precise_decimal) breaks it: its
+  plain-string cache is one table for the whole library, keyed by the value
+  rather than the object (512 entries, strings up to 512 characters), so a new
+  object with an old value hits it too. Its `raw-view` therefore times a cache
+  hit from the second cycle on, and lands next to its own `repeat-view`.
+  Measured on this machine: a cached print costs 0.11 µs against 1.46 µs for a
+  value printed for the first time — the row reads about thirteen times better
+  than a first conversion actually costs. The four `divide-and-view` rows print
+  a repeating result and are cached the same way.
 - **Every benchmark is measured five times** (`--runs=N`), and the summary
   shows the median; the console shows the whole spread next to it. One run
   says nothing: the machine drifts by up to 15 % between them.

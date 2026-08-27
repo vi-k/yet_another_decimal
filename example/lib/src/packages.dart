@@ -3,6 +3,7 @@ enum Package {
   decimalType('decimal_type', 'Decimal'),
   fixed('fixed', 'Fixed'),
   bigDecimal('big_decimal', 'BigDecimal'),
+  preciseDecimal('precise_decimal', 'BigDecimal'),
   yetAnotherDecimal(
     'yet_another_decimal-decimal',
     'Decimal',
