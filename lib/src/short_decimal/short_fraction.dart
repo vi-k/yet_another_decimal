@@ -14,6 +14,11 @@ part of 'short_decimal.dart';
 /// print(third.round(4));   // 0.3333
 /// print(third.toDouble()); // 0.3333333333333333
 /// ```
+///
+/// [round] and its three neighbours take a number of digits, and past a
+/// million they refuse it with `ArgumentError`: the power of ten such a
+/// request needs is built in `BigInt` here, and it is a number nobody can
+/// hold.
 final class ShortFraction implements Comparable<ShortFraction> {
   /// Numerator.
   final int numerator;
@@ -292,6 +297,8 @@ final class ShortFraction implements Comparable<ShortFraction> {
   /// as [ShortDecimal.floor] and its neighbours do; it scales the denominator
   /// instead of the numerator.
   ShortDecimal _dropFraction(int fractionDigits, _Rounding rounding) {
+    ShortDecimal._checkDigits(fractionDigits, 'fractionDigits');
+
     final numerator = fractionDigits >= 0
         ? ShortDecimal._scaledOrNull(this.numerator, fractionDigits)
         : this.numerator;

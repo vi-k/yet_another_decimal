@@ -202,20 +202,64 @@ void main() {
       );
     });
 
-    test('масштаб не заворачивается', () {
+    test('масштаб не заворачивается и не уходит за миллион', () {
       // Р24: `scale * exponent` переполнялся молча, и 0.01 в степени int.max
-      // печаталось как 100.
+      // печаталось как 100. Плюс к тому масштаб — это степень десятки, которую
+      // однажды придётся построить, поэтому он ограничен тем же миллионом, что
+      // и показатель при разборе строки.
       const max = 9223372036854775807;
       const min = -9223372036854775807 - 1;
+      const million = 1000000;
 
       expect(() => Decimal.parse('0.01').pow(max), throwsArgumentError);
       expect(() => Decimal(1) << min, throwsArgumentError);
-      expect(() => (Decimal(1) >> max) >> 1, throwsArgumentError);
+      expect(() => Decimal(1) >> max, throwsArgumentError);
       expect(() => Decimal(1).movePointRight(min), throwsArgumentError);
+      expect(() => Decimal(1) >> (million + 1), throwsArgumentError);
+      expect(() => Decimal(1) << (million + 1), throwsArgumentError);
+      expect(() => Decimal.parse('0.01').pow(million), throwsArgumentError);
 
-      // Всё, что помещается, по-прежнему считается.
+      // Заворот ловится до границы, а не ею: сумма может уехать в минус и
+      // оказаться внутри допустимого, не будучи ответом.
+      expect(() => (Decimal(1) >> million) >> max, throwsArgumentError);
+      expect(() => (Decimal(1) << million) << max, throwsArgumentError);
+
+      // На самой границе и внутри неё — по-прежнему считается.
+      expect((Decimal(1) >> million).scale, million);
+      expect((Decimal(1) << million).scale, -million);
       expectDecimal(Decimal.parse('0.01').pow(3), '0.000001');
-      expect((Decimal(1) >> max).scale, max);
+    });
+
+    test('число знаков за миллионом отвергается, а не считается', () {
+      // Ревью, раздел про надёжность: `Decimal.one.round(-1000000000)` строил
+      // 10^(10^9) и съедал память. Граница — та же, что у показателя при
+      // разборе строки, и на ней ответ ещё считается (замерено: 415 мс).
+      const huge = 1000000000;
+      final third = Fraction(BigInt.one, BigInt.from(3));
+
+      final calls = <String, void Function()>{
+        'round': () => Decimal.one.round(-huge),
+        'floor': () => Decimal.one.floor(-huge),
+        'ceil': () => Decimal.one.ceil(-huge),
+        'truncate': () => Decimal.one.truncate(-huge),
+        'round вверх': () => Decimal.one.round(huge),
+        'divide': () =>
+            Decimal.one.divide(Decimal(3), scaleOnInfinitePrecision: huge),
+        'toStringAsFixed': () => Decimal.one.toStringAsFixed(huge),
+        'toStringAsExponential': () => Decimal.one.toStringAsExponential(huge),
+        'toStringAsPrecision': () => Decimal.one.toStringAsPrecision(huge),
+        'Fraction.round': () => third.round(-huge),
+        'Fraction.truncate': () => third.truncate(huge),
+      };
+
+      for (final entry in calls.entries) {
+        expect(entry.value, throwsArgumentError, reason: entry.key);
+      }
+
+      // Внутри границы — обычная работа; сверху она достаётся даром, потому
+      // что просить больше знаков, чем есть, значит ничего не менять.
+      expectDecimal(Decimal.parse('1.5').round(1000000), '1.5');
+      expectDecimal(Decimal.parse('123.4').round(-1), '120');
     });
   });
 }

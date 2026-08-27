@@ -27,6 +27,12 @@ part 'fraction.dart';
 /// finite decimal form. [divideOrNull] returns null there, [divide] rounds to
 /// as many digits as it is told, [isDivisibleBy] asks the question in advance,
 /// and [operator /] throws [DecimalDivideException].
+///
+/// One bound the type does have: a number of digits. Rounding, printing, an
+/// inexact division and a shift all take one, and past a million the power of
+/// ten behind it is a number nobody can hold — `round(-1000000000)` asks for
+/// ten to the billionth. Such a request is refused with `ArgumentError`, and
+/// `Decimal.parse` refuses to read a number that would need one.
 final class Decimal implements FixedPoint<Decimal> {
   static final _char0 = '0'.codeUnitAt(0);
   static final _charMinus = '-'.codeUnitAt(0);
@@ -408,6 +414,8 @@ final class Decimal implements FixedPoint<Decimal> {
   /// what holds the numbers inside int64, and dropping it would send the
   /// rounding to the exact BigInt path far more often.
   Decimal _roundedQuotient(Decimal other, int fractionDigits) {
+    _checkDigits(fractionDigits, 'scaleOnInfinitePrecision');
+
     var numerator = base;
     var denominator = other.base;
 
@@ -908,6 +916,7 @@ final class Decimal implements FixedPoint<Decimal> {
   @override
   String toStringAsFixed(int fractionDigits) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
+    _checkDigits(fractionDigits, 'fractionDigits');
 
     var base = this.base;
     var scale = this.scale;
@@ -954,6 +963,7 @@ final class Decimal implements FixedPoint<Decimal> {
   @override
   String toStringAsExponential([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
+    _checkDigits(fractionDigits, 'fractionDigits');
 
     if (isZero) {
       return '${zero.toStringAsFixed(fractionDigits)}e+0';
@@ -995,6 +1005,7 @@ final class Decimal implements FixedPoint<Decimal> {
         'The value must be > 0',
       );
     }
+    _checkDigits(precision, 'precision');
 
     if (isZero) {
       return precision == 1 ? '0' : '0.${'0' * (precision - 1)}';
@@ -1033,6 +1044,23 @@ final class Decimal implements FixedPoint<Decimal> {
     }
   }
 
+  /// Refuses a number of digits the package would not be able to answer with.
+  ///
+  /// Beyond [maxDecimalExponent] the power of ten this would need is a number
+  /// nobody can hold: `round(-1000000000)` went looking for ten to the
+  /// billionth and took the memory of the process with it. The same bound
+  /// stops a string of that size from being read in, so nothing this package
+  /// produced can need one.
+  static void _checkDigits(int value, String name) {
+    if (value < -maxDecimalExponent || value > maxDecimalExponent) {
+      throw ArgumentError.value(
+        value,
+        name,
+        'The number of digits must be within a million of zero',
+      );
+    }
+  }
+
   /// The scale moved by [by], refusing to wrap around.
   ///
   /// The scale is the one number in this class that cannot grow to fit: it is
@@ -1045,7 +1073,7 @@ final class Decimal implements FixedPoint<Decimal> {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return result;
+    return _checkedScale(result, by, name);
   }
 
   /// The scale moved the other way, with the same refusal.
@@ -1055,7 +1083,7 @@ final class Decimal implements FixedPoint<Decimal> {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return result;
+    return _checkedScale(result, by, name);
   }
 
   /// The scale repeated [by] times, with the same refusal.
@@ -1065,14 +1093,32 @@ final class Decimal implements FixedPoint<Decimal> {
     }
 
     final result = scale * by;
+    // The wrap is caught before the range and not by it: two times int.max
+    // lands on minus two, which is inside the range and is not the answer.
     if (result ~/ by != scale) {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return result;
+    return _checkedScale(result, by, name);
   }
 
-  static const _scaleOutOfRange = 'The scale would leave int64';
+  /// The scale, if the package can still print and align a number carrying it.
+  ///
+  /// A scale is a power of ten waiting to be built — by the alignment of two
+  /// operands, by rounding, by printing — so the bound on it is the bound on
+  /// the exponent, [maxDecimalExponent]. Multiplication is the one place that
+  /// does not check: it is the hottest path there is, and it can only add up
+  /// scales that passed through here.
+  static int _checkedScale(int scale, int argument, String name) {
+    if (scale < -maxDecimalExponent || scale > maxDecimalExponent) {
+      throw ArgumentError.value(argument, name, _scaleOutOfRange);
+    }
+
+    return scale;
+  }
+
+  static const _scaleOutOfRange =
+      'The scale must stay within a million of zero';
 
   Decimal get _requirePacked {
     var packed = _packed;
@@ -1177,6 +1223,8 @@ final class Decimal implements FixedPoint<Decimal> {
     int fractionDigits,
     BigInt Function(BigInt result, BigInt divisor) callback,
   ) {
+    _checkDigits(fractionDigits, 'fractionDigits');
+
     if (scale <= fractionDigits) {
       return this;
     }

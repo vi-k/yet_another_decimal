@@ -151,13 +151,19 @@ const _charMinus = 0x2d;
 const _charE = 0x65;
 const _charCapitalE = 0x45;
 
-/// The largest exponent a decimal number is read with.
+/// The largest exponent this package will build a power of ten for.
 ///
-/// The scale itself is just an int and holds far more, but a number this
-/// string produces has to remain printable: a million digits is a megabyte of
-/// text, and a billion of them takes the stack down inside `BigInt.parse` on
-/// the way back. No real notation comes anywhere near this.
-const _maxExponent = 1000000;
+/// The scale itself is just an int and holds far more, but a number has to
+/// remain printable: a million digits is a megabyte of text, and a billion of
+/// them takes the stack down inside `BigInt.parse` on the way back. No real
+/// notation comes anywhere near this.
+///
+/// Reading a number stops here, and so does every member that takes a number
+/// of digits from the caller — rounding, printing, the scale of an inexact
+/// division. Ten to the millionth is a `BigInt` of a megabyte and the package
+/// will build one; ten to the billionth is a number nobody can hold, and
+/// `Decimal.one.round(-1000000000)` used to go looking for it.
+const maxDecimalExponent = 1000000;
 
 /// What the package needs of `String` and the standard library does not have.
 extension StringInternals on String {
@@ -286,7 +292,7 @@ extension StringInternals on String {
       }
 
       final digits = int.tryParse(source.substring(exponentStart, index));
-      if (digits == null || digits > _maxExponent) {
+      if (digits == null || digits > maxDecimalExponent) {
         return null;
       }
 

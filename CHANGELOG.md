@@ -96,8 +96,14 @@ Changed.
   a positive number with a negative one. Where the fraction has no int64 to
   live in it throws now.
 - The scale wrapped around silently: `Decimal.parse('0.01').pow(int.max)`
-  printed `100`. `pow`, `<<`, `>>` and both `movePoint` methods refuse a shift
-  that would take the scale out of int64, in both families.
+  printed `100`. `pow`, `<<`, `>>` and both `movePoint` methods refuse such a
+  shift now, in both families.
+- A number of digits past a million is refused rather than attempted.
+  `Decimal.one.round(-1000000000)` went looking for ten to the billionth and
+  took the memory of the process with it; the same held for `floor`, `ceil`,
+  `truncate`, `divide`, the three `toStringAs…` methods, both fraction types
+  and the scale a shift produces. The bound is the one `parse` has always had,
+  so no number this package can read in needs more.
 - `DecimalDivideException.forTest` and its twin accepted a zero divisor, and
   everything about the exception it built — `toString` included — threw.
 - `ShortDecimal.divide(other, scaleOnInfinitePrecision: n)` threw

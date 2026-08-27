@@ -399,20 +399,68 @@ void main() {
       );
     });
 
-    test('масштаб не заворачивается', () {
+    test('масштаб не заворачивается и не уходит за миллион', () {
       // Р24: `scale * exponent` переполнялся молча, и 0.01 в степени int.max
-      // печаталось как 100.
+      // печаталось как 100. Плюс к тому масштаб — это степень десятки, которую
+      // однажды придётся построить, поэтому он ограничен тем же миллионом, что
+      // и показатель при разборе строки.
       const max = 9223372036854775807;
       const min = -9223372036854775807 - 1;
+      const million = 1000000;
 
       expect(() => ShortDecimal.parse('0.01').pow(max), throwsArgumentError);
       expect(() => ShortDecimal(1) << min, throwsArgumentError);
-      expect(() => (ShortDecimal(1) >> max) >> 1, throwsArgumentError);
+      expect(() => ShortDecimal(1) >> max, throwsArgumentError);
       expect(() => ShortDecimal(1).movePointRight(min), throwsArgumentError);
+      expect(() => ShortDecimal(1) >> (million + 1), throwsArgumentError);
+      expect(() => ShortDecimal(1) << (million + 1), throwsArgumentError);
+      expect(
+        () => ShortDecimal.parse('0.01').pow(million),
+        throwsArgumentError,
+      );
 
-      // Всё, что помещается, по-прежнему считается.
+      // Заворот ловится до границы, а не ею: сумма может уехать в минус и
+      // оказаться внутри допустимого, не будучи ответом.
+      expect(() => (ShortDecimal(1) >> million) >> max, throwsArgumentError);
+      expect(() => (ShortDecimal(1) << million) << max, throwsArgumentError);
+
+      // На самой границе и внутри неё — по-прежнему считается.
+      expect((ShortDecimal(1) >> million).scale, million);
+      expect((ShortDecimal(1) << million).scale, -million);
       expectShortDecimal(ShortDecimal.parse('0.01').pow(3), '0.000001');
-      expect((ShortDecimal(1) >> max).scale, max);
+    });
+
+    test('число знаков за миллионом отвергается, а не считается', () {
+      // То же, что у семейства на BigInt: степень десятки, которую не
+      // построить, отвергается до того, как за неё возьмутся. У короткой
+      // дроби она строится в BigInt и съела бы память так же.
+      const huge = 1000000000;
+      final third = ShortFraction(1, 3);
+
+      final calls = <String, void Function()>{
+        'round': () => ShortDecimal.one.round(-huge),
+        'floor': () => ShortDecimal.one.floor(-huge),
+        'ceil': () => ShortDecimal.one.ceil(-huge),
+        'truncate': () => ShortDecimal.one.truncate(-huge),
+        'round вверх': () => ShortDecimal.one.round(huge),
+        'divide': () => ShortDecimal.one
+            .divide(ShortDecimal(3), scaleOnInfinitePrecision: huge),
+        'toStringAsFixed': () => ShortDecimal.one.toStringAsFixed(huge),
+        'toStringAsExponential': () =>
+            ShortDecimal.one.toStringAsExponential(huge),
+        'toStringAsPrecision': () => ShortDecimal.one.toStringAsPrecision(huge),
+        'ShortFraction.round': () => third.round(-huge),
+        'ShortFraction.truncate': () => third.truncate(huge),
+      };
+
+      for (final entry in calls.entries) {
+        expect(entry.value, throwsArgumentError, reason: entry.key);
+      }
+
+      // На самой границе короткое семейство отвечает мгновенно: делителя
+      // больше 10^18 у него нет, и правило вызывающего решает всё само.
+      expectShortDecimal(ShortDecimal.one.round(-1000000), '0');
+      expectShortDecimal(ShortDecimal.parse('123.4').round(-1), '120');
     });
 
     test('расширение int', () {

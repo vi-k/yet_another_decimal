@@ -29,6 +29,13 @@ part 'short_division.dart';
 /// finite decimal form. [divideOrNull] returns null there, [divide] rounds to
 /// as many digits as it is told, [isDivisibleBy] asks the question in advance,
 /// and [operator /] throws [ShortDecimalDivideException].
+///
+/// One bound beside the width of int64: a number of digits. Rounding,
+/// printing, an inexact division and a shift all take one, and past a million
+/// the power of ten behind it is a number nobody can hold —
+/// `round(-1000000000)` asks for ten to the billionth. Such a request is
+/// refused with `ArgumentError`, and `ShortDecimal.parse` refuses to read a
+/// number that would need one.
 // Both fields are `int`, so the class qualifies: the VM may share its
 // instances between isolates. `Decimal` never will — a field of type `BigInt`
 // is rejected outright, and that is the whole difference.
@@ -324,7 +331,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return result;
+    return _checkedScale(result, by, name);
   }
 
   /// The scale moved the other way, with the same refusal.
@@ -334,7 +341,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return result;
+    return _checkedScale(result, by, name);
   }
 
   /// The scale repeated [by] times, with the same refusal.
@@ -344,14 +351,31 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     final result = scale * by;
+    // The wrap is caught before the range and not by it: two times int.max
+    // lands on minus two, which is inside the range and is not the answer.
     if (result ~/ by != scale) {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return result;
+    return _checkedScale(result, by, name);
   }
 
-  static const _scaleOutOfRange = 'The scale would leave int64';
+  /// The scale, if a number carrying it can still be printed and rounded.
+  ///
+  /// The bound is the one the BigInt family needs — a scale is a power of ten
+  /// waiting to be built — and this family keeps it for the sake of one
+  /// contract, not because int64 minds: printing a scale of a billion asks for
+  /// a billion characters here just as it asks for a billion digits there.
+  static int _checkedScale(int scale, int argument, String name) {
+    if (scale < -maxDecimalExponent || scale > maxDecimalExponent) {
+      throw ArgumentError.value(argument, name, _scaleOutOfRange);
+    }
+
+    return scale;
+  }
+
+  static const _scaleOutOfRange =
+      'The scale must stay within a million of zero';
 
   /// Whether `a * b` stays within int64.
   static bool _productFits(int a, int b) {
@@ -536,6 +560,8 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     if (scaleOnInfinitePrecision == null) {
       throw ShortDecimalDivideException._(this, other);
     }
+
+    _checkDigits(scaleOnInfinitePrecision, 'scaleOnInfinitePrecision');
 
     final (dividend, divisor) = _fractionPair(other);
     final fraction = ShortFraction._orNull(dividend, divisor);
@@ -1089,6 +1115,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   @override
   String toStringAsFixed(int fractionDigits) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
+    _checkDigits(fractionDigits, 'fractionDigits');
 
     var base = this.base;
     var scale = this.scale;
@@ -1135,6 +1162,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   @override
   String toStringAsExponential([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
+    _checkDigits(fractionDigits, 'fractionDigits');
 
     if (isZero) {
       return '${zero.toStringAsFixed(fractionDigits)}e+0';
@@ -1176,6 +1204,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
         'The value must be > 0',
       );
     }
+    _checkDigits(precision, 'precision');
 
     if (isZero) {
       return precision == 1 ? '0' : '0.${'0' * (precision - 1)}';
@@ -1211,6 +1240,23 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static void _checkNonNegativeArgument(int value, String name) {
     if (value < 0) {
       throw ArgumentError.value(value, name, 'The value must be >= 0');
+    }
+  }
+
+  /// Refuses a number of digits the package would not be able to answer with.
+  ///
+  /// Beyond [maxDecimalExponent] the power of ten this would need is a number
+  /// nobody can hold: `round(-1000000000)` went looking for ten to the
+  /// billionth and took the memory of the process with it. The same bound
+  /// stops a string of that size from being read in, so nothing this package
+  /// produced can need one.
+  static void _checkDigits(int value, String name) {
+    if (value < -maxDecimalExponent || value > maxDecimalExponent) {
+      throw ArgumentError.value(
+        value,
+        name,
+        'The number of digits must be within a million of zero',
+      );
     }
   }
 
@@ -1407,6 +1453,8 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     int Function(int result, int divisor) callback, {
     required int Function(int exponent) onDivisorOverflow,
   }) {
+    _checkDigits(fractionDigits, 'fractionDigits');
+
     if (scale <= fractionDigits) {
       return this;
     }

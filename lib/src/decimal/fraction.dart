@@ -14,6 +14,10 @@ part of 'decimal.dart';
 /// print(third.round(4));   // 0.3333
 /// print(third.toDouble()); // 0.3333333333333333
 /// ```
+///
+/// [round] and its three neighbours take a number of digits, and past a
+/// million they refuse it with `ArgumentError`: the power of ten such a
+/// request needs is a number nobody can hold.
 final class Fraction implements Comparable<Fraction> {
   /// Numerator.
   final BigInt numerator;
@@ -189,9 +193,13 @@ final class Fraction implements Comparable<Fraction> {
   /// numerator then, so it scales the denominator instead: `BigInt.pow` does
   /// not take a negative exponent, and the two directions are the same
   /// division anyway.
-  (BigInt, BigInt) _align(int fractionDigits) => fractionDigits >= 0
-      ? (numerator * Decimal._pow10(fractionDigits), denominator)
-      : (numerator, denominator * Decimal._pow10(-fractionDigits));
+  (BigInt, BigInt) _align(int fractionDigits) {
+    Decimal._checkDigits(fractionDigits, 'fractionDigits');
+
+    return fractionDigits >= 0
+        ? (numerator * Decimal._pow10(fractionDigits), denominator)
+        : (numerator, denominator * Decimal._pow10(-fractionDigits));
+  }
 
   @override
   bool operator ==(Object other) =>
