@@ -87,6 +87,22 @@ void main() {
       );
     });
 
+    test('масштаб за миллионом переходит, а не бросает', () {
+      // Мост обещает точность вверх и `null` вниз — ни то, ни другое не может
+      // оказаться исключением. Проверка масштаба, поставленная было на сдвиг,
+      // ровно этим и обернулась: масштаб больше миллиона получается обычным
+      // умножением, а мост внутри сдвигает.
+      final wide = Decimal.parse('1e-1000000');
+      final wideSquared = wide * wide;
+      expect(wideSquared.scale, 2000000);
+      expect(wideSquared.toShortDecimalOrNull()?.scale, 2000000);
+
+      final short = ShortDecimal.parse('1e-1000000');
+      final shortSquared = short * short;
+      expect(shortSquared.scale, 2000000);
+      expect(shortSquared.toDecimal().scale, 2000000);
+    });
+
     test('туда и обратно на случайных значениях', () {
       for (var i = -500; i <= 500; i++) {
         final source = '${i / 8}';

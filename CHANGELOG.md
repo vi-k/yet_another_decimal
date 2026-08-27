@@ -98,12 +98,14 @@ Changed.
 - The scale wrapped around silently: `Decimal.parse('0.01').pow(int.max)`
   printed `100`. `pow`, `<<`, `>>` and both `movePoint` methods refuse such a
   shift now, in both families.
-- A number of digits past a million is refused rather than attempted.
+- A power of ten past ten to the millionth is refused rather than attempted.
   `Decimal.one.round(-1000000000)` went looking for ten to the billionth and
   took the memory of the process with it; the same held for `floor`, `ceil`,
-  `truncate`, `divide`, the three `toStringAs…` methods, both fraction types
-  and the scale a shift produces. The bound is the one `parse` has always had,
-  so no number this package can read in needs more.
+  `truncate`, `divide`, the three `toStringAs…` methods and both fraction
+  types. The bound is the one `parse` has always had, so no number this package
+  can read in needs more, and it is checked both where the request comes in and
+  where the power would be built — so a scale shifted that far is caught as
+  well.
 - `DecimalDivideException.forTest` and its twin accepted a zero divisor, and
   everything about the exception it built — `toString` included — threw.
 - `ShortDecimal.divide(other, scaleOnInfinitePrecision: n)` threw

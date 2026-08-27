@@ -158,11 +158,13 @@ const _charCapitalE = 0x45;
 /// them takes the stack down inside `BigInt.parse` on the way back. No real
 /// notation comes anywhere near this.
 ///
-/// Reading a number stops here, and so does every member that takes a number
-/// of digits from the caller — rounding, printing, the scale of an inexact
-/// division. Ten to the millionth is a `BigInt` of a megabyte and the package
-/// will build one; ten to the billionth is a number nobody can hold, and
-/// `Decimal.one.round(-1000000000)` used to go looking for it.
+/// Reading a number stops here; so does every member that takes a number of
+/// digits from the caller — rounding, printing, the scale of an inexact
+/// division — and so does the building of the power itself, which is where a
+/// scale driven past the bound by shifting is caught. Ten to the millionth is
+/// a `BigInt` of a megabyte and the package will build one; ten to the
+/// billionth is a number nobody can hold, and `Decimal.one.round(-1000000000)`
+/// used to go looking for it.
 const maxDecimalExponent = 1000000;
 
 /// What the package needs of `String` and the standard library does not have.

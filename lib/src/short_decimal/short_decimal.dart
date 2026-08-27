@@ -30,12 +30,11 @@ part 'short_division.dart';
 /// as many digits as it is told, [isDivisibleBy] asks the question in advance,
 /// and [operator /] throws [ShortDecimalDivideException].
 ///
-/// One bound beside the width of int64: a number of digits. Rounding,
-/// printing, an inexact division and a shift all take one, and past a million
-/// the power of ten behind it is a number nobody can hold —
-/// `round(-1000000000)` asks for ten to the billionth. Such a request is
-/// refused with `ArgumentError`, and `ShortDecimal.parse` refuses to read a
-/// number that would need one.
+/// One bound beside the width of int64: the number of digits a member may be
+/// asked for. Past a million the power of ten behind it is a number nobody can
+/// hold — `round(-1000000000)` asks for ten to the billionth — and the request
+/// is refused with `ArgumentError` rather than attempted.
+/// `ShortDecimal.parse` refuses to read such a number in the first place.
 // Both fields are `int`, so the class qualifies: the VM may share its
 // instances between isolates. `Decimal` never will — a field of type `BigInt`
 // is rejected outright, and that is the whole difference.
@@ -331,7 +330,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return _checkedScale(result, by, name);
+    return result;
   }
 
   /// The scale moved the other way, with the same refusal.
@@ -341,7 +340,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return _checkedScale(result, by, name);
+    return result;
   }
 
   /// The scale repeated [by] times, with the same refusal.
@@ -351,31 +350,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     final result = scale * by;
-    // The wrap is caught before the range and not by it: two times int.max
-    // lands on minus two, which is inside the range and is not the answer.
     if (result ~/ by != scale) {
       throw ArgumentError.value(by, name, _scaleOutOfRange);
     }
 
-    return _checkedScale(result, by, name);
+    return result;
   }
 
-  /// The scale, if a number carrying it can still be printed and rounded.
-  ///
-  /// The bound is the one the BigInt family needs — a scale is a power of ten
-  /// waiting to be built — and this family keeps it for the sake of one
-  /// contract, not because int64 minds: printing a scale of a billion asks for
-  /// a billion characters here just as it asks for a billion digits there.
-  static int _checkedScale(int scale, int argument, String name) {
-    if (scale < -maxDecimalExponent || scale > maxDecimalExponent) {
-      throw ArgumentError.value(argument, name, _scaleOutOfRange);
-    }
-
-    return scale;
-  }
-
-  static const _scaleOutOfRange =
-      'The scale must stay within a million of zero';
+  static const _scaleOutOfRange = 'The scale would leave int64';
 
   /// Whether `a * b` stays within int64.
   static bool _productFits(int a, int b) {

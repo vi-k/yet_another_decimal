@@ -399,35 +399,22 @@ void main() {
       );
     });
 
-    test('масштаб не заворачивается и не уходит за миллион', () {
+    test('масштаб не заворачивается', () {
       // Р24: `scale * exponent` переполнялся молча, и 0.01 в степени int.max
-      // печаталось как 100. Плюс к тому масштаб — это степень десятки, которую
-      // однажды придётся построить, поэтому он ограничен тем же миллионом, что
-      // и показатель при разборе строки.
+      // печаталось как 100. Проверяется именно заворот: сам по себе большой
+      // масштаб — это просто далёкая точка, а вот степень десятки, которую он
+      // однажды потребует, ограничена отдельно (см. тест ниже).
       const max = 9223372036854775807;
       const min = -9223372036854775807 - 1;
-      const million = 1000000;
 
       expect(() => ShortDecimal.parse('0.01').pow(max), throwsArgumentError);
       expect(() => ShortDecimal(1) << min, throwsArgumentError);
-      expect(() => ShortDecimal(1) >> max, throwsArgumentError);
+      expect(() => (ShortDecimal(1) >> max) >> 1, throwsArgumentError);
       expect(() => ShortDecimal(1).movePointRight(min), throwsArgumentError);
-      expect(() => ShortDecimal(1) >> (million + 1), throwsArgumentError);
-      expect(() => ShortDecimal(1) << (million + 1), throwsArgumentError);
-      expect(
-        () => ShortDecimal.parse('0.01').pow(million),
-        throwsArgumentError,
-      );
 
-      // Заворот ловится до границы, а не ею: сумма может уехать в минус и
-      // оказаться внутри допустимого, не будучи ответом.
-      expect(() => (ShortDecimal(1) >> million) >> max, throwsArgumentError);
-      expect(() => (ShortDecimal(1) << million) << max, throwsArgumentError);
-
-      // На самой границе и внутри неё — по-прежнему считается.
-      expect((ShortDecimal(1) >> million).scale, million);
-      expect((ShortDecimal(1) << million).scale, -million);
+      // Всё, что помещается, по-прежнему считается.
       expectShortDecimal(ShortDecimal.parse('0.01').pow(3), '0.000001');
+      expect((ShortDecimal(1) >> max).scale, max);
     });
 
     test('число знаков за миллионом отвергается, а не считается', () {

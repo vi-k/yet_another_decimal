@@ -202,32 +202,39 @@ void main() {
       );
     });
 
-    test('масштаб не заворачивается и не уходит за миллион', () {
+    test('масштаб не заворачивается', () {
       // Р24: `scale * exponent` переполнялся молча, и 0.01 в степени int.max
-      // печаталось как 100. Плюс к тому масштаб — это степень десятки, которую
-      // однажды придётся построить, поэтому он ограничен тем же миллионом, что
-      // и показатель при разборе строки.
+      // печаталось как 100. Проверяется именно заворот: сам по себе большой
+      // масштаб — это просто далёкая точка, а вот степень десятки, которую он
+      // однажды потребует, ограничена отдельно (см. тест ниже).
       const max = 9223372036854775807;
       const min = -9223372036854775807 - 1;
-      const million = 1000000;
 
       expect(() => Decimal.parse('0.01').pow(max), throwsArgumentError);
       expect(() => Decimal(1) << min, throwsArgumentError);
-      expect(() => Decimal(1) >> max, throwsArgumentError);
+      expect(() => (Decimal(1) >> max) >> 1, throwsArgumentError);
       expect(() => Decimal(1).movePointRight(min), throwsArgumentError);
-      expect(() => Decimal(1) >> (million + 1), throwsArgumentError);
-      expect(() => Decimal(1) << (million + 1), throwsArgumentError);
-      expect(() => Decimal.parse('0.01').pow(million), throwsArgumentError);
 
-      // Заворот ловится до границы, а не ею: сумма может уехать в минус и
-      // оказаться внутри допустимого, не будучи ответом.
-      expect(() => (Decimal(1) >> million) >> max, throwsArgumentError);
-      expect(() => (Decimal(1) << million) << max, throwsArgumentError);
-
-      // На самой границе и внутри неё — по-прежнему считается.
-      expect((Decimal(1) >> million).scale, million);
-      expect((Decimal(1) << million).scale, -million);
+      // Всё, что помещается, по-прежнему считается.
       expectDecimal(Decimal.parse('0.01').pow(3), '0.000001');
+      expect((Decimal(1) >> max).scale, max);
+    });
+
+    test('степень десятки за миллионом отвергается, откуда бы ни пришла', () {
+      // Число знаков проверяется на входе, но потребовать невозможной степени
+      // можно и не передавая её: у числа с масштабом в миллиард её попросит
+      // любое выравнивание. Отсюда вторая проверка — там, где степень
+      // строится, — и там она стоит на редком пути, мимо кеша.
+      final huge = Decimal(1) >> 1000000000;
+
+      expect(() => huge + Decimal(1), throwsArgumentError);
+      expect(huge.round, throwsArgumentError);
+      expect(huge.toInt, throwsArgumentError);
+      expect(() => huge < Decimal(1), throwsArgumentError);
+
+      // Миллион — ещё считается: масштаб такой получает всякий, кто разобрал
+      // строку с показателем на пределе.
+      expect((Decimal.parse('1e-1000000') + Decimal(1)).scale, 1000000);
     });
 
     test('число знаков за миллионом отвергается, а не считается', () {
