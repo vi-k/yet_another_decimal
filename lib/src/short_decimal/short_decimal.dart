@@ -1024,9 +1024,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final truncated = truncate();
     final base = BigInt.from(truncated.base);
 
-    return truncated.scale < 0
-        ? base * BigInt.from(10).pow(-truncated.scale)
-        : base;
+    return truncated.scale < 0 ? base * _bigInt10.pow(-truncated.scale) : base;
   }
 
   /// Returns [int], discarding all fractional digits from this decimal.
