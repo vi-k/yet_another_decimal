@@ -21,9 +21,14 @@ part 'short_division.dart';
 /// ```
 ///
 /// **Overflow is silent**, exactly as it is for `int` itself: a result that
-/// does not fit in int64 wraps round instead of throwing. Where the magnitudes
-/// are not known in advance, use `Decimal`, which has no such limit, and cross
-/// over with `toDecimal()` when it turns out to be needed.
+/// does not fit in int64 wraps round instead of throwing. Nothing here reports
+/// it — not `+`, not `*`, not the fraction types — so where the magnitudes are
+/// not known in advance, use `Decimal`, which has no such limit.
+///
+/// Crossing over is `toDecimal()`, and it lives in the bridge: import
+/// `package:denary/denary.dart` to have it. The narrow entry point
+/// `package:denary/short_decimal.dart` deliberately carries this family alone,
+/// bridge included out.
 ///
 /// Division is the one operation that cannot always answer — one third has no
 /// finite decimal form. [divideOrNull] returns null there, [divide] rounds to
@@ -232,10 +237,15 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   bool get isZero => base == 0;
 
   /// Returns the negative value of this decimal.
+  ///
+  /// The one value without a negative is the minimum integer: negating it
+  /// gives back itself, silently, as `-int.min` does in Dart.
   @override
   ShortDecimal operator -() => ShortDecimal._asIs(-base, scale);
 
   /// Adds [other] to this decimal.
+  ///
+  /// Overflows silently past int64, as everything in this family does.
   @override
   ShortDecimal operator +(ShortDecimal other) {
     // Zero cannot change a value, and going through the alignment to find
@@ -273,6 +283,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   }
 
   /// Multiplies this decimal by [other].
+  ///
+  /// The likeliest place in this family to leave int64, and it leaves it
+  /// silently: multiplication grows the digits of both operands at once, so a
+  /// chain of them — compound interest is the everyday case — walks out of
+  /// range while every single step still looks ordinary.
   @override
   ShortDecimal operator *(ShortDecimal other) {
     final a = base;
@@ -959,6 +974,9 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// ```dart
   /// print(ShortDecimal(2).pow(-2)); // 0.25
   /// ```
+  ///
+  /// A positive power multiplies, so it overflows the way [operator *] does,
+  /// and sooner: the digits multiply with every step.
   @override
   ShortDecimal pow(int exponent) {
     if (exponent >= 0) {

@@ -58,5 +58,5 @@ jobs:
         working-directory: example
 
       - name: Tour
-        run: dart run bin/example.dart
+        run: dart run example.dart
         working-directory: example

@@ -4,9 +4,15 @@ part of 'short_decimal.dart';
 
 /// An exact ratio of two integers: what division answers when a decimal cannot.
 ///
-/// One divided by three is `1/3` here, and nothing is lost on the way. The
-/// ratio is always kept in lowest terms with a positive [denominator], so equal
-/// ratios are equal objects.
+/// One divided by three is `1/3` here: the ratio itself loses nothing, unlike
+/// a decimal that has to stop somewhere. It is always kept in lowest terms
+/// with a positive [denominator], so equal ratios are equal objects.
+///
+/// The arithmetic, on the other hand, is int64 arithmetic and **overflows
+/// silently**, the same way [ShortDecimal] does. A sum of two fractions whose
+/// cross products leave int64 comes back wrong rather than refused. Where the
+/// magnitudes are not known in advance, `Fraction` from the BigInt family has
+/// no such limit.
 ///
 /// ```dart
 /// final third = ShortDecimal(1).divideToFraction(ShortDecimal(3));

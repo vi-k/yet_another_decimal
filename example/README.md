@@ -6,10 +6,10 @@ in the [main README](../README.md) come from.
 ## The tour
 
 ```bash
-dart run example/bin/example.dart
+dart run example/example.dart
 ```
 
-[`bin/example.dart`](bin/example.dart) walks through exact arithmetic, the four
+[`example.dart`](example.dart) walks through exact arithmetic, the four
 ways of dividing by three, a bill with tax split three ways, and the fast
 `int`-based family together with the bridge between the two.
 

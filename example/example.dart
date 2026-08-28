@@ -1,7 +1,7 @@
 // A tour of the package: exact arithmetic, division that refuses to lie,
 // money, and the fast family.
 //
-//   dart run example/bin/example.dart
+//   dart run example/example.dart
 
 import 'package:denary/denary.dart';
 

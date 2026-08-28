@@ -43,11 +43,17 @@ print(total); // 59.97
 print(Decimal.parse('0.1') + Decimal.parse('0.2') == Decimal.parse('0.3')); // true
 
 // Not every division has a decimal answer, so the package makes you say which
-// answer you want. Only the last of these can throw.
+// answer you want. Only the last of these throws over that — though all four
+// throw on a zero divisor, which is a question rather than an answer.
 print(total.divideOrNull(Decimal(7))); // null
 print(total.divide(Decimal(7), scaleOnInfinitePrecision: 2)); // 8.57
 print(total.divideWithRemainder(Decimal(2))); // 29 remainder 1.97
 print(total / Decimal(3)); // 19.99
+
+// A value is kept, the way it was written is not: trailing zeros say nothing
+// about a number, so printing gives them back only when asked.
+print(Decimal.parse('4.50')); // 4.5
+print(Decimal.parse('4.50').toStringAsFixed(2)); // 4.50
 ```
 
 There are two number types, and they never mix on their own:
@@ -267,7 +273,7 @@ print('$a / $b = ${a / b}'); // 1 / 256 = 0.00390625
 I wanted a package that works with decimals to return the result as a decimal
 by default. But not every division has a decimal answer — one third has none —
 so the package makes you say which answer you want. Four ways, and only the
-last of them can fail:
+last of them fails over a quotient nobody can write down:
 
 ```dart
 final a = Decimal.one;

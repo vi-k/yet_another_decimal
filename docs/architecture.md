@@ -476,13 +476,13 @@ ShortDecimal(9223372036854775807) + ShortDecimal.one; // -9223372036854775808
 
 ## `example/`
 
-Отдельный пакет (`publish_to: none`). В нём две вещи: `bin/example.dart` —
+Отдельный пакет (`publish_to: none`). В нём две вещи: `example.dart` —
 короткий тур по пакету для читателя pub.dev, и стенд сравнения скорости с
 `decimal`, `fixed`, `decimal_type`, `big_decimal`, `big_double`, цифры из
 которого попадают в таблицы `README.md`.
 
 ```
-example/bin/example.dart      тур: точность, деление, деньги, мост
+example/example.dart          тур: точность, деление, деньги, мост
 example/bin/benchmark.dart    точка входа стенда, теги, `--runs`, `--passes`
 example/lib/src/packages.dart перечень сравниваемых пакетов
 example/lib/src/tests.dart    перечень бенчмарков и их данные
