@@ -113,11 +113,9 @@ final b = Fixed.fromInt(8, decimalDigits: 0); // 8
 print('$a / $b = ${a / b}'); // 1.000 / 8 = 0.125
 ```
 
-Until this README was rewritten it went on to say that the division ran through
-`double`, and showed `Fixed.parse('111111111111111111')` squared and divided
-back as `111111111111111120`. That is no longer true, and the claim has been
-taken out: `fixed` divides in `BigInt` today, rounding half away from zero.
-Checked on 6.1.1 and 6.2.0 — the answer comes back exact:
+The division itself is exact: `fixed` divides in `BigInt`, rounding half away
+from zero. Checked on 6.1.1 and 6.2.0 — a number squared and divided back comes
+out to the digit:
 
 ```dart
 final a = Fixed.parse('111111111111111111');
@@ -361,8 +359,8 @@ print('($a) - ($b) = $f4 -> ${f4.round(6)}'); // (1/2) - (1/3) = 1/6 -> 0.166667
 
 ### Package performance
 
-The numbers below come from the bench in [`example/`](example), rebuilt for
-1.2.0 — what it does and why is in [`example/README.md`](example/README.md).
+The numbers below come from the bench in [`example/`](example) — what it does
+and why is in [`example/README.md`](example/README.md).
 The short of it:
 
 - every answer is checked before it is timed, so a wrong answer is never
@@ -476,14 +474,13 @@ factors — every step exact, nothing about the numbers saying so in advance —
 and [decimal](https://pub.dev/packages/decimal) spends 342 times longer on it
 than this package.
 
-`unrepresentable-divide` used to be the one row this package lost, and it is
-lost no longer. `divide` still returns the exact answer whenever the division
-has a finite decimal form, however many digits that takes — what went away is
-the `gcd` it used to spend finding out. When the divisor shares no prime factor
-with ten, a non-zero remainder from the rounding is itself the proof that no
-finite form exists, so the question never has to be asked separately. The row
-now goes to this package ahead of everyone in the comparison, and
-`ShortDecimal` is ten times ahead of `Decimal` on it.
+`unrepresentable-divide` rounds a quotient that has no finite decimal form, and
+this package takes the row ahead of everyone in the comparison, with
+`ShortDecimal` ten times ahead of `Decimal` on top of that. `divide` returns the
+exact answer whenever the division does have a finite form, however many digits
+that takes, and it pays nothing to find out: when the divisor shares no prime
+factor with ten, a non-zero remainder from the rounding is itself the proof that
+no finite form exists, so the question is never asked separately.
 
 #### Description of benchmarks
 
@@ -544,8 +541,7 @@ Therefore, the divide-large and divide-small test, where only division is
 performed, may be far from real life. This tests perform the same operation as
 divide-large and divide-small, but additionally convert the result of the
 operation (only the operation, not each step in this operation) into a readable
-form. (And in this tests [decimal](https://pub.dev/packages/decimal) used to
-lose a lot of performance before).
+form.
 
 I'll be honest, it took me a long time to find a solution that satisfied me in
 terms of performance.
@@ -634,10 +630,6 @@ not a faster algorithm.
 first use has nowhere to live. [decimal_type](https://pub.dev/packages/decimal_type),
 [fixed](https://pub.dev/packages/fixed) and [big_decimal](https://pub.dev/packages/big_decimal)
 keep nothing either.
-
-Until version 1.2.0 this test was called prepared-view and measured nothing at
-all: it printed one value a hundred times and the cache answered ninety-nine of
-them.
 
 ##### repeat-view-zeros
 
@@ -922,9 +914,6 @@ One row is about something else. In `repeat-view` `Decimal` is fifty-odd times
 ahead because it keeps the string it printed last time, and `ShortDecimal` may
 not keep one at all — that is what `vm:deeply-immutable` costs, and instances
 the VM can share between isolates are what it buys.
-`unrepresentable-divide` used to belong here as well, as the row where the two
-came out close; since the rounding was reworked it sits with the other division
-rows, and `ShortDecimal` takes it by an order of magnitude.
 
 If your application does a handful of decimal operations, none of this matters
 and `Decimal` from either package will do. If it does a great many of them, or
@@ -951,9 +940,9 @@ final packed = value.normalized();
 It answers with the value in its canonical form, and calling it again on the
 result costs nothing — the canonical form is its own.
 
-Until 1.2.0 the same thing was done by `optimize()`, which returned nothing and
-changed the receiver instead. That method still works and is deprecated: a
-method that mutates what it is called on has no business in a value type.
+`optimize()` does the same thing the other way round — it returns nothing and
+changes the receiver instead. It still works and is deprecated: a method that
+mutates what it is called on has no business in a value type.
 
 The user does not need to know about packing and scaling, nor about `base` and
 `scale`. What the user may legitimately want is the number taken apart, and
