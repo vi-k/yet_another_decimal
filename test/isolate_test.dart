@@ -31,6 +31,16 @@ void _echo(List<Object> message) {
   (message[0] as SendPort).send(message.sublist(1));
 }
 
+/// Печатает полученное значение у себя и отдаёт строку.
+///
+/// Разделённый экземпляр — тот же объект, что и в отправившем изоляте. Здесь
+/// проверяется, что пользоваться им можно наравне со своим.
+void _print(List<Object> message) {
+  final port = message[0] as SendPort;
+  final value = message[1] as ShortDecimal;
+  port.send(value.toString());
+}
+
 /// Прогоняет значения через изолят и возвращает то, что пришло обратно.
 Future<List<Object?>> _roundTrip(List<Object> values) async {
   final port = ReceivePort();
@@ -65,6 +75,16 @@ void main() {
       final back = await _roundTrip([sent]);
 
       expect(identical(back.single, sent), isFalse);
+    });
+
+    test('разделённое значение печатается в чужом изоляте', () async {
+      final sent = ShortDecimal(1999, shiftRight: 2);
+      final port = ReceivePort();
+      await Isolate.spawn(_print, <Object>[port.sendPort, sent]);
+      final printed = await port.first;
+      port.close();
+
+      expect(printed, '19.99');
     });
 
     test('константы семейства разделяются наравне с остальными', () async {

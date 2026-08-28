@@ -1110,10 +1110,12 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// Returns a string representation of this decimal.
   ///
-  /// Decimal keeps the printed form for the next call; this family cannot.
-  /// Its constructors are const — `zero`, `one`, `two` and `ten` are compile
-  /// time constants — and a const object has no field to write into. The work
-  /// here is on machine words anyway, not on BigInt.
+  /// `Decimal` keeps the printed form for the next call; this family does not.
+  /// A field is out of the question — the class is `vm:deeply-immutable`, which
+  /// admits only final non-late fields — and a table beside the objects was
+  /// measured and rejected: it pays for a write on every first print, which is
+  /// the print that happens most. The work here is on machine words anyway,
+  /// not on BigInt.
   @override
   String toString() {
     final base = this.base;
