@@ -126,6 +126,9 @@ abstract interface class FixedPoint<T extends FixedPoint<T>>
   /// Rounds to the closest value with [fractionDigits].
   T round([int fractionDigits]);
 
+  /// Rounds to the closest value with [fractionDigits], halves to even.
+  T roundToEven([int fractionDigits]);
+
   /// Rounds towards infinity to [fractionDigits].
   T ceil([int fractionDigits]);
 

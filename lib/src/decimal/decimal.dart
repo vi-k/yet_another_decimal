@@ -766,6 +766,34 @@ final class Decimal implements FixedPoint<Decimal> {
             : result;
       });
 
+  /// Rounds to the closest decimal with [fractionDigits], halves to even.
+  ///
+  /// Where [round] sends a half away from zero — 2.5 to 3, 3.5 to 4 — this one
+  /// sends it to the even neighbour: 2.5 to 2, 3.5 to 4. Halves then stop
+  /// pulling a long column of numbers the same way every time, which is why
+  /// accounting asks for this rule and why it is the default one in General
+  /// Decimal Arithmetic.
+  ///
+  /// ```dart
+  /// print(Decimal.parse('2.5').roundToEven()); // 2
+  /// print(Decimal.parse('3.5').roundToEven()); // 4
+  /// print(Decimal.parse('2.675').roundToEven(2)); // 2.68
+  /// ```
+  @override
+  Decimal roundToEven([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, (result, divisor) {
+        final remainder = base.remainder(divisor).abs();
+        final rest = divisor - remainder;
+
+        // Below a half it stays, above a half it moves, and exactly a half
+        // moves only when staying would leave an odd number behind.
+        if (remainder < rest || (remainder == rest && result.isEven)) {
+          return result;
+        }
+
+        return result + BigInt.from(base.sign);
+      });
+
   /// Rounds the decimal towards infinity to [fractionDigits].
   @override
   Decimal ceil([int fractionDigits = 0]) => _dropFraction(
@@ -1384,6 +1412,10 @@ final class DecimalDivideException implements Exception {
   /// The exact result rounded to [fractionDigits] digits, halves away from
   /// zero.
   Decimal round([int fractionDigits = 0]) => fraction.round(fractionDigits);
+
+  /// The exact result rounded to [fractionDigits] digits, halves to even.
+  Decimal roundToEven([int fractionDigits = 0]) =>
+      fraction.roundToEven(fractionDigits);
 
   /// The exact result rounded towards plus infinity, [fractionDigits] digits.
   Decimal ceil([int fractionDigits = 0]) => fraction.ceil(fractionDigits);

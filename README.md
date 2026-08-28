@@ -9,23 +9,25 @@ A package for decimal numbers with a fixed point and no loss of precision.
 
 1. [Getting started](#getting-started)
 
-2. [Why?](#why)
+2. [Money](#money)
 
-    2.1. [What packages are already in place?](#what-packages-are-already-in-place)
+3. [Why?](#why)
 
-    2.2. [What's it supposed to be?](#whats-it-supposed-to-be)
+    3.1. [What packages are already in place?](#what-packages-are-already-in-place)
 
-    2.3. [Package performance](#package-performance)
+    3.2. [What's it supposed to be?](#whats-it-supposed-to-be)
 
-    2.4. [decimal vs denary](#decimalhttpspubdevpackagesdecimal-vs-denaryhttpspubdevpackagesdenary)
+    3.3. [Package performance](#package-performance)
 
-3. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
+    3.4. [decimal vs denary](#decimalhttpspubdevpackagesdecimal-vs-denaryhttpspubdevpackagesdenary)
 
-    3.1. [`ShortDecimal` limitations](#shortdecimal-limitations)
+4. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
 
-    3.2. [Performance](#performance)
+    4.1. [`ShortDecimal` limitations](#shortdecimal-limitations)
 
-    3.3. [`Decimal` optimization](#decimal-optimization)
+    4.2. [Performance](#performance)
+
+    4.3. [`Decimal` optimization](#decimal-optimization)
 
 ## Getting started
 
@@ -72,6 +74,64 @@ import 'package:denary/short_decimal.dart'; // the int64 family
 Which to take, and what the second one costs, is in
 [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal). The rest of this
 README is why the package exists and what it is measured to cost.
+
+## Money
+
+**Print the digits you mean.** A value is kept, the way it was written is not:
+
+```dart
+print(Decimal.parse('4.50'));                    // 4.5
+print(Decimal.parse('4.50').toStringAsFixed(2)); // 4.50
+```
+
+**Round the way your rules round.** `round` sends a half away from zero,
+`roundToEven` sends it to the even neighbour — the rule accounting asks for, so
+that a column of halves does not lean one way. `floor`, `ceil` and `truncate`
+take a number of digits as well.
+
+```dart
+print(Decimal.parse('2.5').round());       // 3
+print(Decimal.parse('2.5').roundToEven()); // 2
+```
+
+**Divide in the direction you need.** `divide` rounds to the closest; where the
+direction matters, take the exact ratio of the division and round that:
+
+```dart
+final bill = Decimal.parse('23.99');
+
+print(bill.divide(Decimal(3), scaleOnInfinitePrecision: 2)); // 8
+print(bill.divideToFraction(Decimal(3)).floor(2));           // 7.99
+```
+
+**Split a sum without losing a cent.** Work in the smallest unit, divide as
+integers, and keep the remainder where you can see it:
+
+```dart
+final cents = (bill << 2) ~/ Decimal(3);
+final share = Decimal.fromBigInt(cents, shiftRight: 2);
+
+print(share);                       // 7.99
+print(bill - share * Decimal(3));   // 0.02
+```
+
+`~/` answers with a `BigInt` — integer division answers with an integer
+everywhere in Dart — while `%` answers with a `Decimal`. `divideWithRemainder`
+hands over both at once.
+
+**Coming from JSON with numeric prices.** A `double` has lost what it lost
+before this package sees it, so there is no constructor taking one. What you
+almost always want is the shortest decimal that produces the same `double`,
+and that is what its `toString` already is:
+
+```dart
+const fromApi = 19.99;
+
+print(Decimal.parse(fromApi.toString())); // 19.99
+```
+
+Where the exact binary value is what you are after instead, ask for the digits:
+`Decimal.parse(fromApi.toStringAsFixed(20))` is `19.98999999999999843681`.
 
 ## Why?
 

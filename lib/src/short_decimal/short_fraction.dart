@@ -301,6 +301,11 @@ final class ShortFraction implements Comparable<ShortFraction> {
   ShortDecimal round([int fractionDigits = 0]) =>
       _dropFraction(fractionDigits, _Rounding.round);
 
+  /// Rounds the fraction to the closest decimal with [fractionDigits], halves
+  /// to even.
+  ShortDecimal roundToEven([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, _Rounding.roundToEven);
+
   /// Rounds the fraction towards infinity to [fractionDigits].
   ShortDecimal ceil([int fractionDigits = 0]) =>
       _dropFraction(fractionDigits, _Rounding.ceil);
@@ -329,13 +334,17 @@ final class ShortFraction implements Comparable<ShortFraction> {
     }
 
     final remainder = numerator.remainder(denominator).abs();
+    final rest = denominator - remainder;
+    final quotient = numerator ~/ denominator;
 
     return ShortDecimal._pack(
-      numerator ~/ denominator +
+      quotient +
           rounding.correction(
             sign: numerator.sign,
             hasRemainder: remainder != 0,
-            atLeastHalf: remainder >= denominator - remainder,
+            atLeastHalf: remainder >= rest,
+            exactlyHalf: remainder == rest,
+            quotientIsEven: quotient.isEven,
           ),
       fractionDigits,
     );
@@ -405,12 +414,16 @@ final class ShortFraction implements Comparable<ShortFraction> {
     }
 
     final remainder = numerator.remainder(denominator).abs();
-    var value = numerator ~/ denominator +
+    final rest = denominator - remainder;
+    final quotient = numerator ~/ denominator;
+    var value = quotient +
         BigInt.from(
           rounding.correction(
             sign: numerator.sign,
             hasRemainder: remainder != BigInt.zero,
-            atLeastHalf: remainder >= denominator - remainder,
+            atLeastHalf: remainder >= rest,
+            exactlyHalf: remainder == rest,
+            quotientIsEven: quotient.isEven,
           ),
         );
 
@@ -420,12 +433,15 @@ final class ShortFraction implements Comparable<ShortFraction> {
       // and neither is a `ceil` that comes back below it.
       final sign = value.sign;
       final rest = value.remainder(ten).abs();
+      final doubled = rest * BigInt.two;
       value = value ~/ ten;
       value += BigInt.from(
         rounding.correction(
           sign: sign,
           hasRemainder: rest != BigInt.zero,
-          atLeastHalf: rest * BigInt.two >= ten,
+          atLeastHalf: doubled >= ten,
+          exactlyHalf: doubled == ten,
+          quotientIsEven: value.isEven,
         ),
       );
       scale--;
@@ -457,19 +473,29 @@ final class ShortFraction implements Comparable<ShortFraction> {
 enum _Rounding {
   floor,
   round,
+  roundToEven,
   ceil,
   truncate;
 
   /// What to add to the quotient: -1, 0 or 1.
+  ///
+  /// [exactlyHalf] and [quotientIsEven] matter to [roundToEven] alone: a half
+  /// moves only when standing still would leave an odd number behind. The
+  /// other four never ask, so they are given a default that costs the caller
+  /// nothing to leave out.
   int correction({
     required int sign,
     required bool hasRemainder,
     required bool atLeastHalf,
+    bool exactlyHalf = false,
+    bool quotientIsEven = true,
   }) =>
       switch (this) {
         _Rounding.truncate => 0,
         _Rounding.floor => sign < 0 && hasRemainder ? -1 : 0,
         _Rounding.ceil => sign > 0 && hasRemainder ? 1 : 0,
         _Rounding.round => atLeastHalf ? sign : 0,
+        _Rounding.roundToEven =>
+          atLeastHalf && !(exactlyHalf && quotientIsEven) ? sign : 0,
       };
 }

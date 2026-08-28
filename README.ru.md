@@ -12,23 +12,25 @@
 
 1. [С чего начать](#с-чего-начать)
 
-2. [Зачем?](#зачем)
+2. [Деньги](#деньги)
 
-    2.1. [Какие пакеты уже есть?](#какие-пакеты-уже-есть)
+3. [Зачем?](#зачем)
 
-    2.2. [Каким он должен быть?](#каким-он-должен-быть)
+    3.1. [Какие пакеты уже есть?](#какие-пакеты-уже-есть)
 
-    2.3. [Производительность пакетов](#производительность-пакетов)
+    3.2. [Каким он должен быть?](#каким-он-должен-быть)
 
-    2.4. [decimal vs denary](#decimalhttpspubdevpackagesdecimal-vs-denaryhttpspubdevpackagesdenary)
+    3.3. [Производительность пакетов](#производительность-пакетов)
 
-3. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
+    3.4. [decimal vs denary](#decimalhttpspubdevpackagesdecimal-vs-denaryhttpspubdevpackagesdenary)
 
-    3.1. [Ограничения `ShortDecimal`](#ограничения-shortdecimal)
+4. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
 
-    3.2. [Производительность](#производительность)
+    4.1. [Ограничения `ShortDecimal`](#ограничения-shortdecimal)
 
-    3.3. [Оптимизация `Decimal`](#оптимизация-decimal)
+    4.2. [Производительность](#производительность)
+
+    4.3. [Оптимизация `Decimal`](#оптимизация-decimal)
 
 ## С чего начать
 
@@ -75,6 +77,63 @@ import 'package:denary/short_decimal.dart'; // семейство на int64
 Какой брать и чего стоит второй — в разделе
 [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal). Остальная часть этого
 README — о том, зачем пакет существует и во что он обходится по замерам.
+
+## Деньги
+
+**Печатайте те знаки, которые имеете в виду.** Хранится значение, а не то, как
+его записали:
+
+```dart
+print(Decimal.parse('4.50'));                    // 4.5
+print(Decimal.parse('4.50').toStringAsFixed(2)); // 4.50
+```
+
+**Округляйте по своим правилам.** `round` отправляет половину от нуля,
+`roundToEven` — к чётному соседу; этого правила требует бухгалтерия, чтобы
+столбец половин не кренился в одну сторону. `floor`, `ceil` и `truncate` тоже
+принимают число знаков.
+
+```dart
+print(Decimal.parse('2.5').round());       // 3
+print(Decimal.parse('2.5').roundToEven()); // 2
+```
+
+**Делите в нужную сторону.** `divide` округляет к ближайшему; когда важно
+направление, возьмите у деления точную дробь и округлите её:
+
+```dart
+final bill = Decimal.parse('23.99');
+
+print(bill.divide(Decimal(3), scaleOnInfinitePrecision: 2)); // 8
+print(bill.divideToFraction(Decimal(3)).floor(2));           // 7.99
+```
+
+**Делите сумму, не теряя копейки.** Считайте в мелкой единице, делите целыми и
+держите остаток на виду:
+
+```dart
+final cents = (bill << 2) ~/ Decimal(3);
+final share = Decimal.fromBigInt(cents, shiftRight: 2);
+
+print(share);                       // 7.99
+print(bill - share * Decimal(3));   // 0.02
+```
+
+`~/` отвечает `BigInt` — целочисленное деление в Dart везде отвечает целым, —
+а `%` отвечает `Decimal`. `divideWithRemainder` отдаёт сразу оба.
+
+**Если цена пришла из JSON числом.** `double` потерял своё до того, как пакет
+его увидел, поэтому конструктора из него нет. Почти всегда нужна кратчайшая
+десятичная запись, дающая тот же `double`, — а это и есть его `toString`:
+
+```dart
+const fromApi = 19.99;
+
+print(Decimal.parse(fromApi.toString())); // 19.99
+```
+
+Если же нужно точное двоичное значение, спросите знаки:
+`Decimal.parse(fromApi.toStringAsFixed(20))` — это `19.98999999999999843681`.
 
 ## Зачем?
 

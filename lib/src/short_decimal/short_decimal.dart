@@ -595,13 +595,12 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
         if (numerator != null && denominator != null) {
           final remainder = numerator.remainder(denominator).abs();
 
+          // The mode here is always the same one, and the rule fits in the
+          // line: a half or more goes away from zero. Calling for it would
+          // cost the hottest division path a call that cannot be inlined.
           return ShortDecimal._pack(
             numerator ~/ denominator +
-                _Rounding.round.correction(
-                  sign: numerator.sign,
-                  hasRemainder: remainder != 0,
-                  atLeastHalf: remainder >= denominator - remainder,
-                ),
+                (remainder >= denominator - remainder ? numerator.sign : 0),
             fractionDigits,
           );
         }
@@ -925,6 +924,47 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
           // The same as |base| >= 5·10^18, written without a number that a
           // JavaScript one cannot hold.
+          final halves = base ~/ _pow10Table[_maxPow10Exponent];
+
+          return halves >= 5 || halves <= -5 ? base.sign : 0;
+        },
+      );
+
+  /// Rounds to the closest decimal with [fractionDigits], halves to even.
+  ///
+  /// Where [round] sends a half away from zero — 2.5 to 3, 3.5 to 4 — this one
+  /// sends it to the even neighbour: 2.5 to 2, 3.5 to 4. Halves then stop
+  /// pulling a long column of numbers the same way every time, which is why
+  /// accounting asks for this rule.
+  ///
+  /// ```dart
+  /// print(ShortDecimal.parse('2.5').roundToEven()); // 2
+  /// print(ShortDecimal.parse('3.5').roundToEven()); // 4
+  /// ```
+  @override
+  ShortDecimal roundToEven([int fractionDigits = 0]) => _dropFraction(
+        fractionDigits,
+        (result, divisor) {
+          final remainder = base.remainder(divisor).abs();
+          final rest = divisor - remainder;
+
+          // Below a half it stays, above a half it moves, and exactly a half
+          // moves only when staying would leave an odd number behind.
+          if (remainder < rest || (remainder == rest && result.isEven)) {
+            return result;
+          }
+
+          return result + base.sign;
+        },
+        onDivisorOverflow: (exponent) {
+          // The quotient here is zero, which is even, so an exact half would
+          // stay where it is. It cannot arise: a half at this exponent needs a
+          // base ending in zeros, and the stored form has none — so anything
+          // reaching five halves is already past a half.
+          if (exponent > _maxPow10Exponent + 1) {
+            return 0;
+          }
+
           final halves = base ~/ _pow10Table[_maxPow10Exponent];
 
           return halves >= 5 || halves <= -5 ? base.sign : 0;
@@ -1613,6 +1653,10 @@ final class ShortDecimalDivideException implements Exception {
   /// zero.
   ShortDecimal round([int fractionDigits = 0]) =>
       fraction.round(fractionDigits);
+
+  /// The exact result rounded to [fractionDigits] digits, halves to even.
+  ShortDecimal roundToEven([int fractionDigits = 0]) =>
+      fraction.roundToEven(fractionDigits);
 
   /// The exact result rounded towards plus infinity, [fractionDigits] digits.
   ShortDecimal ceil([int fractionDigits = 0]) => fraction.ceil(fractionDigits);

@@ -246,6 +246,7 @@ void main() {
 
       final calls = <String, void Function()>{
         'round': () => Decimal.one.round(-huge),
+        'roundToEven': () => Decimal.one.roundToEven(-huge),
         'floor': () => Decimal.one.floor(-huge),
         'ceil': () => Decimal.one.ceil(-huge),
         'truncate': () => Decimal.one.truncate(-huge),
@@ -267,6 +268,53 @@ void main() {
       // что просить больше знаков, чем есть, значит ничего не менять.
       expectDecimal(Decimal.parse('1.5').round(1000000), '1.5');
       expectDecimal(Decimal.parse('123.4').round(-1), '120');
+    });
+
+    group('roundToEven', () {
+      // Половина уходит к чётному соседу: это правило бухгалтерии, и оно же —
+      // умолчание General Decimal Arithmetic.
+      for (final (source, digits, expected) in <(String, int, String)>[
+        ('0.5', 0, '0'),
+        ('1.5', 0, '2'),
+        ('2.5', 0, '2'),
+        ('3.5', 0, '4'),
+        ('-0.5', 0, '0'),
+        ('-1.5', 0, '-2'),
+        ('-2.5', 0, '-2'),
+        ('-3.5', 0, '-4'),
+        ('2.4', 0, '2'),
+        ('2.6', 0, '3'),
+        ('0.125', 2, '0.12'),
+        ('0.135', 2, '0.14'),
+        ('2.675', 2, '2.68'),
+        ('1.5', 1, '1.5'),
+        ('123.4', -1, '120'),
+      ]) {
+        test('$source до $digits знаков даёт $expected', () {
+          expectDecimal(Decimal.parse(source).roundToEven(digits), expected);
+        });
+      }
+
+      test('дробь округляется тем же правилом', () {
+        final half = Decimal(1).divideToFraction(Decimal(2));
+        final threeHalves = Decimal(3).divideToFraction(Decimal(2));
+
+        expect(half.roundToEven().toString(), '0');
+        expect(threeHalves.roundToEven().toString(), '2');
+      });
+
+      test('исключение деления отвечает тем же правилом', () {
+        expect(
+          () => Decimal(1) / Decimal(3),
+          throwsA(
+            isA<DecimalDivideException>().having(
+              (e) => e.roundToEven(2).toString(),
+              'roundToEven(2)',
+              '0.33',
+            ),
+          ),
+        );
+      });
     });
   });
 }

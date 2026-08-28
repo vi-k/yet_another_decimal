@@ -166,6 +166,27 @@ final class Fraction implements Comparable<Fraction> {
     );
   }
 
+  /// Rounds the fraction to the closest decimal with [fractionDigits], halves
+  /// to even.
+  ///
+  /// The rule accounting asks for: 2.5 becomes 2 and 3.5 becomes 4, so that a
+  /// column of halves does not lean one way.
+  Decimal roundToEven([int fractionDigits = 0]) {
+    final (numerator, denominator) = _align(fractionDigits);
+    final quotient = numerator ~/ denominator;
+    final remainder = numerator.remainder(denominator).abs();
+    final rest = denominator - remainder;
+
+    // Below a half it stays, above a half it moves, and exactly a half moves
+    // only when staying would leave an odd number behind.
+    return Decimal._asIs(
+      remainder < rest || (remainder == rest && quotient.isEven)
+          ? quotient
+          : quotient + BigInt.from(numerator.sign),
+      fractionDigits,
+    );
+  }
+
   /// Rounds the fraction towards infinity to [fractionDigits].
   Decimal ceil([int fractionDigits = 0]) {
     final (numerator, denominator) = _align(fractionDigits);

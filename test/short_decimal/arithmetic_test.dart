@@ -426,6 +426,7 @@ void main() {
 
       final calls = <String, void Function()>{
         'round': () => ShortDecimal.one.round(-huge),
+        'roundToEven': () => ShortDecimal.one.roundToEven(-huge),
         'floor': () => ShortDecimal.one.floor(-huge),
         'ceil': () => ShortDecimal.one.ceil(-huge),
         'truncate': () => ShortDecimal.one.truncate(-huge),
@@ -454,6 +455,80 @@ void main() {
       expectShortDecimal(5.toShortDecimal(), '5');
       expectShortDecimal((-5).toShortDecimal(), '-5');
       expectShortDecimal(100.toShortDecimal(), '100');
+    });
+
+    group('roundToEven', () {
+      // Половина уходит к чётному соседу: это правило бухгалтерии, и оно же —
+      // умолчание General Decimal Arithmetic.
+      for (final (source, digits, expected) in <(String, int, String)>[
+        ('0.5', 0, '0'),
+        ('1.5', 0, '2'),
+        ('2.5', 0, '2'),
+        ('3.5', 0, '4'),
+        ('-0.5', 0, '0'),
+        ('-1.5', 0, '-2'),
+        ('-2.5', 0, '-2'),
+        ('-3.5', 0, '-4'),
+        ('2.4', 0, '2'),
+        ('2.6', 0, '3'),
+        ('0.125', 2, '0.12'),
+        ('0.135', 2, '0.14'),
+        ('2.675', 2, '2.68'),
+        ('1.5', 1, '1.5'),
+        ('123.4', -1, '120'),
+      ]) {
+        test('$source до $digits знаков даёт $expected', () {
+          expectShortDecimal(
+            ShortDecimal.parse(source).roundToEven(digits),
+            expected,
+          );
+        });
+      }
+
+      test('оба семейства отвечают одинаково', () {
+        for (final source in ['0.5', '2.5', '3.5', '-2.5', '0.125', '2.675']) {
+          expect(
+            ShortDecimal.parse(source).roundToEven(2).toString(),
+            Decimal.parse(source).roundToEven(2).toString(),
+            reason: source,
+          );
+        }
+      });
+
+      test('половина округляется к нулю, потому что ноль чётен', () {
+        expect(ShortDecimal.parse('0.5').round().toString(), '1');
+        expect(ShortDecimal.parse('0.5').roundToEven().toString(), '0');
+      });
+
+      // Выше 10^18 делителя нет, и правило вызывающего решает всё само.
+      // Хвостовых нулей в хранимой форме не бывает, поэтому ровно половины
+      // на этом краю не бывает тоже: пять десятых с чем-то — уже больше.
+      test('за краем степени десятки', () {
+        final past = ShortDecimal(5000000000000000001, shiftRight: 19);
+        final tiny = ShortDecimal(5, shiftRight: 19);
+
+        expect(past.roundToEven().toString(), '1');
+        expect(tiny.roundToEven().toString(), '0');
+      });
+
+      test('дробь и исключение деления знают то же правило', () {
+        final third = ShortDecimal(1).divideToFraction(ShortDecimal(3));
+        expect(third.roundToEven(2).toString(), '0.33');
+
+        final half = ShortDecimal(1).divideToFraction(ShortDecimal(2));
+        expect(half.roundToEven().toString(), '0');
+
+        expect(
+          () => ShortDecimal(1) / ShortDecimal(3),
+          throwsA(
+            isA<ShortDecimalDivideException>().having(
+              (e) => e.roundToEven(2).toString(),
+              'roundToEven(2)',
+              '0.33',
+            ),
+          ),
+        );
+      });
     });
   });
 }

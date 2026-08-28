@@ -45,6 +45,10 @@ under Changed.
 - `normalized()`, which answers with the value in its canonical form. It
   replaces `optimize()`, which returned nothing and changed the receiver
   instead and is gone from this package (see Removed).
+- `roundToEven`, on both number types, both fraction types and both divide
+  exceptions: rounds a half to the even neighbour — 2.5 to 2, 3.5 to 4 —
+  instead of away from zero. The rule accounting asks for, and the default one
+  in General Decimal Arithmetic.
 - `unscaledValue` and `exponent`: the number taken apart. Both read the
   canonical form, so equal decimals answer equally whatever produced them.
 - `movePointLeft` and `movePointRight` — the same thing as `>>` and `<<`,
