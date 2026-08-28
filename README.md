@@ -878,37 +878,41 @@ print(a); // 1, kept as base 1, scale 0
 ### Performance
 
 The same bench, this package against
-[decimal](https://pub.dev/packages/decimal), on the sets that fit into an `int`
-so that both families can be shown at once:
+[decimal](https://pub.dev/packages/decimal) and
+[precise_decimal](https://pub.dev/packages/precise_decimal), on the sets that
+fit into an `int` so that both families can be shown at once. The first column
+is the package most projects already have; the second is the quickest of the
+competitors on most rows, though not on multiplication or `to-double`, where it
+is the slower of the two:
 
-|                           |             decimal |         Decimal |    ShortDecimal |
-|:--------------------------|--------------------:|----------------:|----------------:|
-| add-int                   |      (▼4x) 0.614 µs |  (▼2x) 0.370 µs |      ★ 0.128 µs |
-| add-dirty-int             |      (▼4x) 0.368 µs |  (▼2x) 0.225 µs |      ★ 0.077 µs |
-| multiply-large-int        |            0.101 µs |        0.100 µs |      ★ 0.052 µs |
-| multiply-small-int        |            0.099 µs |        0.094 µs |      ★ 0.052 µs |
-| multiply-dirty-int        |            0.038 µs |        0.036 µs |      ★ 0.021 µs |
-| divide-large-int          |    (▼153x) 7.691 µs | (▼28x) 1.440 µs |      ★ 0.050 µs |
-| divide-small-int          | (▼1284x) 136.114 µs | (▼24x) 2.620 µs |      ★ 0.106 µs |
-| divide-dirty-int          |  (▼1755x) 36.867 µs | (▼27x) 0.574 µs |      ★ 0.021 µs |
-| divide-large-and-view-int |    (▼150x) 7.826 µs | (▼27x) 1.432 µs |      ★ 0.052 µs |
-| divide-small-and-view-int |  (▼450x) 136.952 µs | (▼10x) 3.153 µs |      ★ 0.304 µs |
-| raw-view-int              |     (▼6x) 10.269 µs |  (▼4x) 6.857 µs |      ★ 1.590 µs |
-| raw-view-zeros-int        |    (▼43x) 48.418 µs |  (▼6x) 7.027 µs |      ★ 1.108 µs |
-| repeat-view-int           |    (▼225x) 6.326 µs |      ★ 0.028 µs | (▼55x) 1.550 µs |
-| repeat-view-zeros-int     |     (▼34x) 1.012 µs |      ★ 0.029 µs | (▼32x) 0.939 µs |
-| parse                     |     (▼8x) 14.098 µs | (▼6x) 10.133 µs |      ★ 1.652 µs |
-| compare                   |      (▼4x) 0.644 µs |  (▼2x) 0.338 µs |      ★ 0.149 µs |
-| round                     |     (▼12x) 3.936 µs | (▼10x) 3.350 µs |      ★ 0.310 µs |
-| to-double                 |     (▼20x) 1.901 µs |  (▼7x) 0.673 µs |      ★ 0.093 µs |
-| to-string-as-fixed        |     (▼7x) 15.179 µs |  (▼2x) 5.471 µs |      ★ 1.992 µs |
-| unrepresentable-divide    |  (▼352x) 124.405 µs | (▼10x) 3.766 µs |      ★ 0.353 µs |
+|                           |             decimal |   precise_decimal |         Decimal |    ShortDecimal |
+|:--------------------------|--------------------:|------------------:|----------------:|----------------:|
+| add-int                   |      (▼4x) 0.614 µs |    (▼4x) 0.595 µs |  (▼2x) 0.370 µs |      ★ 0.128 µs |
+| add-dirty-int             |      (▼4x) 0.368 µs |    (▼2x) 0.170 µs |  (▼2x) 0.225 µs |      ★ 0.077 µs |
+| multiply-large-int        |            0.101 µs |    (▼4x) 0.245 µs |        0.100 µs |      ★ 0.052 µs |
+| multiply-small-int        |            0.099 µs |    (▼2x) 0.108 µs |        0.094 µs |      ★ 0.052 µs |
+| multiply-dirty-int        |            0.038 µs |    (▼2x) 0.047 µs |        0.036 µs |      ★ 0.021 µs |
+| divide-large-int          |    (▼153x) 7.691 µs |   (▼34x) 1.736 µs | (▼28x) 1.440 µs |      ★ 0.050 µs |
+| divide-small-int          | (▼1284x) 136.114 µs |   (▼65x) 6.960 µs | (▼24x) 2.620 µs |      ★ 0.106 µs |
+| divide-dirty-int          |  (▼1755x) 36.867 µs |  (▼282x) 5.924 µs | (▼27x) 0.574 µs |      ★ 0.021 µs |
+| divide-large-and-view-int |    (▼150x) 7.826 µs |   (▼35x) 1.837 µs | (▼27x) 1.432 µs |      ★ 0.052 µs |
+| divide-small-and-view-int |  (▼450x) 136.952 µs |   (▼23x) 7.072 µs | (▼10x) 3.153 µs |      ★ 0.304 µs |
+| raw-view-int              |     (▼6x) 10.269 µs |  (▼12x) 19.369 µs |  (▼4x) 6.857 µs |      ★ 1.590 µs |
+| raw-view-zeros-int        |    (▼43x) 48.418 µs |  (▼18x) 20.374 µs |  (▼6x) 7.027 µs |      ★ 1.108 µs |
+| repeat-view-int           |    (▼225x) 6.326 µs |   (▼61x) 1.733 µs |      ★ 0.028 µs | (▼55x) 1.550 µs |
+| repeat-view-zeros-int     |     (▼34x) 1.012 µs |   (▼61x) 1.778 µs |      ★ 0.029 µs | (▼32x) 0.939 µs |
+| parse                     |     (▼8x) 14.098 µs |   (▼7x) 11.656 µs | (▼6x) 10.133 µs |      ★ 1.652 µs |
+| compare                   |      (▼4x) 0.644 µs |    (▼4x) 0.616 µs |  (▼2x) 0.338 µs |      ★ 0.149 µs |
+| round                     |     (▼12x) 3.936 µs |   (▼17x) 5.346 µs | (▼10x) 3.350 µs |      ★ 0.310 µs |
+| to-double                 |     (▼20x) 1.901 µs | (▼140x) 13.104 µs |  (▼7x) 0.673 µs |      ★ 0.093 µs |
+| to-string-as-fixed        |     (▼7x) 15.179 µs |    (▼3x) 7.501 µs |  (▼2x) 5.471 µs |      ★ 1.992 µs |
+| unrepresentable-divide    |  (▼352x) 124.405 µs |   (▼12x) 4.274 µs | (▼10x) 3.766 µs |      ★ 0.353 µs |
 
 *For a description of the tests, see [Package performance](#package-performance).*
 
 `Decimal` and `ShortDecimal` run the same algorithms, so the distance between
-those two columns is the distance between `BigInt` and `int`: two to three
-times on arithmetic, twenty-odd on division.
+the two right-hand columns is the distance between `BigInt` and `int`: two to
+three times on arithmetic, twenty-odd on division.
 
 One row is about something else. In `repeat-view` `Decimal` is fifty-odd times
 ahead because it keeps the string it printed last time, and `ShortDecimal` may
@@ -916,9 +920,9 @@ not keep one at all — that is what `vm:deeply-immutable` costs, and instances
 the VM can share between isolates are what it buys.
 
 If your application does a handful of decimal operations, none of this matters
-and `Decimal` from either package will do. If it does a great many of them, or
-if memory is tight, `ShortDecimal` is several times cheaper — as long as you
-keep its limitations in mind.
+and `Decimal` from any of these packages will do. If it does a great many of
+them, or if memory is tight, `ShortDecimal` is several times cheaper — as long
+as you keep its limitations in mind.
 
 ### `Decimal` optimization
 
