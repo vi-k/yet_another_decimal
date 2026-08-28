@@ -184,13 +184,41 @@ If we don't guess the scale, we get an error.
 
 That's how "a bugless implementation of BigDecimal" works.
 
+#### [precise_decimal](https://pub.dev/packages/precise_decimal)
+
+This one is younger than the rest — it came out in April 2026, when this
+package was already written — and it is the one with nothing to report. It
+divides 1 by 8 and gets 0.125 without being told a scale. It answers `null`
+from `tryDivideExact` when the quotient does not terminate, and throws from
+`divideExact` with a message that says why. It puts 0.5 above 0.49 in
+`compareTo`. It carries `1 / 256 / 256 / …` to the last digit. Every trap the
+four above fall into, it walks past.
+
+In the bench it is the only competitor that supports all 35 tests and answers
+none of them wrongly — `to-double-wide` included, the row where
+[decimal](https://pub.dev/packages/decimal) and
+[big_decimal](https://pub.dev/packages/big_decimal) each miss the nearest
+`double` on seven values out of twenty. On `add-dirty-int` it is faster than
+this package, and that is the only row where anyone is: its coefficient stays
+an `int` for as long as one fits, so small values never leave int64 arithmetic.
+
+The visible difference between us is a matter of taste rather than of
+correctness. It keeps the scale a number was parsed with, so `parse('1.500')`
+prints as `1.500`, while here the value is brought to its canonical form and
+prints as `1.5`; both packages call those two numbers equal in `==`,
+`compareTo` and `hashCode`. What it has and this package does not is the rest
+of General Decimal Arithmetic — `DecimalContext` with `decimal32/64/128`,
+conditions and traps. What this package has and it does not is a second family,
+on `int`.
+
 
 ### What's it supposed to be?
 
-Three packages out of four did not satisfy me because of bugs in calculations,
+Three packages out of five did not satisfy me because of bugs in calculations,
 incomplete functionality (division) or use of `double` under the hood.
 
-The [decimal](https://pub.dev/packages/decimal) and
+The [decimal](https://pub.dev/packages/decimal),
+[precise_decimal](https://pub.dev/packages/precise_decimal) and
 [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
 does not have the above division problems. No need to calculate `scale`
 yourself, and no `double` under the hood.
