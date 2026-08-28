@@ -44,7 +44,7 @@ under Changed.
   and `compareTo`, `abs`, `inverse` and `toDouble` on both fraction types.
 - `normalized()`, which answers with the value in its canonical form. It
   replaces `optimize()`, which returned nothing and changed the receiver
-  instead.
+  instead and is gone from this package (see Removed).
 - `unscaledValue` and `exponent`: the number taken apart. Both read the
   canonical form, so equal decimals answer equally whatever produced them.
 - `movePointLeft` and `movePointRight` — the same thing as `>>` and `<<`,
@@ -57,12 +57,22 @@ under Changed.
   instances between isolates. `Decimal` cannot be — a `BigInt` field is
   rejected by that annotation.
 
-### Deprecated
+### Removed
 
-- `optimize()`. Use `normalized()`.
+Both members below existed in `yet_another_decimal` and are not carried over.
+Nothing in `denary` ever exposed them, and moving to `denary` is a hand edit of
+`pubspec.yaml` and of every import line anyway — there is no better moment to
+leave a deprecation behind than the one where the code is already being
+touched.
+
 - The `toDecimal()` extensions on `int` and `BigInt`. Package `decimal` carries
-  the same two, and the two packages cannot be resolved together while they
-  exist. Use `Decimal(value)` and `Decimal.fromBigInt(value)`.
+  the same two, and while both exist a plain `5.toDecimal()` is ambiguous —
+  including the call meant for the other package. Use `Decimal(value)` and
+  `Decimal.fromBigInt(value)`. The two packages now coexist: what is left to
+  sort out is the type name `Decimal`, which both of them use, and a `hide` or
+  a `show` settles that the way it does for any two packages.
+- `optimize()`, which packed the receiver in place and returned nothing. Use
+  `normalized()`, which answers with the value instead.
 
 ### Changed
 

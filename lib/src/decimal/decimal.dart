@@ -702,15 +702,6 @@ final class Decimal implements FixedPoint<Decimal> {
   Decimal operator >>(int shiftAmount) =>
       Decimal._asIs(base, _scalePlus(scale, shiftAmount, 'shiftAmount'));
 
-  /// Optimize number to improve performance.
-  @Deprecated(
-    'Use normalized() instead: it answers with the value rather than '
-    'changing this one',
-  )
-  void optimize() {
-    _requirePacked;
-  }
-
   /// This decimal in its canonical form.
   ///
   /// The value does not change; the stored form loses the trailing zeros it
@@ -1397,32 +1388,4 @@ final class DecimalDivideException implements Exception {
       ' The result of division cannot be represented as $Decimal:'
       '\n$dividend / $divisor = $quotientWithRemainder'
       '\n$dividend / $divisor = $fraction';
-}
-
-/// Conversion from `BigInt`.
-extension DecimalBigIntExtension on BigInt {
-  /// This integer as a [Decimal].
-  ///
-  /// ```dart
-  /// print(BigInt.from(42).toDecimal()); // 42
-  /// ```
-  @Deprecated(
-    'Conflicts with the same extension from package:decimal, so the two '
-    'cannot be used together. Use Decimal.fromBigInt(value) instead',
-  )
-  Decimal toDecimal() => Decimal.fromBigInt(this);
-}
-
-/// Conversion from `int`.
-extension DecimalIntExtension on int {
-  /// This integer as a [Decimal].
-  ///
-  /// ```dart
-  /// print(42.toDecimal()); // 42
-  /// ```
-  @Deprecated(
-    'Conflicts with the same extension from package:decimal, so the two '
-    'cannot be used together. Use Decimal(value) instead',
-  )
-  Decimal toDecimal() => Decimal(this);
 }

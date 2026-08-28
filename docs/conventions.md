@@ -103,7 +103,7 @@ warning и error. `dart analyze` должен проходить без новы
 Расхождений два вида, и оба перечислены явно:
 
 - **по составу** — член есть у одного семейства и нет у другого
-  (`fromBigInt`, `optimize`, `shiftLeft` в конструкторе);
+  (`fromBigInt`, `shiftLeft` в конструкторе);
 - **по типу** — имена совпадают, типы разные (`inverse`, `divideToFraction`,
   `divideWithRemainder`, `operator ~/`). Такие в `FixedPoint` не выразить:
   общего супертипа у `Fraction` и `ShortFraction` нет.
@@ -144,7 +144,7 @@ test/bridge_test.dart             переходы между семейства
   `expectShortDecimal`, `expectFraction`, `expectDivision`, `expectDivide`,
   `expectDouble`), а не голым `expect`.
 - **Внутреннее представление сверять только там, где оно и есть предмет
-  проверки:** `parse`, `toString`, `toStringAsFixed`, `optimize`. В арифметике
+  проверки:** `parse`, `toString`, `toStringAsFixed`, `normalized`. В арифметике
   `base` и `scale` не передавать: форма результата там артефакт алгоритма, и
   оптимизация законно даёт другую форму при том же значении. `fractionDigits` —
   свойство значения, а не формы, его передавать можно везде.

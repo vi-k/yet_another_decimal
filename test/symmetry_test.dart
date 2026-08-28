@@ -19,8 +19,6 @@ const _knownDivergences = <String, String>{
   'fromBigInt': 'Decimal строится из BigInt, ShortDecimal — из int',
   'конструктор: shiftLeft': 'у ShortDecimal сдвиг влево — параметр '
       'конструктора, у Decimal только оператор <<',
-  'optimize': 'ленивая нормализация есть только у Decimal: '
-      'у ShortDecimal она немедленная',
 };
 
 /// Осознанные расхождения по типу: член есть у обоих, но типы разные.

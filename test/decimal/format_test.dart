@@ -1,11 +1,8 @@
-/// Вывод `Decimal` строкой и `optimize`.
+/// Вывод `Decimal` строкой и заполнение канонической формы.
 ///
 /// Здесь сверка `base` и `scale` уместна: `toString` обязан снимать хвостовые
-/// нули, не трогая представление, а `optimize` — наоборот, менять только его.
-///
-/// `optimize` помечен устаревшим в пользу `normalized()`, но до удаления
-/// обязан работать — потому его вызовы здесь и остаются, с точечными
-/// `ignore`.
+/// нули, не трогая представление, а `normalized()` — отдавать каноническую
+/// форму значением, не меняя того, у кого его спросили.
 library;
 
 import 'package:denary/denary.dart';
@@ -515,10 +512,10 @@ void main() {
       });
     });
 
-    // `optimize` fills the internal cache of the normalized representation.
-    // Nothing observable may change: neither the value, nor the stored form,
-    // nor the result of a repeated call.
-    group('optimize', () {
+    // `normalized()` fills the internal cache of the canonical form. Nothing
+    // observable may change in the receiver: neither the value, nor the stored
+    // form, nor the result of a repeated call.
+    group('normalized', () {
       for (final source in [
         '0',
         '0.000',
@@ -535,8 +532,7 @@ void main() {
           final fractionDigits = value.fractionDigits;
           final str = value.toString();
 
-          // ignore: deprecated_member_use_from_same_package
-          value.optimize();
+          value.normalized();
           expectDecimal(
             value,
             str,
@@ -545,8 +541,7 @@ void main() {
             fractionDigits: fractionDigits,
           );
 
-          // ignore: deprecated_member_use_from_same_package
-          value.optimize();
+          value.normalized();
           expectDecimal(
             value,
             str,
@@ -557,15 +552,15 @@ void main() {
         });
       }
 
-      test('optimized equals not optimized', () {
-        final optimized = Decimal(1000) >> 5;
+      test('со снятой канонической формой равен тому, у кого её не спрашивали',
+          () {
+        final packed = Decimal(1000) >> 5;
         final asIs = Decimal(1000) >> 5;
-        // ignore: deprecated_member_use_from_same_package
-        optimized.optimize();
+        packed.normalized();
 
-        expect(optimized == asIs, isTrue);
-        expect(optimized.hashCode == asIs.hashCode, isTrue);
-        expect(optimized.compareTo(asIs), 0);
+        expect(packed == asIs, isTrue);
+        expect(packed.hashCode == asIs.hashCode, isTrue);
+        expect(packed.compareTo(asIs), 0);
       });
     });
 

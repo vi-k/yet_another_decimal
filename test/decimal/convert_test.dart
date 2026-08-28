@@ -266,22 +266,6 @@ void main() {
       });
     });
 
-    test('расширения int и BigInt', () {
-      // Расширения помечены устаревшими — конфликтуют с одноимёнными из
-      // `decimal`, — но до удаления обязаны работать.
-      // ignore: deprecated_member_use_from_same_package
-      expectDecimal(5.toDecimal(), '5');
-      // ignore: deprecated_member_use_from_same_package
-      expectDecimal((-5).toDecimal(), '-5');
-      // ignore: deprecated_member_use_from_same_package
-      expectDecimal(BigInt.from(5).toDecimal(), '5');
-      expectDecimal(
-        // ignore: deprecated_member_use_from_same_package
-        BigInt.parse('12345678901234567890').toDecimal(),
-        '12345678901234567890',
-      );
-    });
-
     // П4: прямой путь `base / 10^scale` вместо разбора строки. Оба операнда
     // точны в double, поэтому округление одно — и ответ обязан совпасть с
     // разбором строки **побитово**, а не приблизительно. Границы 2^53 и 10^22
