@@ -545,10 +545,66 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
     _checkDigits(scaleOnInfinitePrecision, 'scaleOnInfinitePrecision');
 
+    return _roundedQuotient(other, scaleOnInfinitePrecision);
+  }
+
+  /// The quotient rounded to [fractionDigits], halves away from zero.
+  ///
+  /// The two scales and the one asked for fold into a single power of ten.
+  /// Aligning the pair first and scaling it after takes two, and both sides
+  /// grow by the scale of the operands: money at scale three divided by three
+  /// then divides 10^10 by three thousand where 10^7 over three is the same
+  /// answer. That is the whole of the gap this method closes.
+  ShortDecimal _roundedQuotient(ShortDecimal other, int fractionDigits) {
+    final exponent = fractionDigits - scale + other.scale;
+
+    if (exponent >= -maxDecimalExponent && exponent <= maxDecimalExponent) {
+      // A positive divisor keeps the sign work away from `-int.min`, which
+      // does not come off; a negative one goes down the BigInt road, where it
+      // does no harm.
+      final divisor = other.base;
+      if (divisor > 0) {
+        final numerator = exponent >= 0 ? _scaledOrNull(base, exponent) : base;
+        final denominator =
+            exponent >= 0 ? divisor : _scaledOrNull(divisor, -exponent);
+
+        if (numerator != null && denominator != null) {
+          final remainder = numerator.remainder(denominator).abs();
+
+          return ShortDecimal._pack(
+            numerator ~/ denominator +
+                _Rounding.round.correction(
+                  sign: numerator.sign,
+                  hasRemainder: remainder != 0,
+                  atLeastHalf: remainder >= denominator - remainder,
+                ),
+            fractionDigits,
+          );
+        }
+      }
+
+      var numerator = BigInt.from(base);
+      var denominator = BigInt.from(other.base);
+      if (exponent > 0) {
+        numerator *= _bigInt10.pow(exponent);
+      } else if (exponent < 0) {
+        denominator *= _bigInt10.pow(-exponent);
+      }
+
+      return ShortFraction._roundScaled(
+        numerator,
+        denominator,
+        fractionDigits,
+        _Rounding.round,
+      );
+    }
+
+    // Past the power of ten anyone can hold, the aligned pair is the old road
+    // and it reaches the same answer.
     final (dividend, divisor) = _fractionPair(other);
     final fraction = ShortFraction._orNull(dividend, divisor);
     if (fraction != null) {
-      return fraction.round(scaleOnInfinitePrecision);
+      return fraction.round(fractionDigits);
     }
 
     // A divisor of 2^63 has no fraction to be rounded: int64 has no room for
@@ -557,7 +613,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     return ShortFraction._roundExactly(
       BigInt.from(dividend),
       BigInt.from(divisor),
-      scaleOnInfinitePrecision,
+      fractionDigits,
       _Rounding.round,
     );
   }

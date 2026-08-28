@@ -354,10 +354,30 @@ final class ShortFraction implements Comparable<ShortFraction> {
     int fractionDigits,
     _Rounding rounding,
   ) {
-    final ten = BigInt.from(10);
-    final power = ten.pow(fractionDigits.abs());
-    var numerator = fractionDigits >= 0 ? dividend * power : dividend;
-    var denominator = fractionDigits >= 0 ? divisor : divisor * power;
+    final power = ShortDecimal._bigInt10.pow(fractionDigits.abs());
+
+    return _roundScaled(
+      fractionDigits >= 0 ? dividend * power : dividend,
+      fractionDigits >= 0 ? divisor : divisor * power,
+      fractionDigits,
+      rounding,
+    );
+  }
+
+  /// The rounding of a pair already brought to [scale], done in `BigInt`.
+  ///
+  /// Split out of [_roundExactly] so that a caller holding the scales apart —
+  /// [ShortDecimal.divide] does — can fold them into one power of ten instead
+  /// of two. Aligning first and scaling after multiplies both sides by the
+  /// scale of the operands, and the division then runs on numbers orders
+  /// larger than the answer needs.
+  static ShortDecimal _roundScaled(
+    BigInt numerator,
+    BigInt denominator,
+    int scale,
+    _Rounding rounding,
+  ) {
+    final ten = ShortDecimal._bigInt10;
 
     if (denominator.isNegative) {
       numerator = -numerator;
@@ -374,7 +394,6 @@ final class ShortFraction implements Comparable<ShortFraction> {
           ),
         );
 
-    var scale = fractionDigits;
     while (!value.isValidInt) {
       final rest = value.remainder(ten).abs();
       value = value ~/ ten;

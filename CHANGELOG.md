@@ -125,7 +125,11 @@ the rounding answers by itself whether there was a finite form to return
 instead, and the division that used to ask separately was half the cost of the
 operation. `divideOrNull` and `isDivisibleBy` are about 1.8 times faster on
 such a divisor for the same reason — a gcd that could not change the answer is
-no longer spent. The table in the
+no longer spent. `ShortDecimal.divide` with a digit count is twenty times
+faster: it folds both scales and the digits asked for into one power of ten
+instead of aligning the pair into a fraction and scaling that, which used to
+carry the arithmetic out of int64 and into `BigInt` on values that fit int64
+comfortably. The table in the
 README is a fresh run of the bench in `example/`, which was rebuilt for this
 release: it checks every answer before timing it, measures a series and reports
 the median, and no longer reports an absent method as a failure.

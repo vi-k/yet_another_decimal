@@ -1014,4 +1014,72 @@ void main() {
       });
     });
   });
+
+  group('divide с числом знаков', () {
+    // Округление считается напрямую: масштабы обоих операндов и запрошенное
+    // число знаков сворачиваются в одну степень десятки. Прежний путь
+    // выравнивал пару в дробь и домножал её ещё раз, из-за чего вычисление
+    // выходило за int64 там, где прямое в нём умещается. Проверяется, что
+    // ответ от этого не изменился ни на одном из исходов.
+    test('отвечает то же, что эталон, на обоих исходах', () {
+      const dividends = <String>[
+        '1',
+        '2.5',
+        '-7.125',
+        '19.99',
+        '0.0001',
+        '123456.789',
+        '-0.5',
+        '0',
+      ];
+      const divisors = <String>[
+        '3',
+        '7',
+        '9',
+        '11',
+        '13',
+        '2',
+        '4',
+        '5',
+        '8',
+        '16',
+        '20',
+        '25',
+        '-3',
+        '-8',
+        '0.3',
+        '1.25',
+        '6',
+      ];
+
+      for (final a in dividends) {
+        for (final b in divisors) {
+          final left = ShortDecimal.parse(a);
+          final right = ShortDecimal.parse(b);
+          final model = Ref.parse(a) / Ref.parse(b);
+          final exact = left.divideOrNull(right);
+
+          expect(exact != null, model.hasFiniteDecimal, reason: '$a / $b');
+
+          for (var digits = 0; digits <= 8; digits++) {
+            final result = left.divide(right, scaleOnInfinitePrecision: digits);
+            final why = '$a / $b до $digits знаков';
+
+            if (model.hasFiniteDecimal) {
+              // Точное деление возвращает точный ответ, а не добитый нулями
+              // до числа знаков.
+              expect(result.toString(), exact!.toString(), reason: why);
+              expect(result.toString(), model.toDecimalString(), reason: why);
+            } else {
+              expect(
+                result.toStringAsFixed(digits),
+                model.toStringAsFixed(digits),
+                reason: why,
+              );
+            }
+          }
+        }
+      }
+    });
+  });
 }
