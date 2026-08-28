@@ -350,6 +350,15 @@ final class Decimal implements FixedPoint<Decimal> {
       return Decimal._asIs(negate ? -quotient : quotient, scale);
     }
 
+    // A divisor holding neither a two nor a five is the whole question, and
+    // the remainder above has just answered it: what such a divisor does not
+    // divide has no finite decimal form, and no common factor can change
+    // that. Every third division of money lands here, and the factorization
+    // below would spend a gcd to arrive at the same nothing.
+    if (_coprimeWithTen(divisor)) {
+      return null;
+    }
+
     final gcd = base.fastGcd(divisor);
     if (gcd != BigInt.one) {
       base ~/= gcd;
@@ -404,6 +413,32 @@ final class Decimal implements FixedPoint<Decimal> {
   /// ```
   @override
   Decimal divide(Decimal other, {int? scaleOnInfinitePrecision}) {
+    // Where the divisor is coprime with ten, the rounding below answers both
+    // questions with one division. No power of ten can carry a numerator into
+    // such a divisor, so a remainder here is proof that there is no finite
+    // decimal form to return instead — and asking [divideOrNull] first would
+    // spend a second division to hear the same thing. On money divided by
+    // three that question was half the cost of the answer.
+    //
+    // An even division falls through: the exact result is [divideOrNull]'s to
+    // give, and it keeps the scale this one would have padded out.
+    //
+    // Out of bounds the fast path steps aside rather than throwing, so that
+    // the error still comes from where it came before, naming the argument.
+    if (scaleOnInfinitePrecision != null &&
+        scaleOnInfinitePrecision >= -maxDecimalExponent &&
+        scaleOnInfinitePrecision <= maxDecimalExponent &&
+        _coprimeWithTen(other.base)) {
+      final exponent = scaleOnInfinitePrecision - scale + other.scale;
+      if (exponent > 0 && exponent <= maxDecimalExponent) {
+        final (rounded, isExact) =
+            _roundedQuotientAndExactness(other, scaleOnInfinitePrecision);
+        if (!isExact) {
+          return rounded;
+        }
+      }
+    }
+
     final result = divideOrNull(other);
     if (result != null) {
       return result;
@@ -414,6 +449,25 @@ final class Decimal implements FixedPoint<Decimal> {
     }
 
     return _roundedQuotient(other, scaleOnInfinitePrecision);
+  }
+
+  /// Whether [divisor] holds neither a two nor a five.
+  ///
+  /// Such a divisor is coprime with ten, and that is what makes a remainder
+  /// decisive: no power of ten can carry a numerator into it, so what the
+  /// divisor does not divide now it will not divide after any shift.
+  ///
+  /// The test goes through `int` where the divisor fits in one, which is the
+  /// usual case and forty times cheaper than the same question asked of a
+  /// `BigInt`.
+  static bool _coprimeWithTen(BigInt divisor) {
+    if (divisor.isValidInt) {
+      final small = divisor.toInt();
+
+      return small.isOdd && small % 5 != 0;
+    }
+
+    return !divisor.isEven && divisor % _bigInt5 != BigInt.zero;
   }
 
   /// The quotient rounded to [fractionDigits], halves away from zero.
@@ -434,7 +488,20 @@ final class Decimal implements FixedPoint<Decimal> {
   /// rounding to the exact BigInt path far more often.
   Decimal _roundedQuotient(Decimal other, int fractionDigits) {
     _checkDigits(fractionDigits, 'scaleOnInfinitePrecision');
+    final (result, _) = _roundedQuotientAndExactness(other, fractionDigits);
 
+    return result;
+  }
+
+  /// The rounded quotient, and whether the division came out even.
+  ///
+  /// The remainder is wanted twice over: it decides the rounding, and where
+  /// the divisor is coprime with ten it also decides whether there was
+  /// anything to round at all.
+  (Decimal, bool) _roundedQuotientAndExactness(
+    Decimal other,
+    int fractionDigits,
+  ) {
     var numerator = base;
     var denominator = other.base;
 
@@ -457,11 +524,14 @@ final class Decimal implements FixedPoint<Decimal> {
     final quotient = numerator ~/ denominator;
     final remainder = numerator.remainder(denominator).abs();
 
-    return Decimal._asIs(
-      remainder >= denominator - remainder
-          ? quotient + BigInt.from(numerator.sign)
-          : quotient,
-      fractionDigits,
+    return (
+      Decimal._asIs(
+        remainder >= denominator - remainder
+            ? quotient + BigInt.from(numerator.sign)
+            : quotient,
+        fractionDigits,
+      ),
+      remainder == BigInt.zero,
     );
   }
 

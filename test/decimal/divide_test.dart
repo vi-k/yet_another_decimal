@@ -778,4 +778,72 @@ void main() {
       });
     });
   });
+
+  group('divide с числом знаков', () {
+    // Делитель, взаимно простой с десяткой, позволяет узнать о представимости
+    // из остатка самого округления: степень десятки не может внести числитель
+    // в такой делитель. На этом стоит быстрый путь в `divide`, и проверяется
+    // здесь, что он отвечает то же, что медленный, на обоих исходах —
+    // и точным значением там, где запись конечна, и округлением там, где нет.
+    test('отвечает то же, что эталон, на обоих исходах', () {
+      const dividends = <String>[
+        '1',
+        '2.5',
+        '-7.125',
+        '19.99',
+        '0.0001',
+        '123456.789',
+        '-0.5',
+        '0',
+      ];
+      const divisors = <String>[
+        '3',
+        '7',
+        '9',
+        '11',
+        '13',
+        '2',
+        '4',
+        '5',
+        '8',
+        '16',
+        '20',
+        '25',
+        '-3',
+        '-8',
+        '0.3',
+        '1.25',
+        '6',
+      ];
+
+      for (final a in dividends) {
+        for (final b in divisors) {
+          final left = Decimal.parse(a);
+          final right = Decimal.parse(b);
+          final model = Ref.parse(a) / Ref.parse(b);
+          final exact = left.divideOrNull(right);
+
+          expect(exact != null, model.hasFiniteDecimal, reason: '$a / $b');
+
+          for (var digits = 0; digits <= 12; digits++) {
+            final result = left.divide(right, scaleOnInfinitePrecision: digits);
+            final why = '$a / $b до $digits знаков';
+
+            if (model.hasFiniteDecimal) {
+              // Точное деление обязано вернуть точный ответ, а не padded до
+              // числа знаков: быстрый путь тут уступает дорогу.
+              expect(result.toString(), exact!.toString(), reason: why);
+              expect(result.toString(), model.toDecimalString(), reason: why);
+            } else {
+              expect(
+                result.toStringAsFixed(digits),
+                model.toStringAsFixed(digits),
+                reason: why,
+              );
+            }
+          }
+        }
+      }
+    });
+  });
 }

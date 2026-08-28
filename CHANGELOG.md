@@ -119,7 +119,13 @@ Division is several times faster, printing the same value twice costs almost
 nothing, `toDouble` no longer goes through a string, and rounding a quotient
 that has no finite decimal form — `divide(other, scaleOnInfinitePrecision: n)`
 — is about 1.6 times faster than it was, having stopped building an exact
-fraction only to divide it again. The table in the
+fraction only to divide it again, and then twice as fast again: where the
+divisor is coprime with ten, which is every division by three, the remainder of
+the rounding answers by itself whether there was a finite form to return
+instead, and the division that used to ask separately was half the cost of the
+operation. `divideOrNull` and `isDivisibleBy` are about 1.8 times faster on
+such a divisor for the same reason — a gcd that could not change the answer is
+no longer spent. The table in the
 README is a fresh run of the bench in `example/`, which was rebuilt for this
 release: it checks every answer before timing it, measures a series and reports
 the median, and no longer reports an absent method as a failure.
