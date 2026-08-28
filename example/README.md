@@ -27,7 +27,7 @@ dart run bin/benchmark.dart money --runs=1
 dart run bin/benchmark.dart all --passes=2
 
 # everything except one package
-dart run bin/benchmark.dart -yet_another_decimal
+dart run bin/benchmark.dart -denary
 
 # what the tags are
 dart run bin/benchmark.dart --help

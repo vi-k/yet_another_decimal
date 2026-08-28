@@ -1,9 +1,9 @@
-name: yet_another_decimal
-description: Yet another package for working with decimals without loss of precision, including two versions - one for large numbers, based on BigInt, and a fast version, based on int.
+name: denary
+description: Decimal numbers with a fixed point and no loss of precision. Two independent families - one on BigInt with no bounds on magnitude, one on int for speed.
 version: 1.2.0
-homepage: https://github.com/vi-k/yet_another_decimal
-repository: https://github.com/vi-k/yet_another_decimal
-issue_tracker: https://github.com/vi-k/yet_another_decimal/issues
+homepage: https://github.com/vi-k/denary
+repository: https://github.com/vi-k/denary
+issue_tracker: https://github.com/vi-k/denary/issues
 
 topics:
  - decimal

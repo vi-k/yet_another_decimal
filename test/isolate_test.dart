@@ -15,8 +15,8 @@ library;
 
 import 'dart:isolate';
 
+import 'package:denary/denary.dart';
 import 'package:test/test.dart';
-import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 /// Класс, повторяющий поля `ShortDecimal`, но без аннотации.
 final class _Plain {

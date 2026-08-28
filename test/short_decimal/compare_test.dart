@@ -3,8 +3,8 @@
 /// Сравнение `ShortDecimal` и `clamp`.
 library;
 
+import 'package:denary/denary.dart';
 import 'package:test/test.dart';
-import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 import '../support/expect.dart';
 

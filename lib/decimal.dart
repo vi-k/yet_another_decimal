@@ -1,13 +1,13 @@
 /// The BigInt family alone: [Decimal], its fraction, its division, its
 /// exception.
 ///
-/// The same [Decimal] the umbrella `yet_another_decimal.dart` exports, without
+/// The same [Decimal] the umbrella `denary.dart` exports, without
 /// `ShortDecimal` and without the bridge between the two. Import this one where
 /// the magnitudes are not known in advance and the int64 family would only be
 /// dead weight.
 ///
 /// ```dart
-/// import 'package:yet_another_decimal/decimal.dart';
+/// import 'package:denary/decimal.dart';
 ///
 /// final price = Decimal.parse('19.99');
 /// print(price * Decimal(3)); // 59.97

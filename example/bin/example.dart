@@ -3,7 +3,7 @@
 //
 //   dart run example/bin/example.dart
 
-import 'package:yet_another_decimal/yet_another_decimal.dart';
+import 'package:denary/denary.dart';
 
 void main() {
   _exactness();

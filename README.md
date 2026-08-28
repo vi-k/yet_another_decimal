@@ -1,9 +1,9 @@
-# Yet another decimal
+# Denary
 
-[![CI](https://github.com/vi-k/yet_another_decimal/actions/workflows/ci.yml/badge.svg)](https://github.com/vi-k/yet_another_decimal/actions/workflows/ci.yml)
-[![pub package](https://img.shields.io/pub/v/yet_another_decimal.svg)](https://pub.dev/packages/yet_another_decimal)
+[![CI](https://github.com/vi-k/denary/actions/workflows/ci.yml/badge.svg)](https://github.com/vi-k/denary/actions/workflows/ci.yml)
+[![pub package](https://img.shields.io/pub/v/denary.svg)](https://pub.dev/packages/denary)
 
-It's yet another package for fixed point decimals.
+A package for decimal numbers with a fixed point and no loss of precision.
 
 ## Table of contents
 
@@ -17,7 +17,7 @@ It's yet another package for fixed point decimals.
 
     2.3. [Package performance](#package-performance)
 
-    2.4. [decimal vs yet_another_decimal](#decimalhttpspubdevpackagesdecimal-vs-yet_another_decimalhttpspubdevpackagesyet_another_decimal)
+    2.4. [decimal vs denary](#decimalhttpspubdevpackagesdecimal-vs-denaryhttpspubdevpackagesdenary)
 
 3. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
 
@@ -30,11 +30,11 @@ It's yet another package for fixed point decimals.
 ## Getting started
 
 ```bash
-dart pub add yet_another_decimal
+dart pub add denary
 ```
 
 ```dart
-import 'package:yet_another_decimal/yet_another_decimal.dart';
+import 'package:denary/denary.dart';
 
 final price = Decimal.parse('19.99');
 final total = price * Decimal(3);
@@ -59,8 +59,8 @@ There are two number types, and they never mix on their own:
 Either one can be imported without the other:
 
 ```dart
-import 'package:yet_another_decimal/decimal.dart';       // the BigInt family
-import 'package:yet_another_decimal/short_decimal.dart'; // the int64 family
+import 'package:denary/decimal.dart';       // the BigInt family
+import 'package:denary/short_decimal.dart'; // the int64 family
 ```
 
 Which to take, and what the second one costs, is in
@@ -79,7 +79,7 @@ that work with decimals.
 A wonderful package that works correctly with decimals. It exists since 2014
 and is constantly updated. In one of the latest updates (3.2.0), performance
 has been significantly improved. Before that, speed was the weak point of this
-package. This was one of the reasons why [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
+package. This was one of the reasons why [denary](https://pub.dev/packages/denary)
 appeared, since I started writing it before 3.2.0. However, I would have
 written it anyway. More about it below.
 
@@ -217,7 +217,7 @@ incomplete functionality (division) or use of `double` under the hood.
 
 The [decimal](https://pub.dev/packages/decimal),
 [precise_decimal](https://pub.dev/packages/precise_decimal) and
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
+[denary](https://pub.dev/packages/denary)
 does not have the above division problems. No need to calculate `scale`
 yourself, and no `double` under the hood.
 
@@ -255,7 +255,7 @@ print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
 print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
 ```
 
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) does the opposite and returns the
+[denary](https://pub.dev/packages/denary) does the opposite and returns the
 result immediately:
 
 ```dart
@@ -341,7 +341,7 @@ But you can use additional solutions for working with fractions, such as the
 [fraction](https://pub.dev/packages/fraction), or the already mentioned
 [rational](https://pub.dev/packages/rational).
 
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) has its own
+[denary](https://pub.dev/packages/denary) has its own
 `Fraction` class, which provides basic functions for working with fraction.
 
 ```dart
@@ -702,7 +702,7 @@ forms of division — `divide(other, scaleOnInfinitePrecision: 10)` here,
 `divide(..., scale: 10)` in [big_decimal](https://pub.dev/packages/big_decimal).
 The packages that cannot do it at all show `—`.
 
-### [decimal](https://pub.dev/packages/decimal) vs [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
+### [decimal](https://pub.dev/packages/decimal) vs [denary](https://pub.dev/packages/denary)
 
 The last thing I want to do is compete with the author of
 [decimal](https://pub.dev/packages/decimal), especially when I see how long
@@ -713,7 +713,7 @@ the inside. And it's pretty much the same feature set with pretty much the same
 performance.
 
 But actually the decision to write my own
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) was not
+[denary](https://pub.dev/packages/denary) was not
 only influenced by the poor (at the time) performance of
 [decimal](https://pub.dev/packages/decimal). There was another reason. For my
 task I needed a lightweight decimal, which needed a regular `int` instead of
@@ -733,13 +733,13 @@ Two families, three ways to import them:
 
 ```dart
 // both, and the bridge between them
-import 'package:yet_another_decimal/yet_another_decimal.dart';
+import 'package:denary/denary.dart';
 
 // only the BigInt family
-import 'package:yet_another_decimal/decimal.dart';
+import 'package:denary/decimal.dart';
 
 // only the int64 family
-import 'package:yet_another_decimal/short_decimal.dart';
+import 'package:denary/short_decimal.dart';
 ```
 
 Take `Decimal` when the magnitudes are not known in advance: it has no bound

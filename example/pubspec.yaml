@@ -1,5 +1,5 @@
 name: example
-description: Example for yet_another_decimal.
+description: Example for denary.
 version: 1.0.0
 publish_to: none
 
@@ -13,13 +13,13 @@ dependencies:
   big_double: ^1.0.2
   decimal: ^3.2.6
   decimal_type: ^0.0.3
+  denary:
+    path: ..
   # 6.2.0 wants a newer SDK than the floor here; on a current one pub still
   # picks it.
   fixed: ^6.1.1
   format: ^4.1.0
   precise_decimal: ^0.0.1
-  yet_another_decimal:
-    path: ..
 
 dev_dependencies:
   # 6.x wants Dart 3.8; the floor here is 3.6, so both have to fit.

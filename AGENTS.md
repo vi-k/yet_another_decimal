@@ -8,10 +8,10 @@ CLI и любых других). `CLAUDE.md` содержит только сс�
 
 ## Проект в двух словах
 
-`yet_another_decimal` — Dart-пакет для десятичных чисел с фиксированной точкой
+`denary` — Dart-пакет для десятичных чисел с фиксированной точкой
 без потери точности. Два независимых типа: `Decimal` (на `BigInt`, без
 ограничений по величине) и `ShortDecimal` (на `int`, быстрый, с риском
-переполнения). Публикуется на [pub.dev](https://pub.dev/packages/yet_another_decimal).
+переполнения). Публикуется на [pub.dev](https://pub.dev/packages/denary).
 
 Устройство — в `docs/architecture.md`. Текущее состояние — в `docs/handoff.md`.
 
@@ -158,7 +158,7 @@ docs/records/2026-08-25[1]-ai-onboarding-report.md
 ```bash
 dart pub get                                   # зависимости (и корень, и example/)
 dart analyze                                   # статический анализ
-dart test                                      # тесты (test/yet_another_decimal_test.dart)
+dart test                                      # тесты, раскладка — в docs/conventions.md
 dart format .                                  # форматирование
 dart format --output=none --set-exit-if-changed .   # проверка форматирования
 

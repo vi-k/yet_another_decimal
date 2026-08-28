@@ -1,9 +1,20 @@
 ## 1.2.0
 
-Fifteen defects closed, the gaps in the public API filled in, and the whole
-package measured. Almost all of it is a fix or an addition; the handful of
-places where working code can notice the difference are gathered under
-Changed.
+**The package is now called `denary`.** It was published as
+`yet_another_decimal` up to 1.1.2; that name is discontinued and points here.
+Nothing inside changed with it: the types are still `Decimal` and
+`ShortDecimal`, and only the import lines move.
+
+```dart
+import 'package:denary/denary.dart';        // was yet_another_decimal.dart
+import 'package:denary/decimal.dart';
+import 'package:denary/short_decimal.dart';
+```
+
+Beside the name: fifteen defects closed, the gaps in the public API filled in,
+and the whole package measured. Almost all of it is a fix or an addition; the
+handful of places where working code can notice the difference are gathered
+under Changed.
 
 ### Compatibility
 
@@ -39,10 +50,9 @@ Changed.
 - `movePointLeft` and `movePointRight` — the same thing as `>>` and `<<`,
   spelled out. `>>` moves the point left, which is easy to read the wrong way
   round.
-- Two narrow entry points beside the umbrella one:
-  `package:yet_another_decimal/decimal.dart` and
-  `package:yet_another_decimal/short_decimal.dart`. Whoever needs one family
-  no longer carries the other.
+- Two narrow entry points beside the umbrella one: `package:denary/decimal.dart`
+  and `package:denary/short_decimal.dart`. Whoever needs one family no longer
+  carries the other.
 - `ShortDecimal` is annotated `vm:deeply-immutable`: the VM may share its
   instances between isolates. `Decimal` cannot be — a `BigInt` field is
   rejected by that annotation.

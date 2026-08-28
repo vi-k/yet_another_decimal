@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
+import 'package:denary/denary.dart';
 import 'package:example/src/tests/big_double_test.dart';
 import 'package:format/format.dart';
-import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 import 'operations.dart';
 import 'packages.dart';
@@ -12,11 +12,11 @@ import 'tests.dart';
 import 'tests/big_decimal_test.dart';
 import 'tests/decimal_test.dart';
 import 'tests/decimal_type_test.dart';
+import 'tests/denary_short_test.dart';
+import 'tests/denary_test.dart';
 import 'tests/fixed_test.dart';
 import 'tests/my_benchmark_base.dart';
 import 'tests/precise_decimal_test.dart';
-import 'tests/yet_another_decimal_short_test.dart';
-import 'tests/yet_another_decimal_test.dart';
 import 'utils/output.dart';
 
 /// How many times every benchmark is measured when the number is not given.
@@ -229,7 +229,7 @@ Map<String, String> _lockedVersions() {
   // for it, only `pubspec.yaml` has.
   final own = _findOwnVersion();
   if (own != null) {
-    versions['yet_another_decimal'] = own;
+    versions['denary'] = own;
   }
 
   return versions;
@@ -252,7 +252,7 @@ String? _findOwnVersion() {
     if (pubspec.existsSync()) {
       final lines = pubspec.readAsLinesSync();
       // `example/pubspec.yaml` is found first and has a version of its own.
-      if (lines.contains('name: yet_another_decimal')) {
+      if (lines.contains('name: denary')) {
         for (final line in lines) {
           final match = RegExp(r'^version: (.+)$').firstMatch(line);
           if (match != null) {

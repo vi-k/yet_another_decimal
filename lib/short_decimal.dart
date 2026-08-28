@@ -1,13 +1,13 @@
 /// The int64 family alone: [ShortDecimal], its fraction, its division, its
 /// exception.
 ///
-/// The same [ShortDecimal] the umbrella `yet_another_decimal.dart` exports,
+/// The same [ShortDecimal] the umbrella `denary.dart` exports,
 /// without `Decimal` and without the bridge between the two. Import this one
 /// where the values are known to be small and the speed is the point —
 /// remembering that overflow here is silent.
 ///
 /// ```dart
-/// import 'package:yet_another_decimal/short_decimal.dart';
+/// import 'package:denary/short_decimal.dart';
 ///
 /// final price = ShortDecimal.parse('19.99');
 /// print(price * ShortDecimal(3)); // 59.97

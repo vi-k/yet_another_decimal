@@ -7,8 +7,8 @@ library;
 
 import 'dart:math';
 
+import 'package:denary/denary.dart';
 import 'package:meta/meta.dart';
-import 'package:yet_another_decimal/yet_another_decimal.dart';
 
 final BigInt _b10 = BigInt.from(10);
 

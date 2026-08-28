@@ -4,9 +4,9 @@
 /// узкая точка входа перестала экспортировать хоть один тип семейства.
 library;
 
+import 'package:denary/decimal.dart';
+import 'package:denary/short_decimal.dart';
 import 'package:test/test.dart';
-import 'package:yet_another_decimal/decimal.dart';
-import 'package:yet_another_decimal/short_decimal.dart';
 
 void main() {
   group('точки входа', () {

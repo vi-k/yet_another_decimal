@@ -5,14 +5,14 @@ enum Package {
   bigDecimal('big_decimal', 'BigDecimal'),
   preciseDecimal('precise_decimal', 'BigDecimal'),
   yetAnotherDecimal(
-    'yet_another_decimal-decimal',
+    'denary-decimal',
     'Decimal',
-    tags: {'yet_another_decimal'},
+    tags: {'denary'},
   ),
   yetAnotherDecimalShort(
-    'yet_another_decimal-short-decimal',
+    'denary-short-decimal',
     'ShortDecimal',
-    tags: {'yet_another_decimal'},
+    tags: {'denary'},
     excludeFromComparision: true,
   ),
   bigDouble(
@@ -39,7 +39,7 @@ enum Package {
   /// The name of the package on pub.dev.
   ///
   /// Two of the ids name a type inside a package, not the package itself:
-  /// `yet_another_decimal-decimal` and `yet_another_decimal-short-decimal`.
+  /// `denary-decimal` and `denary-short-decimal`.
   String get pubName => id.split('-').first;
 
   static Package? byId(String id) {

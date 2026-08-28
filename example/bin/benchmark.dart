@@ -55,8 +55,8 @@ void printUsage() {
   print('> ${accent('dart benchmark.dart divide')}');
 
   print('');
-  print('All tests for all packages excluding "yet_another_decimal"');
-  print('> ${accent('dart benchmark.dart -yet_another_decimal')}');
+  print('All tests for all packages excluding "denary"');
+  print('> ${accent('dart benchmark.dart -denary')}');
 
   print('');
   print('All packages and all tests, one run instead of a series:');

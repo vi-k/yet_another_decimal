@@ -1,6 +1,6 @@
 /// The contract both decimal families keep.
 ///
-/// Not exported from `yet_another_decimal.dart` in 1.2.0: a public interface
+/// Not exported from `denary.dart` in 1.2.0: a public interface
 /// freezes, and this one is here for the compiler rather than for the user.
 /// Forgetting a member in the second family becomes an error at build time
 /// instead of a reviewer's finding a year later — there were twenty-five such

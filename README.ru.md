@@ -1,9 +1,9 @@
-# Yet another decimal
+# Denary
 
-[![CI](https://github.com/vi-k/yet_another_decimal/actions/workflows/ci.yml/badge.svg)](https://github.com/vi-k/yet_another_decimal/actions/workflows/ci.yml)
-[![pub package](https://img.shields.io/pub/v/yet_another_decimal.svg)](https://pub.dev/packages/yet_another_decimal)
+[![CI](https://github.com/vi-k/denary/actions/workflows/ci.yml/badge.svg)](https://github.com/vi-k/denary/actions/workflows/ci.yml)
+[![pub package](https://img.shields.io/pub/v/denary.svg)](https://pub.dev/packages/denary)
 
-Ещё один пакет для десятичных чисел с фиксированной точкой.
+Пакет для десятичных чисел с фиксированной точкой и без потери точности.
 
 *English version: [README.md](README.md). Этот перевод в пакет на pub.dev не
 входит и живёт только в репозитории.*
@@ -20,7 +20,7 @@
 
     2.3. [Производительность пакетов](#производительность-пакетов)
 
-    2.4. [decimal vs yet_another_decimal](#decimalhttpspubdevpackagesdecimal-vs-yet_another_decimalhttpspubdevpackagesyet_another_decimal)
+    2.4. [decimal vs denary](#decimalhttpspubdevpackagesdecimal-vs-denaryhttpspubdevpackagesdenary)
 
 3. [`Decimal` vs `ShortDecimal`](#decimal-vs-shortdecimal)
 
@@ -33,11 +33,11 @@
 ## С чего начать
 
 ```bash
-dart pub add yet_another_decimal
+dart pub add denary
 ```
 
 ```dart
-import 'package:yet_another_decimal/yet_another_decimal.dart';
+import 'package:denary/denary.dart';
 
 final price = Decimal.parse('19.99');
 final total = price * Decimal(3);
@@ -62,8 +62,8 @@ print(total / Decimal(3)); // 19.99
 Каждый импортируется без другого:
 
 ```dart
-import 'package:yet_another_decimal/decimal.dart';       // семейство на BigInt
-import 'package:yet_another_decimal/short_decimal.dart'; // семейство на int64
+import 'package:denary/decimal.dart';       // семейство на BigInt
+import 'package:denary/short_decimal.dart'; // семейство на int64
 ```
 
 Какой брать и чего стоит второй — в разделе
@@ -83,7 +83,7 @@ README — о том, зачем пакет существует и во что 
 с 2014 года и постоянно обновляется. В одном из последних обновлений (3.2.0)
 производительность заметно выросла. До этого скорость была слабым местом
 пакета. Это и стало одной из причин, по которым появился
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal): я начал
+[denary](https://pub.dev/packages/denary): я начал
 писать его до выхода 3.2.0. Впрочем, я написал бы его в любом случае. Об этом
 ниже.
 
@@ -220,7 +220,7 @@ Arithmetic: `DecimalContext` с `decimal32/64/128`, условия и ловуш
 
 У [decimal](https://pub.dev/packages/decimal),
 [precise_decimal](https://pub.dev/packages/precise_decimal) и
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
+[denary](https://pub.dev/packages/denary)
 описанных проблем с делением нет. Не нужно самому считать `scale`, и никакого
 `double` под капотом.
 
@@ -257,7 +257,7 @@ print('$a / $b = ${a / b}'); // 1 / 3 = 1/3
 print('$a / $b = ${(a / b).toDecimal(scaleOnInfinitePrecision: 6)}'); // 1 / 3 = 0.333333
 ```
 
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) поступает
+[denary](https://pub.dev/packages/denary) поступает
 наоборот и возвращает результат сразу:
 
 ```dart
@@ -342,7 +342,7 @@ final decimal = rational.toDecimal(); // 3
 [fraction](https://pub.dev/packages/fraction) или уже упомянутый
 [rational](https://pub.dev/packages/rational).
 
-У [yet_another_decimal](https://pub.dev/packages/yet_another_decimal) есть свой
+У [denary](https://pub.dev/packages/denary) есть свой
 класс `Fraction` с базовыми возможностями работы с дробями.
 
 ```dart
@@ -700,7 +700,7 @@ repeat-view — там работа, которую наш `parse` не сдел
 `divide(..., scale: 10)` в [big_decimal](https://pub.dev/packages/big_decimal).
 Пакеты, которые так не умеют вовсе, показывают `—`.
 
-### [decimal](https://pub.dev/packages/decimal) vs [yet_another_decimal](https://pub.dev/packages/yet_another_decimal)
+### [decimal](https://pub.dev/packages/decimal) vs [denary](https://pub.dev/packages/denary)
 
 Меньше всего мне хочется соревноваться с автором
 [decimal](https://pub.dev/packages/decimal), особенно когда я вижу, сколько лет
@@ -710,7 +710,7 @@ repeat-view — там работа, которую наш `parse` не сдел
 тот же набор возможностей с примерно той же производительностью.
 
 Но на самом деле решение написать свой
-[yet_another_decimal](https://pub.dev/packages/yet_another_decimal) было
+[denary](https://pub.dev/packages/denary) было
 вызвано не только слабой (на тот момент) производительностью
 [decimal](https://pub.dev/packages/decimal). Была и другая причина. Для своей
 задачи мне нужно было лёгкое десятичное число, которому под капотом для
@@ -730,13 +730,13 @@ repeat-view — там работа, которую наш `parse` не сдел
 
 ```dart
 // оба и мост между ними
-import 'package:yet_another_decimal/yet_another_decimal.dart';
+import 'package:denary/denary.dart';
 
 // только семейство на BigInt
-import 'package:yet_another_decimal/decimal.dart';
+import 'package:denary/decimal.dart';
 
 // только семейство на int64
-import 'package:yet_another_decimal/short_decimal.dart';
+import 'package:denary/short_decimal.dart';
 ```
 
 Берите `Decimal`, когда порядки величин заранее неизвестны: у него нет границы
