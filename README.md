@@ -549,6 +549,15 @@ Convert newly created numbers into a readable format:
 This is usually a resource-intensive task, as the package does not have time to
 do any optimizations with the number.
 
+The values above are one cycle of it. The set is a pool a hundred cycles deep,
+walked in order, so every cycle converts values no cycle before it converted.
+A package is free to remember what it printed — that is what repeat-view
+measures — but this row may not be answered from that memory, and a fresh
+object is not enough to prevent it: a table keyed by the value rather than by
+the object answers a new object just the same. A pool larger than any cache in
+the comparison is what keeps the row a first conversion for every package
+alike.
+
 ##### raw-view-zeros
 
 Convert newly created numbers with lots of leading and trailing zeros into

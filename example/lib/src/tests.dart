@@ -2,6 +2,54 @@
 
 import 'operations.dart';
 
+/// How many cycles' worth of values a pooled view benchmark holds.
+///
+/// `raw-view` is meant to be a first conversion, so it may not convert a value
+/// a package could still remember. A pool this many times larger than one
+/// cycle, walked in order, is larger than any cache in the comparison: by the
+/// time the cursor comes back around the entry has been evicted, and a table
+/// keyed by the value misses as surely as one keyed by the object.
+const int viewPoolCycles = 103;
+
+/// Writes a value out from its digits and its scale, and nothing else.
+///
+/// The reference the view benchmarks are checked against. It is built from the
+/// same `(unscaled, scale)` pair every package is handed and borrows no code
+/// from any of them — the answers must not be able to agree with a package by
+/// sharing its mistake.
+///
+/// Trailing zeros after the point are dropped, which is the canonical form.
+/// A package that prints them keeps its result: the runner compares without
+/// them too and calls that a warning, not an error.
+String plainString(BigInt unscaled, int scale) {
+  if (scale <= 0) {
+    return (unscaled * BigInt.from(10).pow(-scale)).toString();
+  }
+
+  final digits = unscaled.toString();
+  final String result;
+  if (digits.length > scale) {
+    result = '${digits.substring(0, digits.length - scale)}'
+        '.${digits.substring(digits.length - scale)}';
+  } else {
+    result = '0.${'0' * (scale - digits.length)}$digits';
+  }
+
+  if (!result.contains('.')) {
+    return result;
+  }
+
+  var end = result.length;
+  while (result[end - 1] == '0') {
+    end--;
+  }
+  if (result[end - 1] == '.') {
+    end--;
+  }
+
+  return result.substring(0, end);
+}
+
 enum Test {
   addBigInt(
     'add-big-int',
@@ -488,7 +536,6 @@ enum Test {
           result: '0.000000007450580596923828125',
         );
 
-      case Test.rawViewBigInt:
       case Test.repeatViewBigInt:
         const v = '123456789012345678901234567890123456789';
         final values = List<(BigInt, int)>.generate(
@@ -496,39 +543,68 @@ enum Test {
           (index) => (BigInt.parse(v), index * 2),
           growable: false,
         );
-        final result = <String>[
-          v,
-          for (var i = 1; i < 20; i++)
-            '${v.substring(0, 39 - i * 2)}.${v.substring(39 - i * 2, v.length)}',
+
+        return (
+          bigIntValues: values,
+          intValues: null,
+          result: <String>[
+            for (final (value, scale) in values) plainString(value, scale),
+          ],
+        );
+
+      case Test.rawViewBigInt:
+        // A pool of [viewPoolCycles] cycles: every cycle converts twenty
+        // values that no cycle before it converted, so nothing a package
+        // remembers can answer for the conversion being measured. Only digits
+        // low in the number move, so every value keeps its thirty-nine digits
+        // and its last digit stays non-zero.
+        final base = BigInt.parse('123456789012345678901234567890123456789');
+        final values = <(BigInt, int)>[
+          for (var cycle = 0; cycle < viewPoolCycles; cycle++)
+            for (var i = 0; i < 20; i++)
+              (base + BigInt.from(1000 * cycle), i * 2),
         ];
 
         return (
           bigIntValues: values,
           intValues: null,
-          result: result,
+          result: <String>[
+            for (final (value, scale) in values) plainString(value, scale),
+          ],
         );
 
-      case Test.rawViewInt:
       case Test.repeatViewInt:
         final values = List<(int, int)>.generate(
           19,
           (index) => (1234567890123456789, index),
           growable: false,
         );
-        const v = '1234567890123456789';
-        final result = <String>[
-          v,
-          for (var i = 1; i < 19; i++)
-            '${v.substring(0, 19 - i)}.${v.substring(19 - i, v.length)}',
+
+        return (
+          bigIntValues: bigIntValuesFromIntValues(values),
+          intValues: values,
+          result: <String>[
+            for (final (value, scale) in values)
+              plainString(BigInt.from(value), scale),
+          ],
+        );
+
+      case Test.rawViewInt:
+        final values = <(int, int)>[
+          for (var cycle = 0; cycle < viewPoolCycles; cycle++)
+            for (var i = 0; i < 19; i++)
+              (1234567890123456789 + 1000 * cycle, i),
         ];
 
         return (
           bigIntValues: bigIntValuesFromIntValues(values),
           intValues: values,
-          result: result,
+          result: <String>[
+            for (final (value, scale) in values)
+              plainString(BigInt.from(value), scale),
+          ],
         );
 
-      case Test.rawViewZerosBigInt:
       case Test.repeatViewZerosBigInt:
         final values = List<(BigInt, int)>.generate(
           20,
@@ -538,15 +614,37 @@ enum Test {
           ),
           growable: false,
         );
-        final result = <String>[
-          for (var i = 0; i < 10; i++) '1${'0' * ((9 - i) * 4 + 2)}',
-          for (var i = 0; i < 10; i++) '0.${'0' * (i * 4 + 1)}1',
+
+        return (
+          bigIntValues: values,
+          intValues: null,
+          result: <String>[
+            for (final (value, scale) in values) plainString(value, scale),
+          ],
+        );
+
+      case Test.rawViewZerosBigInt:
+        // The zeros are the point of the set, so the digits that move are the
+        // three at the head. An odd head never ends in a zero, so the trailing
+        // run of them stays as long as it was, and a head of fixed width keeps
+        // every value at the magnitude the set was built at.
+        final values = <(BigInt, int)>[
+          for (var cycle = 0; cycle < viewPoolCycles; cycle++)
+            for (var i = 0; i < 20; i++)
+              (
+                BigInt.parse(
+                  '${101 + cycle * 2}'.padRight(39, '0'),
+                ),
+                i * 4
+              ),
         ];
 
         return (
           bigIntValues: values,
           intValues: null,
-          result: result,
+          result: <String>[
+            for (final (value, scale) in values) plainString(value, scale),
+          ],
         );
 
       case Test.parse:
@@ -601,22 +699,40 @@ enum Test {
           result: _moneyThirds,
         );
 
-      case Test.rawViewZerosInt:
       case Test.repeatViewZerosInt:
         final values = List<(int, int)>.generate(
           20,
           (index) => (1000000000000000000, index * 2 - 1),
           growable: false,
         );
-        final result = <String>[
-          for (var i = 0; i < 10; i++) '1${'0' * ((9 - i) * 2 + 1)}',
-          for (var i = 0; i < 10; i++) '0.${'0' * (i * 2)}1',
+
+        return (
+          bigIntValues: bigIntValuesFromIntValues(values),
+          intValues: values,
+          result: <String>[
+            for (final (value, scale) in values)
+              plainString(BigInt.from(value), scale),
+          ],
+        );
+
+      case Test.rawViewZerosInt:
+        // The head is always three digits, so the value keeps its magnitude
+        // and its nineteen digits: 101 to 305, and 3.05e18 is well inside
+        // int64. A two-digit head would not be — 93 padded out is 9.3e18,
+        // past the end of the type.
+        final values = <(int, int)>[
+          for (var cycle = 0; cycle < viewPoolCycles; cycle++)
+            for (var i = 0; i < 20; i++)
+              (int.parse('${101 + cycle * 2}'.padRight(19, '0')), i * 2 - 1),
         ];
 
         return (
           bigIntValues: bigIntValuesFromIntValues(values),
           intValues: values,
-          result: result,
+          result: <String>[
+            for (final (value, scale) in values)
+              plainString(BigInt.from(value), scale),
+          ],
         );
     }
   }

@@ -129,6 +129,14 @@ void _measurePass(
   }
 }
 
+/// How many values one cycle of [test] converts.
+///
+/// The `raw-view` sets are pools of [viewPoolCycles] cycles — a value is not
+/// converted twice while a package could still remember it — so one cycle is
+/// that much less than the whole set. Every other set is one cycle.
+int _viewWindow(Test test, int length) =>
+    test.operation == Op.rawView ? length ~/ viewPoolCycles : length;
+
 final _bigIntPackages = <Package, CreateBigIntTestCallback>{
   Package.decimal: DecimalTest.new,
   Package.fixed: FixedTest.new,
@@ -321,7 +329,9 @@ void _measureBigIntTestsAndPrint(
         continue;
       }
 
-      benchmark = create(values, test.operation, result)..inputs = inputs;
+      benchmark = create(values, test.operation, result)
+        ..inputs = inputs
+        ..viewWindow = _viewWindow(test, values.length);
     }
 
     if (_measureTest(benchmark, runs)) {
@@ -353,7 +363,9 @@ void _measureIntTestsAndPrint(
         continue;
       }
 
-      benchmark = create(values, test.operation, result)..inputs = inputs;
+      benchmark = create(values, test.operation, result)
+        ..inputs = inputs
+        ..viewWindow = _viewWindow(test, values.length);
     }
 
     if (_measureTest(benchmark, runs)) {

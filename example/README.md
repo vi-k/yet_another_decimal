@@ -70,34 +70,25 @@ A few rules keep the answers honest:
   which marks a package that is faster than everyone inside the comparison.
   The point of it is the absence: a row where `ShortDecimal` has no `★★` is a
   row where int64 buys nothing. A wrong answer never earns the mark.
-- **A cache is not a faster algorithm.** `raw-view` is meant to be a first
-  conversion and `repeat-view` every later one, so the pair tells them apart:
-  quick in one and slow in the other means an algorithm, quick in both means a
-  cache. The diagnostic holds only while the cache is per value-object, as it
-  is here — a fresh object misses it, and `raw-view` builds one.
-  [precise_decimal](https://pub.dev/packages/precise_decimal) breaks it: its
-  plain-string cache is one table for the whole library, keyed by the value
-  rather than the object (512 entries, strings up to 512 characters), so a new
-  object with an old value hits it too. Its `raw-view` therefore times a cache
-  hit from the second cycle on, and lands next to its own `repeat-view`.
-  Measured on this machine: a cached print costs 0.11 µs against 1.46 µs for a
-  value printed for the first time — the row reads about thirteen times better
-  than a first conversion actually costs. The four `divide-and-view` rows print
-  a repeating result and are cached the same way.
-- **Every benchmark is measured five times** (`--runs=N`), and the summary
-  shows the median; the console shows the whole spread next to it. One run
-  says nothing: the machine drifts by up to 15 % between them.
-- **For numbers worth publishing, sweep twice** (`--passes=N`): each cell then
-  shows the better of the two medians. A median of five protects against one
-  bad run, not against a burst of unrelated load that outlasts the whole
-  series — and such a burst can only make a benchmark look slower, never
-  faster. The second sweep reaches a given benchmark some twenty minutes after
-  the first, which is what makes the two independent. They disagreed on 15
-  cells out of 190 the last time the README table was measured.
-- **The result of every measured cycle goes into a sink**, so that the
-  optimizer cannot drop the work the cycle was there to do.
-- **What the run depends on is printed above it**: the Dart version, the OS,
-  the number of cores, JIT or AOT, and the version of every compared package.
+- **A cache is not a faster algorithm, and `raw-view` does not let one
+  answer.** The row is meant to be a first conversion and `repeat-view` every
+  later one. A fresh object is not enough to keep the first honest: a package
+  may keep its printed strings in one table for the whole library, keyed by the
+  value rather than the object, and then a new object with an old value is
+  answered from memory just the same.
+  [precise_decimal](https://pub.dev/packages/precise_decimal) keeps such a
+  table. So the `raw-view` sets are pools a hundred cycles deep, walked in
+  order: every cycle converts values no cycle before it converted, and a pool
+  larger than any cache in the comparison has nothing left in it by the time
+  the cursor comes back around. What the pool is worth is visible in the
+  numbers — with it, that package's row went from 2.7 µs to 31.4, and the two
+  packages it had been beating went back to winning.
+- **The whole pool is checked, not just the cycle that is timed.** The values
+  a check never looks at are the ones a package could get wrong unnoticed, so
+  every value in the pool is converted once outside the measurement and
+  compared against `plainString` in `lib/src/tests.dart` — a reference built
+  from the same `(unscaled, scale)` pair every package is handed, borrowing no
+  code from any of them.
 
 Values come in two flavours. The round ones — powers of ten, one factor
 repeated — are the best case for stripping zeros, for `gcd` and for the fast

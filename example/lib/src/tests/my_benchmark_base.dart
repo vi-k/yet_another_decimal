@@ -32,6 +32,38 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   /// must not depend on how a package prints them.
   List<String> inputs = const <String>[];
 
+  /// How many values one cycle of a view benchmark converts.
+  ///
+  /// Filled in by the runner before the benchmark is measured, like [inputs].
+  /// For most tests it is the whole set. For `raw-view` the set is a pool of
+  /// many cycles' worth of values and this is one cycle of it.
+  int viewWindow = 0;
+
+  /// Where the next cycle of a view benchmark starts inside the pool.
+  int viewCursor = 0;
+
+  /// How many values this cycle converts.
+  int get viewLength => viewWindow;
+
+  /// Answers where this cycle reads from, and moves the cursor on.
+  ///
+  /// `raw-view` is meant to be a first conversion, so no value may be
+  /// converted twice while it could still be remembered. The pool is several
+  /// times larger than any cache in the comparison and is walked in order, so
+  /// by the time the cursor comes back around, the entry has been evicted —
+  /// a table keyed by the value misses as surely as one keyed by the object.
+  int beginView(int poolLength) {
+    if (viewWindow <= 0 || viewWindow >= poolLength) {
+      return 0;
+    }
+
+    final start = viewCursor;
+    final next = start + viewWindow;
+    viewCursor = next + viewWindow > poolLength ? 0 : next;
+
+    return start;
+  }
+
   String? resultMessage;
   String? error;
 
@@ -108,9 +140,38 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
     return (scores.reduce(min), scores.reduce(max));
   }
 
+  /// Runs one cycle, or every cycle of the pool when the values are pooled,
+  /// and answers with all of them at once.
+  ///
+  /// The whole pool is checked, not just its first cycle: the values a check
+  /// never looks at are exactly the ones a package could get wrong unnoticed.
+  /// This runs outside the measurement, and it leaves the cursor where it
+  /// found it.
+  Object? _exerciseEveryWindow() {
+    final expected = expectedExerciseResult;
+    final windows =
+        expected is List && viewWindow > 0 ? expected.length ~/ viewWindow : 1;
+
+    viewCursor = 0;
+    if (windows <= 1) {
+      final result = exercise(1);
+      viewCursor = 0;
+
+      return result;
+    }
+
+    final all = <Object>[];
+    for (var i = 0; i < windows; i++) {
+      all.addAll(exercise(1)! as List<Object>);
+    }
+    viewCursor = 0;
+
+    return all;
+  }
+
   @override
   void setup() {
-    final result = convertResult(exercise(1));
+    final result = convertResult(_exerciseEveryWindow());
 
     resultMessage = null;
 

@@ -6,7 +6,13 @@ import 'my_benchmark_base.dart';
 
 final class BigDecimalTest extends MyBenchmarkBase {
   final List<BigDecimal> values;
-  final List<String> _convertToStringResult;
+
+  /// One cycle's worth of strings.
+  ///
+  /// Late because the runner sets [viewLength] after the benchmark is
+  /// built: for a pooled `raw-view` set one cycle is a small part of it.
+  late final List<String> _convertToStringResult =
+      List<String>.filled(viewLength, '');
   final List<Object> _objectResult;
 
   BigDecimalTest(
@@ -18,7 +24,6 @@ final class BigDecimalTest extends MyBenchmarkBase {
               (e) => BigDecimal(intVal: e.$1, scale: e.$2),
             )
             .toList(growable: false),
-        _convertToStringResult = List<String>.filled(list.length, ''),
         _objectResult = List<Object>.filled(list.length, ''),
         super(
           Package.bigDecimal,
@@ -89,10 +94,11 @@ final class BigDecimalTest extends MyBenchmarkBase {
 
   @override
   List<String> rawView() {
-    final length = values.length;
+    final start = beginView(values.length);
+    final length = viewLength;
     for (var i = 0; i < length; i++) {
       // ignore: unnecessary_parenthesis
-      final value = -(-values[i]);
+      final value = -(-values[start + i]);
       _convertToStringResult[i] = value.toPlainString();
     }
 
