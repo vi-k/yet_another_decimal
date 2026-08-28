@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_js_rounded_ints
+
 /// Воспроизводители дефектов, найденных ревью 2026-08-25.
 ///
 /// Разбор каждого — в `docs/records/2026-08-25[3]-package-review.md`,
@@ -247,6 +249,98 @@ void main() {
   // а сокращать нечего. Второе противоречило Д9, который требует от дробей
   // поддержки отрицательного fractionDigits. Обоснование —
   // docs/records/2026-08-26[1]-wave-2-defects-plan.md.
+  // Д16–Д19 найдены 2026-08-28 обзором «глазами пользователя»: разбор — в
+  // docs/records/2026-08-28[8]. Все четыре — расхождение кода с собственным
+  // dartdoc, а не с чьим-то ожиданием.
+
+  group('Д16 divideToFraction усекает вместо броска', () {
+    test(
+      'непредставимая в int64 дробь даёт ArgumentError',
+      () {
+        const max = 9223372036854775807;
+        final value = ShortDecimal(max, shiftLeft: 1);
+
+        expect(
+          () => value.divideToFraction(ShortDecimal.one),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
+  });
+
+  group('Д17 ShortFraction.floor и ceil теряют направление', () {
+    // 4/7 = 0.571428…, двадцать знаков в int64 не помещаются.
+    test(
+      'floor не поднимается выше самой дроби',
+      () {
+        final result = ShortFraction(4, 7).floor(20);
+
+        expect(result.toDecimal() * Decimal(7), lessThan(Decimal(4)));
+      },
+    );
+
+    test(
+      'ceil не опускается ниже самой дроби',
+      () {
+        final result = ShortFraction(4, 7).ceil(20);
+
+        expect(result.toDecimal() * Decimal(7), greaterThan(Decimal(4)));
+      },
+    );
+
+    test(
+      'floor и ceil одной дроби не совпадают',
+      () {
+        final fraction = ShortFraction(4, 7);
+
+        expect(fraction.floor(20), isNot(fraction.ceil(20)));
+      },
+    );
+  });
+
+  group('Д18 ShortFraction.toDouble округляет дважды', () {
+    test(
+      'ответ тот же, что у точного пути Fraction',
+      () {
+        const n = 9007199254740993;
+
+        expect(
+          ShortFraction(n, 7).toDouble(),
+          Fraction(BigInt.from(n), BigInt.from(7)).toDouble(),
+        );
+      },
+    );
+  });
+
+  group('Д19 масштаб переполняется в делении', () {
+    // `(Decimal.one >> max) >> 1` бросает ArgumentError с тем же сообщением:
+    // деление обязано отвечать так же, а не отдавать масштаб, ушедший в минус.
+    test(
+      'деление отвечает так же, как сдвиг: броском',
+      () {
+        const max = 9223372036854775807;
+        final value = Decimal(100, shiftRight: max);
+
+        expect(
+          () => value.divideOrNull(Decimal.one << 1),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
+
+    // У `ShortDecimal` представление каноническое сразу, поэтому за край
+    // масштаб уводит единица, а не сотня: у сотни два нуля уже сняты.
+    test('второе семейство отвечает так же', () {
+      const max = 9223372036854775807;
+      final value = ShortDecimal(1, shiftRight: max);
+
+      expect(
+        () => value.divideOrNull(ShortDecimal.one << 1),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
   group('Д15 ShortFraction: знак и проверка аргумента', () {
     test('знаменатель всегда положителен', () {
       final fraction = ShortFraction(2, -9223372036854775808);

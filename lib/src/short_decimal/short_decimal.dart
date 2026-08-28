@@ -432,7 +432,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     var base = this.base;
-    var scale = this.scale - other.scale;
+    // Checked like the shifts are: an unchecked difference wraps into the
+    // opposite sign, and what comes out of it is not the quotient by any
+    // reading. Written out rather than called: the check is two operations,
+    // and a call around them is not inlined — the same reason the overflow
+    // check sits inside `operator *`.
+    final otherScale = other.scale;
+    var scale = this.scale - otherScale;
+    if ((this.scale ^ otherScale) < 0 && (scale ^ this.scale) < 0) {
+      throw ArgumentError.value(otherScale, 'other', _scaleOutOfRange);
+    }
 
     // The sign is taken out of the divisor before the factorization below.
     // A remainder is never negative in Dart, so a negative divisor never comes
@@ -600,19 +609,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     // Past the power of ten anyone can hold, the aligned pair is the old road
-    // and it reaches the same answer.
+    // and it reaches the same answer. The pair is rounded as it is, without
+    // being made into a fraction first: getting here means the scales are a
+    // million apart, and a pair that far apart has no fraction in int64 —
+    // nor has a divisor of 2^63, whose denominator has nowhere to be
+    // positive. The rounded quotient is an ordinary number either way.
     final (dividend, divisor) = _fractionPair(other);
-    final fraction = ShortFraction._orNull(dividend, divisor);
-    if (fraction != null) {
-      return fraction.round(fractionDigits);
-    }
 
-    // A divisor of 2^63 has no fraction to be rounded: int64 has no room for
-    // that denominator with a positive sign. The rounded quotient is an
-    // ordinary number all the same, so it is taken from the pair itself.
     return ShortFraction._roundExactly(
-      BigInt.from(dividend),
-      BigInt.from(divisor),
+      dividend,
+      divisor,
       fractionDigits,
       _Rounding.round,
     );
@@ -691,12 +697,25 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// one is an ordinary number.
   ShortFraction divideToFraction(ShortDecimal other) {
     final (dividend, divisor) = _fractionPair(other);
+    if (!dividend.isValidInt || !divisor.isValidInt) {
+      throw ArgumentError.value(
+        other,
+        'other',
+        'The ratio of this division has no fraction in int64',
+      );
+    }
 
-    return ShortFraction(dividend, divisor);
+    return ShortFraction(dividend.toInt(), divisor.toInt());
   }
 
   /// The pair a fraction of this division is built from.
-  (int, int) _fractionPair(ShortDecimal other) {
+  ///
+  /// Kept in `BigInt` on purpose: the reduced pair does not always fit int64,
+  /// and `BigInt.toInt()` truncates without a word — a truncated pair looks
+  /// like an ordinary fraction, which is the wrong answer nobody can spot.
+  /// Whoever needs it in int64 checks first, and each caller has its own
+  /// answer to a pair that does not fit.
+  (BigInt, BigInt) _fractionPair(ShortDecimal other) {
     if (other.isZero) {
       throw UnsupportedError('division by zero');
     }
@@ -705,7 +724,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     if (aligned != null) {
       final (dividend, divisor, _) = aligned;
 
-      return (dividend, divisor);
+      return (BigInt.from(dividend), BigInt.from(divisor));
     }
 
     // Reduced first: the aligned pair can leave int64 while the same ratio in
@@ -713,7 +732,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final (a, b, _) = _alignExactly(other);
     final gcd = a.fastGcd(b);
 
-    return ((a ~/ gcd).toInt(), (b ~/ gcd).toInt());
+    return (a ~/ gcd, b ~/ gcd);
   }
 
   /// Calculates the result of division as an integer quotient and remainder.

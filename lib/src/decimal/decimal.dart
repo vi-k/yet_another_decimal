@@ -342,7 +342,16 @@ final class Decimal implements FixedPoint<Decimal> {
     }
 
     var base = this.base;
-    var scale = this.scale - other.scale;
+    // Checked like the shifts are: an unchecked difference wraps into the
+    // opposite sign, and what comes out of it is not the quotient by any
+    // reading. Written out rather than called: the check is two operations,
+    // and a call around them is not inlined — the same reason the overflow
+    // check sits inside `operator *`.
+    final otherScale = other.scale;
+    var scale = this.scale - otherScale;
+    if ((this.scale ^ otherScale) < 0 && (scale ^ this.scale) < 0) {
+      throw ArgumentError.value(otherScale, 'other', _scaleOutOfRange);
+    }
 
     // The sign is taken out of the divisor before the factorization below.
     // A remainder is never negative in Dart, so a negative divisor never comes

@@ -93,6 +93,18 @@ touched.
 
 ### Fixed
 
+- `divideToFraction` truncated a ratio that has no fraction in int64 instead of
+  refusing it, and `divide` rounded the truncated pair — a wrong answer with
+  nothing to give it away.
+- `ShortFraction.floor` and `ceil` lost their direction when the result needed
+  more digits than int64 holds: both answered with the closest value, so a
+  floor could come back above its own fraction. They now drop digits the way
+  they were asked to.
+- `ShortFraction.toDouble` rounded twice past 2^53 and missed the nearest
+  double. It now takes the exact path, as `Fraction` does.
+- Division let the scale overflow where the shifts refuse it. A quotient whose
+  scale wrapped printed as an integer and compared as one; now it throws with
+  the name of the argument, in both families.
 - Division by a negative number gave the wrong sign.
 - Division by zero hung instead of throwing.
 - Comparison, sorting, rounding and `toInt` broke on values whose scales were

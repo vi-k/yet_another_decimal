@@ -266,7 +266,19 @@ final class ShortFraction implements Comparable<ShortFraction> {
   }
 
   /// Converts this fraction to [double].
-  double toDouble() => numerator / denominator;
+  ///
+  /// Dividing one `int` by another rounds twice once either side is past
+  /// 2^53: the operands lose their last bits on the way into `double`, and
+  /// the division rounds again what is already wrong. Past that bound the
+  /// exact path is taken — the same one `Fraction` uses.
+  double toDouble() {
+    const exact = ShortDecimal._maxExactInDouble;
+    if (numerator >= -exact && numerator <= exact && denominator <= exact) {
+      return numerator / denominator;
+    }
+
+    return BigInt.from(numerator).ratioToDouble(BigInt.from(denominator));
+  }
 
   /// Converts this fraction to [ShortDecimal].
   ///
@@ -340,9 +352,11 @@ final class ShortFraction implements Comparable<ShortFraction> {
   /// back negative.
   ///
   /// When even the result does not fit — asking for more digits than int64
-  /// holds — the closest representable value is returned instead: the scale is
-  /// reduced with rounding until the value fits. Losing the last digits keeps
-  /// the sign and the magnitude; wrapping around keeps neither.
+  /// holds — the closest representable value **in the direction asked for** is
+  /// returned instead: the scale is reduced until the value fits, and every
+  /// digit dropped on the way goes the way the caller wanted. Losing the last
+  /// digits keeps the sign, the magnitude and the direction; wrapping around
+  /// keeps none of the three.
   ///
   /// The pair need not be a fraction: [ShortDecimal.divide] rounds through
   /// here when the ratio has none in int64, and its divisor arrives with
@@ -395,11 +409,19 @@ final class ShortFraction implements Comparable<ShortFraction> {
         );
 
     while (!value.isValidInt) {
+      // The digit is dropped the way the caller asked for, not to the closest
+      // one: `floor` that comes back above its own fraction is not a floor,
+      // and neither is a `ceil` that comes back below it.
+      final sign = value.sign;
       final rest = value.remainder(ten).abs();
       value = value ~/ ten;
-      if (rest * BigInt.two >= ten) {
-        value += BigInt.from(value.sign);
-      }
+      value += BigInt.from(
+        rounding.correction(
+          sign: sign,
+          hasRemainder: rest != BigInt.zero,
+          atLeastHalf: rest * BigInt.two >= ten,
+        ),
+      );
       scale--;
     }
 
