@@ -243,6 +243,34 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   @override
   ShortDecimal operator -() => ShortDecimal._asIs(-base, scale);
 
+  /// An aligned pair added up, canonical where the canonical form fits.
+  ///
+  /// `a + b` can leave int64 while the answer itself does not: the exact sum
+  /// may end in zeros, and those belong in the scale. The same argument that
+  /// fixed multiplication (Д13) — a result whose canonical form fits is a
+  /// result this family owes. Past that the overflow stays silent, as the
+  /// family promises.
+  factory ShortDecimal._sumThatOverflowed(int a, int b, int scale) {
+    var value = BigInt.from(a) + BigInt.from(b);
+    var result = scale;
+
+    // A sum of two int64 values is at most one digit wider than one of them,
+    // so a single zero is all that can ever be moved into the scale — the
+    // bound is there to keep the loop honest, not because it is reached.
+    for (var i = 0; i < 19 && !value.isValidInt; i++) {
+      if (value.remainder(_bigInt10) != BigInt.zero) {
+        break;
+      }
+
+      value = value ~/ _bigInt10;
+      result--;
+    }
+
+    return value.isValidInt
+        ? ShortDecimal._pack(value.toInt(), result)
+        : ShortDecimal._pack(a + b, scale);
+  }
+
   /// Adds [other] to this decimal.
   ///
   /// Overflows silently past int64, as everything in this family does.
@@ -261,8 +289,17 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     final (a, b, scale) = _align(other);
+    final second = b;
+    final sum = a + second;
 
-    return ShortDecimal._pack(a + b, scale);
+    // Signed overflow, written out rather than called: the addition is the
+    // hottest thing in this family, and a call around the check is not
+    // inlined. The rare road out of it is a method, as it should be.
+    if ((a ^ second) >= 0 && (sum ^ a) < 0) {
+      return ShortDecimal._sumThatOverflowed(a, second, scale);
+    }
+
+    return ShortDecimal._pack(sum, scale);
   }
 
   /// Subtracts [other] from this decimal.
@@ -278,8 +315,17 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     final (a, b, scale) = _align(other);
+    final second = -b;
+    final sum = a + second;
 
-    return ShortDecimal._pack(a - b, scale);
+    // Signed overflow, written out rather than called: the addition is the
+    // hottest thing in this family, and a call around the check is not
+    // inlined. The rare road out of it is a method, as it should be.
+    if ((a ^ second) >= 0 && (sum ^ a) < 0) {
+      return ShortDecimal._sumThatOverflowed(a, second, scale);
+    }
+
+    return ShortDecimal._pack(sum, scale);
   }
 
   /// Multiplies this decimal by [other].
@@ -580,9 +626,18 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// then divides 10^10 by three thousand where 10^7 over three is the same
   /// answer. That is the whole of the gap this method closes.
   ShortDecimal _roundedQuotient(ShortDecimal other, int fractionDigits) {
-    final exponent = fractionDigits - scale + other.scale;
+    // The exponent is a sum of three integers, and at the edge of int64 that
+    // sum wraps — a wrapped one would pass the window check below and take
+    // the rounding somewhere else entirely. Under a million it cannot wrap.
+    final wide = scale < -maxDecimalExponent ||
+        scale > maxDecimalExponent ||
+        other.scale < -maxDecimalExponent ||
+        other.scale > maxDecimalExponent;
+    final exponent = wide ? 0 : fractionDigits - scale + other.scale;
 
-    if (exponent >= -maxDecimalExponent && exponent <= maxDecimalExponent) {
+    if (!wide &&
+        exponent >= -maxDecimalExponent &&
+        exponent <= maxDecimalExponent) {
       // A positive divisor keeps the sign work away from `-int.min`, which
       // does not come off; a negative one goes down the BigInt road, where it
       // does no harm.
@@ -1666,10 +1721,31 @@ final class ShortDecimalDivideException implements Exception {
       fraction.truncate(fractionDigits);
 
   @override
-  String toString() => '$ShortDecimalDivideException:'
-      ' The result of division cannot be represented as $ShortDecimal:'
-      '\n$dividend / $divisor = $quotientWithRemainder'
-      '\n$dividend / $divisor = $fraction';
+  String toString() {
+    // Never throws: an exception that cannot be printed hides the very
+    // failure it reports, and its own dartdoc promises a way of asking again
+    // rather than a dead end. Every line that needs building is built
+    // defensively — the pair is always there, the rest may not be.
+    final buffer = StringBuffer('$ShortDecimalDivideException:'
+        ' The result of division cannot be represented as $ShortDecimal:');
+
+    for (final (label, build) in <(String, Object Function())>[
+      ('quotient and remainder', () => quotientWithRemainder),
+      ('fraction', () => fraction),
+    ]) {
+      buffer.write('\n$dividend / $divisor = ');
+      try {
+        buffer.write(build());
+        // Deliberately everything: whatever the line failed on, the message
+        // has to come out. This is the one place where swallowing is right.
+        // ignore: avoid_catches_without_on_clauses
+      } catch (_) {
+        buffer.write('($label has none in this family)');
+      }
+    }
+
+    return buffer.toString();
+  }
 }
 
 /// Conversion from `int`.

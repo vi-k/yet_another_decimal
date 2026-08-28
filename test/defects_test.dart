@@ -315,11 +315,14 @@ void main() {
   group('Д19 масштаб переполняется в делении', () {
     // `(Decimal.one >> max) >> 1` бросает ArgumentError с тем же сообщением:
     // деление обязано отвечать так же, а не отдавать масштаб, ушедший в минус.
+    // Значение уже каноническое: снимать нечего, и разрыв масштабов настоящий.
+    // Сотня с тем же сдвигом сюда не годится — у неё два нуля снимаются, и
+    // деление у канонической формы получается (это Д24).
     test(
       'деление отвечает так же, как сдвиг: броском',
       () {
         const max = 9223372036854775807;
-        final value = Decimal(100, shiftRight: max);
+        final value = Decimal(1, shiftRight: max);
 
         expect(
           () => value.divideOrNull(Decimal.one << 1),
@@ -361,6 +364,176 @@ void main() {
         ShortFraction(1234, 10).floor(-1).toString(),
         Fraction(BigInt.from(1234), BigInt.from(10)).floor(-1).toString(),
       );
+    });
+  });
+
+  // Д20–Д37 найдены 2026-08-28 двумя независимыми ревью кода: разбор — в
+  // docs/records/2026-08-28[9]. Часть из них ждёт решений владельца и потому
+  // остаётся под `skip` — это помечено в тексте каждого.
+
+  group('Д23 быстрый путь divide мимо проверки масштаба', () {
+    test(
+      'divide с числом знаков отвечает так же, как соседние формы',
+      () {
+        const max = 9223372036854775807;
+        final a = (Decimal(7) << max) << 1;
+        final b = Decimal(3) >> max;
+
+        // `a / b`, `divideOrNull` и `divide` без числа знаков уже бросают.
+        expect(
+          () => a.divide(b, scaleOnInfinitePrecision: 2),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
+  });
+
+  group('Д24 проверка масштаба смотрит на сырую форму', () {
+    test(
+      'равные значения делятся одинаково',
+      () {
+        const max = 9223372036854775807;
+        final raw = Decimal(100, shiftRight: max);
+        final canonical = raw.normalized();
+        final ten = Decimal.one << 1;
+
+        expect(raw == canonical, isTrue);
+
+        // Печатать такое нельзя — строка вышла бы длиной в масштаб, — поэтому
+        // сверяется хранимая пара.
+        expect(
+          raw.divideOrNull(ten)!.debugToString(),
+          canonical.divideOrNull(ten)!.debugToString(),
+        );
+      },
+    );
+  });
+
+  group('Д26 сложение теряет представимый канонический результат', () {
+    test(
+      'сумма считается, когда каноническая форма помещается',
+      () {
+        const max = 9223372036854775807;
+
+        // 9223372036854775810 = 922337203685477581 × 10, и это в int64
+        // влезает — тот же довод, по которому чинили умножение (Д13).
+        expect(
+          (ShortDecimal(max) + ShortDecimal(3)).toString(),
+          '9223372036854775810',
+        );
+      },
+    );
+
+    test(
+      'и вычитание тоже',
+      () {
+        const max = 9223372036854775807;
+
+        expect(
+          (ShortDecimal(max) - ShortDecimal(-3)).toString(),
+          '9223372036854775810',
+        );
+      },
+    );
+  });
+
+  // Д27 ждёт решения владельца, поэтому остаётся под `skip`. Спор здесь не с
+  // кодом, а с политикой: `test/short_decimal/divide_test.dart` прямо
+  // закрепляет, что на непредставимом частном переполнение остаётся
+  // молчаливым. Ниже записано, чего ждёт от `divideOrNull` его собственный
+  // dartdoc — «null, когда конечной десятичной формы нет»; перевёрнутый знак
+  // не форма и не переполнение значения, а выдуманное число.
+  group('Д27 непредставимое частное возвращается с чужим знаком', () {
+    test(
+      'divideOrNull не выдумывает значение',
+      () {
+        const twoTo62 = 4611686018427387904;
+        final result = ShortDecimal(1).divideOrNull(ShortDecimal(twoTo62));
+
+        // Точное частное положительно и в int64 не помещается: ответа нет.
+        expect(result, isNull);
+      },
+      skip: 'Д27: ждёт решения о политике переполнения',
+    );
+
+    test(
+      'isDivisibleBy не обещает того, чего нет',
+      () {
+        const twoTo62 = 4611686018427387904;
+
+        expect(ShortDecimal(1).isDivisibleBy(ShortDecimal(twoTo62)), isFalse);
+      },
+      skip: 'Д27: тот же вопрос',
+    );
+  });
+
+  group('Д29 сброс цифр округляет дважды', () {
+    test(
+      'round отдаёт ближайшее представимое, а не округлённое дважды',
+      () {
+        final short = ShortFraction(9000000013530038636, 41);
+        final wide =
+            Fraction(BigInt.from(9000000013530038636), BigInt.from(41));
+
+        // Точное значение — …161.85365…, и на одном знаке ближайшее к нему
+        // …161.9, а не …161.8, которое получается из …161.85.
+        expect(short.round(2).toString(), wide.round(1).toString());
+      },
+    );
+
+    test(
+      'roundToEven тоже',
+      () {
+        final short = ShortFraction(52, 55);
+        final wide = Fraction(BigInt.from(52), BigInt.from(55));
+
+        expect(
+          short.roundToEven(19).toString(),
+          wide.roundToEven(18).toString(),
+        );
+      },
+    );
+
+    test(
+      'и деление с числом знаков',
+      () {
+        final short = ShortDecimal(9000000174082531245)
+            .divide(ShortDecimal(173), scaleOnInfinitePrecision: 4);
+        final wide = Decimal(9000000174082531245)
+            .divide(Decimal(173), scaleOnInfinitePrecision: 2);
+
+        expect(short.toString(), wide.toString());
+      },
+    );
+  });
+
+  group('Д32 исключение деления нельзя напечатать', () {
+    test(
+      'toString исключения не бросает',
+      () {
+        const min = -9223372036854775808;
+
+        try {
+          final _ = ShortDecimal(1) / ShortDecimal(min);
+          fail('деление обязано бросить');
+        } on ShortDecimalDivideException catch (e) {
+          expect(e.toString(), isNotEmpty);
+        }
+      },
+    );
+
+    // У старшего семейства ломается не дробь, а степень десятки: разрыв
+    // масштабов здесь больше миллиона, и построить её нельзя.
+    test('то же у старшего семейства', () {
+      final tiny = Decimal.one >> 999999;
+      final huge = Decimal(3) << 999999;
+
+      try {
+        final _ = tiny / huge;
+        fail('деление обязано бросить');
+      } on DecimalDivideException catch (e) {
+        expect(e.toString(), contains('cannot be represented'));
+      }
     });
   });
 }

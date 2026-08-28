@@ -393,13 +393,35 @@ final class ShortFraction implements Comparable<ShortFraction> {
     );
   }
 
-  /// The rounding of a pair already brought to [scale], done in `BigInt`.
+  /// The rounding of a pair already brought to a scale, done in `BigInt`.
   ///
   /// Split out of [_roundExactly] so that a caller holding the scales apart —
   /// [ShortDecimal.divide] does — can fold them into one power of ten instead
   /// of two. Aligning first and scaling after multiplies both sides by the
   /// scale of the operands, and the division then runs on numbers orders
   /// larger than the answer needs.
+  /// The quotient of `numerator` over a positive `denominator`, rounded once.
+  static BigInt _roundPair(
+    BigInt numerator,
+    BigInt denominator,
+    _Rounding rounding,
+  ) {
+    final quotient = numerator ~/ denominator;
+    final remainder = numerator.remainder(denominator).abs();
+    final rest = denominator - remainder;
+
+    return quotient +
+        BigInt.from(
+          rounding.correction(
+            sign: numerator.sign,
+            hasRemainder: remainder != BigInt.zero,
+            atLeastHalf: remainder >= rest,
+            exactlyHalf: remainder == rest,
+            quotientIsEven: quotient.isEven,
+          ),
+        );
+  }
+
   static ShortDecimal _roundScaled(
     BigInt numerator,
     BigInt denominator,
@@ -413,38 +435,17 @@ final class ShortFraction implements Comparable<ShortFraction> {
       denominator = -denominator;
     }
 
-    final remainder = numerator.remainder(denominator).abs();
-    final rest = denominator - remainder;
-    final quotient = numerator ~/ denominator;
-    var value = quotient +
-        BigInt.from(
-          rounding.correction(
-            sign: numerator.sign,
-            hasRemainder: remainder != BigInt.zero,
-            atLeastHalf: remainder >= rest,
-            exactlyHalf: remainder == rest,
-            quotientIsEven: quotient.isEven,
-          ),
-        );
-
+    // Rounded from the pair every time, never from an already rounded number.
+    // Dropping a digit off a rounded value rounds twice: .85365 becomes .85
+    // and then .8, where .9 is the answer — the tail is gone by the second
+    // step, and with it the only thing that could have decided. So a scale
+    // that does not fit is taken off the divisor, and the division is done
+    // again against the whole of the original remainder.
+    var value = _roundPair(numerator, denominator, rounding);
     while (!value.isValidInt) {
-      // The digit is dropped the way the caller asked for, not to the closest
-      // one: `floor` that comes back above its own fraction is not a floor,
-      // and neither is a `ceil` that comes back below it.
-      final sign = value.sign;
-      final rest = value.remainder(ten).abs();
-      final doubled = rest * BigInt.two;
-      value = value ~/ ten;
-      value += BigInt.from(
-        rounding.correction(
-          sign: sign,
-          hasRemainder: rest != BigInt.zero,
-          atLeastHalf: doubled >= ten,
-          exactlyHalf: doubled == ten,
-          quotientIsEven: value.isEven,
-        ),
-      );
+      denominator *= ten;
       scale--;
+      value = _roundPair(numerator, denominator, rounding);
     }
 
     return ShortDecimal._pack(value.toInt(), scale);

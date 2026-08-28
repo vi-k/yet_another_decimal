@@ -350,7 +350,17 @@ final class Decimal implements FixedPoint<Decimal> {
     final otherScale = other.scale;
     var scale = this.scale - otherScale;
     if ((this.scale ^ otherScale) < 0 && (scale ^ this.scale) < 0) {
-      throw ArgumentError.value(otherScale, 'other', _scaleOutOfRange);
+      // The stored scales overflowed, which says nothing about the values:
+      // this family normalises lazily, so the same number can be held as
+      // `100 × 10^-n` or as `1 × 10^-(n-2)`, and only the second one divides.
+      // Equal values must answer equally, so the canonical forms decide.
+      final dividend = normalized();
+      final divisor = other.normalized();
+      if (dividend.scale == this.scale && divisor.scale == otherScale) {
+        throw ArgumentError.value(otherScale, 'other', _scaleOutOfRange);
+      }
+
+      return dividend.divideOrNull(divisor);
     }
 
     // The sign is taken out of the divisor before the factorization below.
@@ -454,9 +464,19 @@ final class Decimal implements FixedPoint<Decimal> {
     //
     // Out of bounds the fast path steps aside rather than throwing, so that
     // the error still comes from where it came before, naming the argument.
+    //
+    // Both scales are held to the same bound, and not out of caution about
+    // the answer: the exponent below is a sum of three integers, and at the
+    // edge of int64 that sum wraps. A wrapped exponent can land inside the
+    // window and take the division to a quietly wrong answer. Three numbers
+    // under a million cannot wrap; past it this path steps aside anyway.
     if (scaleOnInfinitePrecision != null &&
         scaleOnInfinitePrecision >= -maxDecimalExponent &&
         scaleOnInfinitePrecision <= maxDecimalExponent &&
+        scale >= -maxDecimalExponent &&
+        scale <= maxDecimalExponent &&
+        other.scale >= -maxDecimalExponent &&
+        other.scale <= maxDecimalExponent &&
         _coprimeWithTen(other.base)) {
       final exponent = scaleOnInfinitePrecision - scale + other.scale;
       if (exponent > 0 && exponent <= maxDecimalExponent) {
@@ -1425,8 +1445,29 @@ final class DecimalDivideException implements Exception {
       fraction.truncate(fractionDigits);
 
   @override
-  String toString() => '$DecimalDivideException:'
-      ' The result of division cannot be represented as $Decimal:'
-      '\n$dividend / $divisor = $quotientWithRemainder'
-      '\n$dividend / $divisor = $fraction';
+  String toString() {
+    // Never throws: an exception that cannot be printed hides the very
+    // failure it reports, and its own dartdoc promises a way of asking again
+    // rather than a dead end. Every line that needs building is built
+    // defensively — the pair is always there, the rest may not be.
+    final buffer = StringBuffer('$DecimalDivideException:'
+        ' The result of division cannot be represented as $Decimal:');
+
+    for (final (label, build) in <(String, Object Function())>[
+      ('quotient and remainder', () => quotientWithRemainder),
+      ('fraction', () => fraction),
+    ]) {
+      buffer.write('\n$dividend / $divisor = ');
+      try {
+        buffer.write(build());
+        // Deliberately everything: whatever the line failed on, the message
+        // has to come out. This is the one place where swallowing is right.
+        // ignore: avoid_catches_without_on_clauses
+      } catch (_) {
+        buffer.write('($label has none in this family)');
+      }
+    }
+
+    return buffer.toString();
+  }
 }

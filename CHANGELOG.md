@@ -97,6 +97,19 @@ touched.
 
 ### Fixed
 
+- Rounding to a scale that int64 cannot hold rounded twice: the digits were
+  dropped one at a time, so `.85365` became `.85` and then `.8`, where `.9` is
+  the answer. Every mode now rounds once, against the whole of the remainder.
+- `divide` with a number of digits could answer where its own neighbours
+  refused: the fast path added up three scales before checking any of them, and
+  a sum that wrapped landed inside the allowed window.
+- The scale check in division read the stored scales rather than the values, so
+  a number and its own canonical twin divided differently.
+- Addition and subtraction lost a result whose canonical form fits: the sum of
+  `9223372036854775807` and `3` wrapped instead of moving its trailing zero
+  into the scale. The same argument that fixed multiplication.
+- A divide exception could not be printed: `toString` built parts that throw on
+  the very values that produced the exception.
 - `divideToFraction` truncated a ratio that has no fraction in int64 instead of
   refusing it, and `divide` rounded the truncated pair — a wrong answer with
   nothing to give it away.
