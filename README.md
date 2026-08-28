@@ -942,11 +942,9 @@ final packed = value.normalized();
 ```
 
 It answers with the value in its canonical form, and calling it again on the
-result costs nothing — the canonical form is its own.
-
-`optimize()` does the same thing the other way round — it returns nothing and
-changes the receiver instead. It still works and is deprecated: a method that
-mutates what it is called on has no business in a value type.
+result costs nothing — the canonical form is its own. It answers rather than
+changes: a method that mutates what it is called on has no business in a value
+type.
 
 The user does not need to know about packing and scaling, nor about `base` and
 `scale`. What the user may legitimately want is the number taken apart, and
