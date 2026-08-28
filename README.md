@@ -629,8 +629,9 @@ first conversion, this one measures all the later ones, and the two are only
 meaningful together: a package that is quick here and slow there has a cache,
 not a faster algorithm.
 
-`Decimal` keeps the printed form; `ShortDecimal` does not — its constructors are
-`const`, and there is nowhere to keep it. [decimal_type](https://pub.dev/packages/decimal_type),
+`Decimal` keeps the printed form; `ShortDecimal` does not, and cannot:
+`vm:deeply-immutable` admits only final non-late fields, so a cache filled on
+first use has nowhere to live. [decimal_type](https://pub.dev/packages/decimal_type),
 [fixed](https://pub.dev/packages/fixed) and [big_decimal](https://pub.dev/packages/big_decimal)
 keep nothing either.
 
@@ -754,6 +755,14 @@ and nothing overflows. Take `ShortDecimal` when they are known to be small and
 the speed is the point — it is several times faster and smaller, and its
 overflow is silent. The bridge between them lives only in the umbrella import,
 because it is the only thing that needs both.
+
+`ShortDecimal` carries `@pragma('vm:deeply-immutable')`, and `Decimal` never
+will — that annotation rejects a `BigInt` field outright. What it grants is
+that the VM may hand another isolate the very same instance instead of a copy:
+send one across a port and it comes back `identical`, where an ordinary class
+of two `int` fields comes back copied. What it costs is every lazily filled
+field, because a deeply immutable class may hold only final non-late ones —
+which is why the printed form is remembered in `Decimal` and not here.
 
 Both families answer to the same names. Two of those names are operators, and
 operators are easy to read the wrong way round, so each has a word for it:
@@ -910,11 +919,12 @@ those two columns is the distance between `BigInt` and `int`: two to three
 times on arithmetic, twenty-odd on division.
 
 One row is about something else. In `repeat-view` `Decimal` is fifty-odd times
-ahead because it keeps the string it printed last time and `ShortDecimal` has
-nowhere to keep it — its constructors are `const`. `unrepresentable-divide`
-used to belong here as well, as the row where the two came out close; since the
-rounding was reworked it sits with the other division rows, and `ShortDecimal`
-takes it by an order of magnitude.
+ahead because it keeps the string it printed last time, and `ShortDecimal` may
+not keep one at all — that is what `vm:deeply-immutable` costs, and instances
+the VM can share between isolates are what it buys.
+`unrepresentable-divide` used to belong here as well, as the row where the two
+came out close; since the rounding was reworked it sits with the other division
+rows, and `ShortDecimal` takes it by an order of magnitude.
 
 If your application does a handful of decimal operations, none of this matters
 and `Decimal` from either package will do. If it does a great many of them, or
