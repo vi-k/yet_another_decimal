@@ -1,10 +1,14 @@
+// ignore_for_file: invalid_use_of_visible_for_testing_member
+
 /// The bridge between the two families.
 ///
 /// `base` and `scale` are marked `@visibleForTesting` because the tests check
 /// the stored form, not because they are private to their library — the bridge
-/// is package code and reads them on purpose. That is what the ignores below
-/// are for; there is no annotation in `meta` for "visible inside the package"
-/// that would also keep the pair out of the public documentation.
+/// is package code and reads them on purpose. That is what the ignore at the
+/// top of the file is for — the whole file is that one crossing, so the
+/// permission is given once rather than at every line that uses it. There is
+/// no annotation in `meta` for "visible inside the package" that would also
+/// keep the pair out of the public documentation.
 library;
 
 import 'decimal/decimal.dart';
@@ -19,12 +23,7 @@ extension ShortDecimalBridge on ShortDecimal {
   /// ```dart
   /// print(ShortDecimal.parse('1.5').toDecimal()); // 1.5
   /// ```
-  Decimal toDecimal() {
-    // ignore: invalid_use_of_visible_for_testing_member
-    final (base, scale) = (this.base, this.scale);
-
-    return Decimal.fromBigInt(BigInt.from(base)) >> scale;
-  }
+  Decimal toDecimal() => Decimal.fromBigInt(BigInt.from(base)) >> scale;
 }
 
 /// Conversion from the BigInt family to the int64 one.
@@ -46,8 +45,8 @@ extension DecimalBridge on Decimal {
   ///     .toShortDecimalOrNull());
   /// ```
   ShortDecimal? toShortDecimalOrNull() {
-    // ignore: invalid_use_of_visible_for_testing_member
-    final (base, scale) = (this.base, this.scale);
+    final base = this.base;
+    final scale = this.scale;
 
     if (base.isValidInt) {
       return ShortDecimal(base.toInt()) >> scale;
