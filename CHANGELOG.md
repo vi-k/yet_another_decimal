@@ -115,8 +115,11 @@ Changed.
 
 ### Performance
 
-Division is several times faster, printing the same value twice costs almost
-nothing, `toDouble` no longer goes through a string, and rounding a quotient
+Addition and subtraction are a tenth faster on `Decimal`, and a fifth where the
+two scales already match: the alignment is written out in the operators instead
+of being taken from a helper that returned a record, and the record was an
+allocation on the shortest operation in the package. Division is several times
+faster, printing the same value twice costs almost nothing, `toDouble` no longer goes through a string, and rounding a quotient
 that has no finite decimal form — `divide(other, scaleOnInfinitePrecision: n)`
 — is about 1.6 times faster than it was, having stopped building an exact
 fraction only to divide it again, and then twice as fast again: where the

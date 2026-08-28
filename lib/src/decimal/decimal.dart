@@ -269,18 +269,38 @@ final class Decimal implements FixedPoint<Decimal> {
 
   /// Adds [other] to this decimal.
   @override
+  //
+  // The alignment is written out here rather than taken from `_align`: the
+  // record that method returns is an allocation, and on the shortest operation
+  // in the package it showed — two nanoseconds of the twenty-six an addition
+  // costs. The same reason keeps the overflow check inside `ShortDecimal`'s
+  // multiplication.
   Decimal operator +(Decimal other) {
-    final (a, b, scale) = _align(other);
+    final as = scale;
+    final bs = other.scale;
 
-    return Decimal._asIs(a + b, scale);
+    if (as == bs) {
+      return Decimal._asIs(base + other.base, as);
+    }
+
+    return as > bs
+        ? Decimal._asIs(base + other.base * _pow10(as - bs), as)
+        : Decimal._asIs(base * _pow10(bs - as) + other.base, bs);
   }
 
   /// Subtracts [other] from this decimal.
   @override
   Decimal operator -(Decimal other) {
-    final (a, b, scale) = _align(other);
+    final as = scale;
+    final bs = other.scale;
 
-    return Decimal._asIs(a - b, scale);
+    if (as == bs) {
+      return Decimal._asIs(base - other.base, as);
+    }
+
+    return as > bs
+        ? Decimal._asIs(base - other.base * _pow10(as - bs), as)
+        : Decimal._asIs(base * _pow10(bs - as) - other.base, bs);
   }
 
   /// Multiplies this decimal by [other].
