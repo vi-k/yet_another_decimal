@@ -453,7 +453,6 @@ void main() {
         // Точное частное положительно и в int64 не помещается: ответа нет.
         expect(result, isNull);
       },
-      skip: 'Д27: ждёт решения о политике переполнения',
     );
 
     test(
@@ -463,7 +462,6 @@ void main() {
 
         expect(ShortDecimal(1).isDivisibleBy(ShortDecimal(twoTo62)), isFalse);
       },
-      skip: 'Д27: тот же вопрос',
     );
   });
 
@@ -578,6 +576,90 @@ void main() {
 
       expect(short.isNegative, isFalse);
       expect(Decimal(0).divideToDouble(Decimal(5)).isNegative, isFalse);
+    });
+  });
+
+  group('Д20 канонизация не меняет значение', () {
+    test('снятие нулей не уводит масштаб за край', () {
+      const max = 9223372036854775807;
+      final value = (Decimal(10) << max) << 1;
+
+      // Значение построено законно, но канонической формы у него нет: масштаб
+      // и так на самом дне, а снятие нуля просит ещё один шаг вниз.
+      expect(value.normalized, throwsArgumentError);
+    });
+
+    test('то же в короткой семье, прямо в конструкторе', () {
+      const max = 9223372036854775807;
+
+      expect(
+        () => ShortDecimal(100, shiftLeft: max),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('Д21 у самого дна масштаба нет показателя', () {
+    test('exponent отказывается, а не переполняется', () {
+      const max = 9223372036854775807;
+      final value = ShortDecimal(10, shiftLeft: max);
+
+      expect(value.scale, -9223372036854775808);
+      expect(() => value.exponent, throwsArgumentError);
+    });
+  });
+
+  group('Д22 факторизация делителя не заворачивает масштаб', () {
+    test('обе семьи отвечают null', () {
+      const max = 9223372036854775807;
+
+      expect((Decimal.one >> max).divideOrNull(Decimal.two), isNull);
+      expect((ShortDecimal.one >> max).divideOrNull(ShortDecimal.two), isNull);
+    });
+
+    test('делитель из пятёрок тоже', () {
+      const max = 9223372036854775807;
+
+      expect((Decimal.one >> max).divideOrNull(Decimal(5)), isNull);
+      expect((ShortDecimal.one >> max).divideOrNull(ShortDecimal(5)), isNull);
+    });
+
+    test('делитель, кратный десяти, тоже', () {
+      const max = 9223372036854775807;
+
+      expect((Decimal.one >> max).divideOrNull(Decimal(10)), isNull);
+    });
+  });
+
+  group('Д28 toInt клампит, как весь Dart', () {
+    test('за границей int64 отвечает краем диапазона', () {
+      expect(ShortDecimal.parse('1e19').toInt(), 9223372036854775807);
+      expect(ShortDecimal.parse('-1e19').toInt(), -9223372036854775808);
+
+      // Старшее семейство и целочисленное деление отвечали так и раньше.
+      expect(Decimal.parse('1e19').toInt(), 9223372036854775807);
+      expect(
+        ShortDecimal.parse('1e19') ~/ ShortDecimal.one,
+        9223372036854775807,
+      );
+    });
+
+    test('ноль и обычные значения не задеты', () {
+      expect(ShortDecimal.zero.toInt(), 0);
+      expect(ShortDecimal.parse('-19.99').toInt(), -19);
+      expect(ShortDecimal.parse('1e18').toInt(), 1000000000000000000);
+    });
+  });
+
+  group('Д30 parse держит один предел на оба написания', () {
+    test('дробных знаков не больше, чем позволяет показатель', () {
+      expect(Decimal.tryParse('0.${'0' * 1000000}1'), isNull);
+      expect(ShortDecimal.tryParse('0.${'0' * 1000000}1'), isNull);
+    });
+
+    test('на самой границе читается', () {
+      expect(Decimal.parse('1e-1000000').scale, 1000000);
+      expect(Decimal.parse('0.${'0' * 999999}1').scale, 1000000);
     });
   });
 }

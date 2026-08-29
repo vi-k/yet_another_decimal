@@ -408,8 +408,16 @@ final class Decimal implements FixedPoint<Decimal> {
       // Every ten in the divisor is a shift of the scale and nothing more, and
       // they come off together rather than one digit at a time: a divisor of
       // 10^6 took twenty-four BigInt operations here.
+      // Each of the three steps below raises the scale, and at the ceiling of
+      // int64 that rise wraps — the quotient came back with the opposite order
+      // of magnitude and no word said. Where it would wrap there is no answer
+      // in this form, and null is what this method has for that.
       if (divisor.isEven) {
         final (rest, zeros) = _splitTrailingZeros(divisor);
+        if (scale > _maxScale - zeros) {
+          return null;
+        }
+
         divisor = rest;
         scale += zeros;
       }
@@ -419,6 +427,10 @@ final class Decimal implements FixedPoint<Decimal> {
       if (divisor.isEven) {
         // The lowest set bit is the power of two the divisor holds.
         final twos = (divisor & -divisor).bitLength - 1;
+        if (scale > _maxScale - twos) {
+          return null;
+        }
+
         base *= _pow5(twos);
         scale += twos;
         divisor = divisor >> twos;
@@ -428,6 +440,10 @@ final class Decimal implements FixedPoint<Decimal> {
           divisor = divisor ~/ _bigInt5;
           fives++;
         } while (divisor % _bigInt5 == BigInt.zero);
+
+        if (scale > _maxScale - fives) {
+          return null;
+        }
 
         base <<= fives;
         scale += fives;
@@ -1267,6 +1283,8 @@ final class Decimal implements FixedPoint<Decimal> {
     return result;
   }
 
+  static const _maxScale = 9223372036854775807;
+
   static const _scaleOutOfRange = 'The scale would leave int64';
 
   Decimal get _requirePacked {
@@ -1305,7 +1323,16 @@ final class Decimal implements FixedPoint<Decimal> {
 
     final (packed, zeros) = _splitTrailingZeros(base);
 
-    return Decimal._asIs(packed, scale - zeros);
+    // Stripping zeros lowers the scale, and at the floor of int64 it wraps —
+    // a huge number would come back as a vanishing one, and canonicalising is
+    // the one thing that must never change a value. Unlike the short family
+    // the count has no bound here, so the check is on the subtraction itself.
+    final result = scale - zeros;
+    if (zeros > 0 && result > scale) {
+      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+    }
+
+    return Decimal._asIs(packed, result);
   }
 
   /// [base] with its trailing zeros taken off, and how many there were.

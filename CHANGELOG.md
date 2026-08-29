@@ -97,6 +97,19 @@ touched.
 
 ### Fixed
 
+- `ShortDecimal.toInt` wrapped past int64, turning `-1e19` into a positive
+  number. It clamps now, as `BigInt.toInt`, `double.toInt` and `~/` all do.
+- `parse` read a fractional part longer than the exponent it allows, and the
+  value it built could then be neither compared nor rounded nor printed. One
+  bound for both spellings now.
+- Canonicalising could change the value: stripping a zero at the floor of int64
+  wrapped the scale, and a huge number came back as a vanishing one. Both
+  families refuse it now, and `exponent` refuses the floor it cannot negate.
+- Taking the factors out of a divisor wrapped the scale the same way, in both
+  families. Where it would, the division answers null.
+- A quotient with no representation in int64 came back with the opposite sign.
+  `divideOrNull` answers null there — the silent overflow of arithmetic is not
+  a licence to invent a number.
 - Rounding to a scale that int64 cannot hold rounded twice: the digits were
   dropped one at a time, so `.85365` became `.85` and then `.8`, where `.9` is
   the answer. Every mode now rounds once, against the whole of the remainder.

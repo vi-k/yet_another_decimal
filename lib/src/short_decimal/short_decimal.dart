@@ -149,7 +149,31 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return ShortDecimal.zero;
     }
 
+    // Stripping zeros lowers the scale, and at the floor of int64 it wraps:
+    // a huge number came back as a vanishing one, and canonicalising is the
+    // one thing that must never change a value. A base of int64 carries at
+    // most nineteen zeros, so anything above the floor by that much cannot
+    // reach it — one comparison on the hot path, and the careful road is
+    // taken by nobody.
+    if (scale < _scaleFloorForPacking) {
+      return ShortDecimal._packNearFloor(base, scale);
+    }
+
     while (base % 10 == 0) {
+      base ~/= 10;
+      scale--;
+    }
+
+    return ShortDecimal._asIs(base, scale);
+  }
+
+  /// The same packing where the scale has no room left to fall.
+  factory ShortDecimal._packNearFloor(int base, int scale) {
+    while (base % 10 == 0) {
+      if (scale == _minScale) {
+        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      }
+
       base ~/= 10;
       scale--;
     }
@@ -207,8 +231,18 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   int get unscaledValue => base;
 
   /// The power of ten [unscaledValue] is multiplied by.
+  ///
+  /// Throws `ArgumentError` at the floor of int64: the minimum integer has no
+  /// negation, so a scale of `-2^63` has no exponent to name — the value can
+  /// be held, but not taken apart.
   @override
-  int get exponent => -scale;
+  int get exponent {
+    if (scale == _minScale) {
+      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+    }
+
+    return -scale;
+  }
 
   /// Returns number of digits after the decimal point.
   @override
@@ -418,6 +452,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     return result;
   }
 
+  static const _minScale = -9223372036854775808;
+
+  /// Below this a scale can be driven past int64 by stripping zeros alone.
+  static const _scaleFloorForPacking = _minScale + 19;
+
   static const _scaleOutOfRange = 'The scale would leave int64';
 
   /// Whether `a * b` stays within int64.
@@ -562,16 +601,24 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
           twos++;
         } while (divisor.isEven);
 
-        if (twos <= _maxPow5Exponent) {
-          base *= _pow5Table[twos];
-        } else {
-          // 5^28 does not fit int64, so neither does the result. Overflow
-          // stays silent here, as everywhere else in this family.
-          for (var i = 0; i < twos; i++) {
-            base *= 5;
-          }
+        // Silence is for a result that wrapped, not for one invented. The
+        // exact quotient here is positive and finite; wrapping it hands back a
+        // negative number of a wholly different magnitude, and this method
+        // promises null where there is no answer to give. Decided 2026-08-29.
+        if (twos > _maxPow5Exponent ||
+            base > _pow5Ceiling[twos] ||
+            base < -_pow5Ceiling[twos]) {
+          return null;
         }
 
+        // The scale moves with the factors, and at the ceiling of int64 that
+        // move wraps: the quotient came back with the opposite order of
+        // magnitude. There is no answer to give past it.
+        if (scale > 9223372036854775807 - twos) {
+          return null;
+        }
+
+        base *= _pow5Table[twos];
         scale += twos;
       } else if (divisor % 5 == 0) {
         var fives = 0;
@@ -579,6 +626,18 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
           divisor = divisor ~/ 5;
           fives++;
         } while (divisor % 5 == 0);
+
+        // The same on the other side: doubling past int64 would answer with a
+        // number nobody asked for.
+        if (fives > _maxPow5Exponent ||
+            base > _pow2Ceiling[fives] ||
+            base < -_pow2Ceiling[fives]) {
+          return null;
+        }
+
+        if (scale > 9223372036854775807 - fives) {
+          return null;
+        }
 
         base <<= fives;
         scale += fives;
@@ -1170,11 +1229,29 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   }
 
   /// Returns [int], discarding all fractional digits from this decimal.
+  ///
+  /// A value too large for int64 comes back as the nearest end of the range,
+  /// the way `BigInt.toInt` and `double.toInt` answer it, and the way `~/`
+  /// already did in this family. The silent overflow of arithmetic is not
+  /// carried over here: a conversion that wraps turns `-1e19` into a positive
+  /// number, which is not an answer under any reading.
   @override
   int toInt() {
     final t = truncate();
+    final base = t.base;
+    if (base == 0) {
+      return 0;
+    }
 
-    return t.base * _pow10(-t.scale);
+    final exponent = -t.scale;
+    if (exponent <= _maxPow10Exponent) {
+      final power = _pow10(exponent);
+      if (_productFits(base, power)) {
+        return base * power;
+      }
+    }
+
+    return base.isNegative ? -9223372036854775808 : 9223372036854775807;
   }
 
   /// Converts this decimal to [double].
@@ -1482,6 +1559,22 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
     return table;
   }();
+
+  /// The largest base each power of five may be applied to.
+  ///
+  /// Asking `_productFits` instead cost the division path a fifth of its time:
+  /// it multiplies doubles and sometimes divides, where a table turns the
+  /// whole question into one comparison against a number already computed.
+  static final List<int> _pow5Ceiling = List<int>.generate(
+    _maxPow5Exponent + 1,
+    (i) => 9223372036854775807 ~/ _pow5Table[i],
+  );
+
+  /// The same for the powers of two a divisor of fives is multiplied by.
+  static final List<int> _pow2Ceiling = List<int>.generate(
+    _maxPow5Exponent + 1,
+    (i) => 9223372036854775807 >> i,
+  );
 
   /// The largest power of five that fits into int64.
   static const _maxPow5Exponent = 27;

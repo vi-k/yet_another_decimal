@@ -692,9 +692,23 @@ void main() {
     });
 
     test('деление на степень двойки за пределом таблицы', () {
-      // 5^28 в int64 не помещается, значит и результат тоже: переполнение
-      // остаётся молчаливым — но не падением.
-      expect(() => ShortDecimal(1) / ShortDecimal(268435456), returnsNormally);
+      // 5^28 в int64 не помещается, значит и точного результата в нём нет.
+      // Решение владельца 2026-08-29: там, где ответа нет, `divideOrNull`
+      // отвечает null, а не выдуманным числом с чужим знаком — молчаливое
+      // переполнение остаётся политикой арифметики, но не деления.
+      expect(ShortDecimal(1).divideOrNull(ShortDecimal(268435456)), isNull);
+      expect(
+        () => ShortDecimal(1) / ShortDecimal(268435456),
+        throwsA(isA<ShortDecimalDivideException>()),
+      );
+
+      // А округлённый ответ по-прежнему есть: он обычное число.
+      expect(
+        ShortDecimal(1)
+            .divide(ShortDecimal(268435456), scaleOnInfinitePrecision: 12)
+            .toString(),
+        '0.000000003725',
+      );
     });
 
     test('исключение с нулевым делителем не построить', () {

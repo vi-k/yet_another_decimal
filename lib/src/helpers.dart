@@ -301,13 +301,20 @@ extension StringInternals on String {
       exponent = exponentNegative ? -digits : digits;
     }
 
+    // The exponent is held to a million above, and the digits after the point
+    // are the same thing written the long way: `1e-1000001` and a point with
+    // a million and one digits behind it ask for the same scale. Reading one
+    // and refusing the other left values that could be built but not compared,
+    // rounded or printed. Decided 2026-08-29.
+    final scale = fractionEnd - fractionStart - exponent;
+    if (scale < -maxDecimalExponent || scale > maxDecimalExponent) {
+      return null;
+    }
+
     final digits = '${source.substring(integerStart, integerEnd)}'
         '${source.substring(fractionStart, fractionEnd)}';
 
-    return (
-      negative ? '-$digits' : digits,
-      fractionEnd - fractionStart - exponent,
-    );
+    return (negative ? '-$digits' : digits, scale);
   }
 
   static bool _isDigit(int code) => code >= _char0 && code <= _char9;
