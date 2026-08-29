@@ -144,6 +144,7 @@ double _scaleByPowerOfTwo(double value, int exponent) {
 }
 
 const _char0 = 0x30;
+const _char5 = 0x35;
 const _char9 = 0x39;
 const _charDot = 0x2e;
 const _charPlus = 0x2b;
@@ -172,6 +173,46 @@ extension StringInternals on String {
   /// This string cut in two at [index].
   (String, String) splitByIndex(int index) =>
       (substring(0, index), substring(index));
+
+  /// The first [keep] of these digits, rounded by the one that follows them.
+  ///
+  /// Returns the digits and whether the carry took a place: `999` kept to two
+  /// digits is `10`, one power of ten above what it was. A string with fewer
+  /// digits than asked for comes back as it is — padding it is the caller's
+  /// business, and printing to a million digits should not allocate a million
+  /// of them twice. Halves go away from zero; the sign lives elsewhere, so a
+  /// digit of five or more decides on its own.
+  ///
+  /// This is what exponential notation rounds with. Rounding the value instead
+  /// asks for ten to the power of everything dropped: printing `1e-1000000` to
+  /// three digits went looking for a million of them and refused, naming an
+  /// argument the caller never passed, while a number of fifty thousand digits
+  /// paid a division by ten to the fifty thousandth to show three.
+  (String, bool) roundDigits(int keep) {
+    assert(keep > 0, 'At least one digit has to be kept');
+
+    if (keep >= length) {
+      return (this, false);
+    }
+
+    if (codeUnitAt(keep) < _char5) {
+      return (substring(0, keep), false);
+    }
+
+    final digits = substring(0, keep).codeUnits.toList();
+    for (var index = keep - 1; index >= 0; index--) {
+      if (digits[index] != _char9) {
+        digits[index]++;
+
+        return (String.fromCharCodes(digits), false);
+      }
+
+      digits[index] = _char0;
+    }
+
+    // Every digit was a nine, so the whole run rolled over into a one.
+    return ('1${'0' * (keep - 1)}', true);
+  }
 
   /// Reads a whole number and returns it with its sign, ready for parsing.
   ///

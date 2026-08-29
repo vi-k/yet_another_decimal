@@ -144,13 +144,32 @@ final class ShortFraction implements Comparable<ShortFraction> {
   }
 
   /// Divides this fraction by [other].
+  ///
+  /// The sign of the divisor moves up to the numerator before the products are
+  /// built, not after them: `2 / (-1/2^62)` is `int.min` exactly, and the
+  /// unmoved sign made it `int.min` over minus one — a pair that has nowhere
+  /// to put its sign, so an answer that fits was refused.
   ShortFraction operator /(ShortFraction other) {
     final left = numerator.fastGcd(other.numerator);
     final right = other.denominator.fastGcd(denominator);
 
+    var upper = other.denominator ~/ right;
+    var lower = other.numerator ~/ left;
+
+    if (lower.isNegative) {
+      final positive = ShortDecimal._negateOrNull(lower);
+      // A divisor numerator of `int.min` does not come off the bottom, and
+      // there the refusal is honest: the denominator would be 2^63 at least.
+      if (positive != null) {
+        lower = positive;
+        // A denominator is positive, so this one always negates.
+        upper = -upper;
+      }
+    }
+
     return ShortFraction(
-      (numerator ~/ left) * (other.denominator ~/ right),
-      (denominator ~/ right) * (other.numerator ~/ left),
+      (numerator ~/ left) * upper,
+      (denominator ~/ right) * lower,
     );
   }
 

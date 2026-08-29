@@ -97,6 +97,24 @@ touched.
 
 ### Fixed
 
+- `ShortFraction` division refused an answer that fits: two divided by
+  `-1/2^62` is the minimum integer exactly, but the sign of the divisor was
+  moved only after the products were built, leaving a pair with nowhere to put
+  it. The sign moves up first now, and a brute force over every representable
+  ratio of the edge values refuses none of them.
+- `pow` with a negative exponent divided by a power that had wrapped:
+  `ShortDecimal(int.min).pow(-3)` reported a division by zero for a base that
+  is not zero, and `ShortDecimal(5).pow(-30)` was refused although its answer
+  fits int64 with room to spare. The power is built with the overflow checked
+  now; where it leaves int64 the answer comes from the reciprocal of the base,
+  and where the answer itself has no int64 form the refusal is
+  `UnsupportedError` — the one `inverse` makes, for the same reason.
+- `toStringAsExponential` refused to print a number of a large scale, naming an
+  argument the caller never passed: `1e-1000000` to two digits asked for a
+  million and two of them. The leading digits are rounded as digits now, so no
+  power of ten is built at all — which also takes the cost of the notation off
+  the size of the number. `toStringAsPrecision` writes a number out in full and
+  still holds to a million digits, but says so in terms of `precision`.
 - `ShortDecimal.toInt` wrapped past int64, turning `-1e19` into a positive
   number. It clamps now, as `BigInt.toInt`, `double.toInt` and `~/` all do.
 - `parse` read a fractional part longer than the exponent it allows, and the

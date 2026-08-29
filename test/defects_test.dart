@@ -368,8 +368,8 @@ void main() {
   });
 
   // Д20–Д37 найдены 2026-08-28 двумя независимыми ревью кода: разбор — в
-  // docs/records/2026-08-28[9]. Часть из них ждёт решений владельца и потому
-  // остаётся под `skip` — это помечено в тексте каждого.
+  // docs/records/2026-08-28[9], решения владельца по политике — там же.
+  // Хвост (Д34, Д37, Д35) разобран в docs/records/2026-08-29[2].
 
   group('Д23 быстрый путь divide мимо проверки масштаба', () {
     test(
@@ -437,12 +437,10 @@ void main() {
     );
   });
 
-  // Д27 ждёт решения владельца, поэтому остаётся под `skip`. Спор здесь не с
-  // кодом, а с политикой: `test/short_decimal/divide_test.dart` прямо
-  // закрепляет, что на непредставимом частном переполнение остаётся
-  // молчаливым. Ниже записано, чего ждёт от `divideOrNull` его собственный
-  // dartdoc — «null, когда конечной десятичной формы нет»; перевёрнутый знак
-  // не форма и не переполнение значения, а выдуманное число.
+  // Спор здесь был не с кодом, а с политикой: перевёрнутый знак — не форма и
+  // не переполнение значения, а выдуманное число. Владелец решил 2026-08-29 в
+  // пользу того, что обещает dartdoc `divideOrNull`: «null, когда конечной
+  // десятичной формы нет».
   group('Д27 непредставимое частное возвращается с чужим знаком', () {
     test(
       'divideOrNull не выдумывает значение',
@@ -660,6 +658,178 @@ void main() {
     test('на самой границе читается', () {
       expect(Decimal.parse('1e-1000000').scale, 1000000);
       expect(Decimal.parse('0.${'0' * 999999}1').scale, 1000000);
+    });
+  });
+
+  group('Д34 деление дробей отвергает представимый результат', () {
+    const twoTo62 = 4611686018427387904;
+
+    test('знак делителя выносится до произведений', () {
+      // 2 / (-1/2^62) = -2^63, и это ровно int.min. Числитель по дороге
+      // заворачивался в int.min при знаменателе -1, а такой паре знака
+      // положить некуда.
+      expect(
+        (ShortFraction(2, 1) / ShortFraction(-1, twoTo62)).toString(),
+        '-9223372036854775808',
+      );
+    });
+
+    test('и когда у ответа есть знаменатель', () {
+      expect(
+        (ShortFraction(2, 3) / ShortFraction(-1, twoTo62)).toString(),
+        '-9223372036854775808/3',
+      );
+    });
+
+    test('непредставимый ответ по-прежнему отвергается', () {
+      const min = -9223372036854775808;
+
+      // 1 / int.min: знаменателю 2^63 положительным не быть.
+      expect(
+        () => ShortFraction(1, 1) / ShortFraction(min, 1),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('Д37 отрицательная степень строится не на завёрнутой степени', () {
+    const answer = '0.000000000000000000001073741824';
+
+    test('представимая обратная степень считается', () {
+      // 5^30 из int64 вышла, а 2^30 × 10^-30 в нём есть с запасом.
+      expect(ShortDecimal(5).pow(-30).toString(), answer);
+      expect(Decimal(5).pow(-30).toString(), answer);
+    });
+
+    test('то же значение другими основаниями', () {
+      expect(ShortDecimal(25).pow(-15).toString(), answer);
+      expect(ShortDecimal(125).pow(-10).toString(), answer);
+    });
+
+    test('минимальное целое не жалуется на деление на ноль', () {
+      const min = -9223372036854775808;
+
+      // Куб основания завернулся ровно в ноль, но основание не ноль, и
+      // конечной обратной величины у него нет.
+      expect(
+        () => ShortDecimal(min).pow(-3),
+        throwsA(isA<ShortDecimalDivideException>()),
+      );
+    });
+
+    test('без конечной обратной величины исключение называет пару', () {
+      expect(
+        () => ShortDecimal(3).pow(-40),
+        throwsA(
+          isA<ShortDecimalDivideException>()
+              .having((e) => e.divisor, 'divisor', ShortDecimal(3)),
+        ),
+      );
+    });
+
+    test('ответ вне int64 — отказ, а не выдуманное число', () {
+      expect(() => ShortDecimal(2).pow(-63), throwsUnsupportedError);
+      expect(() => ShortDecimal(2).pow(-70), throwsUnsupportedError);
+    });
+
+    test('ноль в отрицательной степени по-прежнему делит на ноль', () {
+      expect(() => ShortDecimal.zero.pow(-1), throwsUnsupportedError);
+      expect(() => Decimal.zero.pow(-1), throwsUnsupportedError);
+    });
+  });
+
+  group('Д35 экспоненциальная запись не строит степень десятки', () {
+    const max = 9223372036854775807;
+
+    test('самое маленькое число, которое читается', () {
+      expect(
+        Decimal.parse('1e-1000000').toStringAsExponential(2),
+        '1.00e-1000000',
+      );
+      expect(
+        ShortDecimal.parse('1e-1000000').toStringAsExponential(2),
+        '1.00e-1000000',
+      );
+    });
+
+    test('и у самого края масштаба', () {
+      expect(
+        ShortDecimal(1, shiftRight: max).toStringAsExponential(2),
+        '1.00e-9223372036854775807',
+      );
+      expect(
+        Decimal(1, shiftRight: max).toStringAsExponential(2),
+        '1.00e-9223372036854775807',
+      );
+      expect(
+        (ShortDecimal.one << max).toStringAsExponential(2),
+        '1.00e+9223372036854775807',
+      );
+      expect(
+        (Decimal.one << max).toStringAsExponential(2),
+        '1.00e+9223372036854775807',
+      );
+    });
+
+    test('перенос при округлении остаётся верным', () {
+      expect(Decimal.parse('9.99').toStringAsExponential(1), '1.0e+1');
+      expect(ShortDecimal.parse('0.0999').toStringAsExponential(1), '1.0e-1');
+    });
+
+    test('у самого дна масштаба показателя нет', () {
+      final short = ShortDecimal(10, shiftLeft: max);
+      final long = (Decimal(10) << max) << 1;
+
+      expect(short.scale, -9223372036854775808);
+      expect(() => short.toStringAsExponential(2), throwsArgumentError);
+      expect(() => long.toStringAsExponential(2), throwsArgumentError);
+      expect(() => short.toStringAsPrecision(3), throwsArgumentError);
+      expect(() => long.toStringAsPrecision(3), throwsArgumentError);
+    });
+
+    test('у потолка показателя переносу некуда идти', () {
+      // Показатель уже на самом верху int64, а девятки округляются вверх:
+      // ответу нужен порядок на единицу больше, и его нет.
+      const nearMax = 9223372036854775806;
+      final short = ShortDecimal(99) << nearMax;
+      final long = Decimal(99) << nearMax;
+
+      expect(short.toStringAsExponential, throwsArgumentError);
+      expect(long.toStringAsExponential, throwsArgumentError);
+      expect(() => short.toStringAsPrecision(1), throwsArgumentError);
+      expect(() => long.toStringAsPrecision(1), throwsArgumentError);
+    });
+
+    test('слишком большому числу отказывают тем же именем', () {
+      // Позиционная запись такого числа длиннее миллиона знаков.
+      for (final call in <String Function()>[
+        () => (ShortDecimal.one << 1000003).toStringAsPrecision(3),
+        () => (Decimal.one << 1000003).toStringAsPrecision(3),
+      ]) {
+        expect(
+          call,
+          throwsA(
+            isA<ArgumentError>().having((e) => e.name, 'name', 'precision'),
+          ),
+        );
+      }
+    });
+
+    test('toStringAsPrecision называет аргумент, который ему передали', () {
+      for (final call in <String Function()>[
+        () => Decimal.parse('1e-1000000').toStringAsPrecision(3),
+        () => ShortDecimal.parse('1e-1000000').toStringAsPrecision(3),
+        () => ShortDecimal(1, shiftRight: max).toStringAsPrecision(3),
+      ]) {
+        expect(
+          call,
+          throwsA(
+            isA<ArgumentError>()
+                .having((e) => e.name, 'name', 'precision')
+                .having((e) => e.invalidValue, 'invalidValue', 3),
+          ),
+        );
+      }
     });
   });
 }

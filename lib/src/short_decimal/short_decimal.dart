@@ -1123,10 +1123,15 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   ///
   /// A negative [exponent] is one over the positive power, so it throws what
   /// division throws: [ShortDecimalDivideException] when the result has no
-  /// finite decimal form, [UnsupportedError] on zero.
+  /// finite decimal form, [UnsupportedError] on zero — and [UnsupportedError]
+  /// again where the answer itself leaves int64, the refusal [inverse] makes
+  /// for the same reason. What it will not do is divide by a power that
+  /// wrapped: `ShortDecimal(int.min).pow(-3)` reported a division by zero
+  /// because the cube had wrapped to zero, not because the base was.
   ///
   /// ```dart
   /// print(ShortDecimal(2).pow(-2)); // 0.25
+  /// print(ShortDecimal(5).pow(-30)); // 0.000000000000000000001073741824
   /// ```
   ///
   /// A positive power multiplies, so it overflows the way [operator *] does,
@@ -1145,7 +1150,55 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       throw ArgumentError.value(exponent, 'exponent', 'The value is too small');
     }
 
-    return one / pow(-exponent);
+    // One over the positive power, and the power is built with the overflow
+    // checked: `math.pow` reports it silently, and dividing by what came back
+    // answered `int.min ^ -3` with «division by zero» — the cube had wrapped
+    // to zero, the base was never zero.
+    final power = _powOrNull(-exponent);
+    if (power != null) {
+      return one / power;
+    }
+
+    // The power has no int64 form. The answer may have one all the same: a
+    // packed base is a power of two or a power of five, and the reciprocal of
+    // a power of five outlives it — `5 ^ -30` is `0.2 ^ 30`, where 5^30 is
+    // long gone and 2^30 has room to spare. Where the base has no finite
+    // reciprocal, no power of it has one either.
+    final reciprocal = one.divideOrNull(this);
+    if (reciprocal == null) {
+      throw ShortDecimalDivideException._(one, this);
+    }
+
+    return reciprocal._powOrNull(-exponent) ??
+        (throw UnsupportedError(
+          'The result of $this to the power of $exponent has no'
+          ' $ShortDecimal form',
+        ));
+  }
+
+  /// This decimal to a non-negative [exponent], or null past int64.
+  ///
+  /// The scale is checked the way [pow] checks it; only the base can come back
+  /// missing. Squaring is not worth it here: anything past one in magnitude is
+  /// gone by the sixty-third step, and the loop below never runs longer.
+  ShortDecimal? _powOrNull(int exponent) {
+    final scale = _scaleTimes(this.scale, exponent, 'exponent');
+
+    if (base != 0 && base != 1 && base != -1 && exponent >= 63) {
+      return null;
+    }
+
+    var result = 1;
+    for (var i = 0; i < exponent; i++) {
+      final next = _productOrNull(result, base);
+      if (next == null) {
+        return null;
+      }
+
+      result = next;
+    }
+
+    return ShortDecimal._pack(result, scale);
   }
 
   /// The number of digits this decimal is written with, sign and point aside.
@@ -1416,6 +1469,12 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// print(ShortDecimal.parse('1234.5').toStringAsExponential(2)); // 1.23e+3
   /// print(ShortDecimal.parse('0.00123').toStringAsExponential(1)); // 1.2e-3
   /// ```
+  ///
+  /// The leading digits are rounded as digits, so this notation costs the same
+  /// whatever the scale is: `1e-1000000` prints as `1.00e-1000000` and nothing
+  /// builds a power of ten to do it. Only the two ends of int64 refuse, and
+  /// with them the [exponent] refuses too: past them the power of ten the
+  /// leading digit sits at has no int64 to be named in.
   @override
   String toStringAsExponential([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
@@ -1425,22 +1484,31 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return '${zero.toStringAsFixed(fractionDigits)}e+0';
     }
 
-    // The leading digit sits at this power of ten.
-    var exponent = _digits.length - 1 - scale;
-    var value = round(fractionDigits - exponent);
+    // The leading digit sits at this power of ten. The subtraction is checked
+    // the way [exponent] checks its own: at the floor of the scale the power
+    // is one no int64 names.
+    final digits = _digits;
+    var exponent = _scaleMinus(digits.length - 1, scale, 'scale');
+
+    // The digits are rounded as digits, not by dividing the value: this
+    // notation shows the leading ones and nothing else, and the power of ten a
+    // division would need is the whole number over again. See [roundDigits].
+    final (mantissaDigits, carried) = digits.roundDigits(fractionDigits + 1);
 
     // Rounding can carry into a new power of ten: 9.99 with one digit after
     // the point is 10.0, which is 1.0e+1 and not 10.0e+0.
-    if (value._digits.length - 1 - value.scale > exponent) {
+    if (carried) {
+      if (exponent == 9223372036854775807) {
+        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      }
+
       exponent++;
-      value = round(fractionDigits - exponent);
     }
 
-    final digits = value._digits;
     final mantissa = fractionDigits == 0
-        ? digits.substring(0, 1)
-        : '${digits.substring(0, 1)}.'
-            '${digits.substring(1).padRight(fractionDigits, '0')}';
+        ? mantissaDigits.substring(0, 1)
+        : '${mantissaDigits.substring(0, 1)}.'
+            '${mantissaDigits.substring(1).padRight(fractionDigits, '0')}';
 
     return '${isNegative ? '-' : ''}$mantissa'
         'e${exponent.isNegative ? '' : '+'}$exponent';
@@ -1452,6 +1520,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// print(ShortDecimal.parse('1234.5678').toStringAsPrecision(6)); // 1234.57
   /// print(ShortDecimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
   /// ```
+  ///
+  /// Unlike [toStringAsExponential] this one writes the number out in full, so
+  /// it refuses a value whose full form would run past a million digits — the
+  /// bound every count of digits in this package is held to.
   @override
   String toStringAsPrecision(int precision) {
     if (precision <= 0) {
@@ -1467,17 +1539,37 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return precision == 1 ? '0' : '0.${'0' * (precision - 1)}';
     }
 
-    var exponent = _digits.length - 1 - scale;
-    var fractionDigits = precision - 1 - exponent;
-    var value = round(fractionDigits);
+    final digits = _digits;
+    var exponent = _scaleMinus(digits.length - 1, scale, 'scale');
 
     // The same carry as in toStringAsExponential: 9.99 at two digits is 10,
-    // which needs one integer digit more and one fractional digit less.
-    if (value._digits.length - 1 - value.scale > exponent) {
+    // which needs one integer digit more and one fractional digit less. It is
+    // read off the digits, so the value below is rounded once and not twice.
+    if (digits.roundDigits(precision).$2) {
+      if (exponent == 9223372036854775807) {
+        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      }
+
       exponent++;
-      fractionDigits = precision - 1 - exponent;
-      value = round(fractionDigits);
     }
+
+    // Unlike the exponential form this one writes the number out in full, and
+    // that is a count of digits like any other the caller asks for: past the
+    // million there is nothing to give back. The bound is checked before the
+    // count is worked out, because the count itself wraps at the far ends of
+    // the scale — and the wrapped number used to come back named as the
+    // argument the caller passed.
+    if (exponent < precision - 1 - maxDecimalExponent ||
+        exponent > precision - 1 + maxDecimalExponent) {
+      throw ArgumentError.value(
+        precision,
+        'precision',
+        'The number would take more than a million digits to write in full',
+      );
+    }
+
+    final fractionDigits = precision - 1 - exponent;
+    final value = round(fractionDigits);
 
     return fractionDigits <= 0
         ? value.toString()
