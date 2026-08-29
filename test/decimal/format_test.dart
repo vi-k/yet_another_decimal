@@ -663,12 +663,21 @@ void main() {
         );
       });
 
-      test('у потолка показателя переносу некуда идти', () {
+      test('перенос двигает показатель только из своей тройки', () {
         const max = 9223372036854775807;
 
+        // 9.99e+max — это 99.9 при показателе max−1, и округление до 100
+        // остаётся при том же показателе: целых цифр у мантиссы до трёх.
         expect(
-          (Decimal(999) << (max - 2)).toStringAsEngineering,
-          throwsArgumentError,
+          (Decimal(999) << (max - 2)).toStringAsEngineering(),
+          '100e+9223372036854775806',
+        );
+
+        // А 999.9 округляется до 1000 — и вот здесь показателю нужен
+        // следующий, которого нет.
+        expect(
+          (Decimal(9999) << (max - 2)).toStringAsEngineering,
+          throwsA(isA<ScaleOutOfRangeError>()),
         );
       });
     });

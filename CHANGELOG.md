@@ -122,13 +122,26 @@ touched.
   fits int64 with room to spare. The power is built with the overflow checked
   now; where it leaves int64 the answer comes from the reciprocal of the base,
   and where the answer itself has no int64 form the refusal is
-  `UnsupportedError` — the one `inverse` makes, for the same reason.
+  `UnsupportedError` — the one `inverse` makes, for the same reason. The last
+  power that fits is answered too: `(-2) ^ 63` is the minimum integer exactly,
+  and `ShortDecimal.parse('-0.5').pow(-63)` gives it.
 - `toStringAsExponential` refused to print a number of a large scale, naming an
   argument the caller never passed: `1e-1000000` to two digits asked for a
   million and two of them. The leading digits are rounded as digits now, so no
   power of ten is built at all — which also takes the cost of the notation off
   the size of the number. `toStringAsPrecision` writes a number out in full and
   still holds to a million digits, but says so in terms of `precision`.
+- Rounding at a position the scale is further than int64 from raised a
+  `RangeError` from a table of powers, in every rounding mode and in both
+  families: `Decimal(1, shiftRight: 9223372036854775807).round(-1)`. The BigInt
+  family now refuses with `DecimalDigitsOutOfRangeError` — the power of ten it
+  would need is past the million — and the int64 family answers, the whole
+  value standing to the right of the position asked for.
+- A divide exception could not be asked again when its own pair has no fraction
+  in int64: `ShortDecimal.one / ShortDecimal(-9223372036854775808)` produced an
+  exception whose `round`, `floor` and every other recovery threw, although the
+  rounded answers are ordinary numbers. They are rounded from the pair now, the
+  way `divide` with a number of digits rounds it.
 - `ShortDecimal.toInt` wrapped past int64, turning `-1e19` into a positive
   number. It clamps now, as `BigInt.toInt`, `double.toInt` and `~/` all do.
 - `parse` read a fractional part longer than the exponent it allows, and the

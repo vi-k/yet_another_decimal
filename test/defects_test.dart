@@ -711,20 +711,14 @@ void main() {
 
       // Куб основания завернулся ровно в ноль, но основание не ноль, и
       // конечной обратной величины у него нет.
-      expect(
-        () => ShortDecimal(min).pow(-3),
-        throwsA(isA<ShortDecimalDivideException>()),
-      );
+      expect(() => ShortDecimal(min).pow(-3), throwsUnsupportedError);
     });
 
-    test('без конечной обратной величины исключение называет пару', () {
-      expect(
-        () => ShortDecimal(3).pow(-40),
-        throwsA(
-          isA<ShortDecimalDivideException>()
-              .having((e) => e.divisor, 'divisor', ShortDecimal(3)),
-        ),
-      );
+    test('без конечной обратной величины — отказ, а не чужая пара', () {
+      // Исключение деления несёт в себе пару, на которой его подняли, и
+      // ответить от неё нельзя: делитель здесь — сама степень, а она в int64
+      // не влезла. Разбор — Д38.
+      expect(() => ShortDecimal(3).pow(-40), throwsUnsupportedError);
     });
 
     test('ответ вне int64 — отказ, а не выдуманное число', () {
@@ -827,6 +821,216 @@ void main() {
             isA<ArgumentError>()
                 .having((e) => e.name, 'name', 'precision')
                 .having((e) => e.invalidValue, 'invalidValue', 3),
+          ),
+        );
+      }
+    });
+  });
+
+  // Д38–Д42 нашло ревью сегодняшних правок (Fable-агент, 2026-08-29): разбор —
+  // в docs/records/2026-08-29[9].
+
+  group('Д38 отказ pow не выдумывает чужое деление', () {
+    test('восстановление после отказа не даёт чисел другого деления', () {
+      // Старшая семья на том же вопросе отвечает нулём: 3^-40 ≈ 8e-20.
+      expect(
+        () {
+          try {
+            return Decimal(3).pow(-40);
+          } on DecimalDivideException catch (e) {
+            return e.round(2);
+          }
+        }(),
+        Decimal.zero,
+      );
+
+      // Короткой ответить нечем — и она не отвечает вместо этого числами
+      // деления единицы на основание (было 0.33).
+      expect(() => ShortDecimal(3).pow(-40), throwsUnsupportedError);
+      expect(() => ShortDecimal(-3).pow(-40), throwsUnsupportedError);
+      expect(
+        () => ShortDecimal(-9223372036854775808).pow(-2),
+        throwsUnsupportedError,
+      );
+    });
+  });
+
+  group('Д39 последняя влезающая степень не отвергается', () {
+    test('(-2)^63 — это int.min, и он представим', () {
+      const min = -9223372036854775808;
+
+      expect(ShortDecimal.parse('-0.5').pow(-63).toString(), '$min');
+      expect(Decimal.parse('-0.5').pow(-63).toString(), '$min');
+
+      // Та же степень с другой стороны: положительная ветвь её и раньше
+      // считала.
+      expect(ShortDecimal(-2).pow(63).toString(), '$min');
+    });
+
+    test('и с масштабом тоже', () {
+      expect(
+        ShortDecimal(-5).pow(-63).toString(),
+        Decimal(-5).pow(-63).toString(),
+      );
+    });
+
+    test('а 2^63 по-прежнему не влезает', () {
+      expect(() => ShortDecimal.parse('0.5').pow(-63), throwsUnsupportedError);
+    });
+  });
+
+  group('Д40 степень основания без цикла длиной в показатель', () {
+    test('единица и десятка отвечают сразу, а не за миллион шагов', () {
+      final stopwatch = Stopwatch()..start();
+
+      expect(ShortDecimal.one.pow(-1000000).toString(), '1');
+      expect(ShortDecimal(-1).pow(-1000001).toString(), '-1');
+      expect(ShortDecimal.zero.pow(1000000).toString(), '0');
+      expect(ShortDecimal(10).pow(-1000000).scale, 1000000);
+
+      // Порог с большим запасом: цикл длиной в миллион шагов занимал сотни
+      // миллисекунд, а на показателе в int64 не кончался бы вовсе.
+      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+    });
+  });
+
+  group('Д41 перенос в инженерной записи не всегда двигает показатель', () {
+    const max = 9223372036854775807;
+
+    test('99.9 округляется до 100 при том же показателе', () {
+      expect(
+        (ShortDecimal(999) << (max - 2)).toStringAsEngineering(),
+        '100e+9223372036854775806',
+      );
+      expect(
+        (Decimal(999) << (max - 2)).toStringAsEngineering(),
+        '100e+9223372036854775806',
+      );
+    });
+
+    test('а 999.9 округляется до 1000, и вот там показателю некуда', () {
+      expect(
+        (ShortDecimal(9999) << (max - 2)).toStringAsEngineering,
+        throwsA(isA<ScaleOutOfRangeError>()),
+      );
+      expect(
+        (Decimal(9999) << (max - 2)).toStringAsEngineering,
+        throwsA(isA<ScaleOutOfRangeError>()),
+      );
+    });
+  });
+
+  group('Д43 разность масштаба и числа знаков не заворачивается', () {
+    const max = 9223372036854775807;
+
+    test('старшая семья отказывает по своей же границе', () {
+      final value = Decimal(1, shiftRight: max);
+
+      // Степень десятки, которая тут нужна, за миллионом — и за int64 тоже:
+      // раньше отсюда вылетал RangeError по таблице степеней.
+      for (final call in <Decimal Function()>[
+        () => value.round(-1),
+        () => value.floor(-1),
+        () => value.ceil(-1),
+        () => value.truncate(-1),
+        () => value.roundToEven(-1),
+        () => value.roundAwayFromZero(-1),
+      ]) {
+        expect(call, throwsA(isA<DecimalDigitsOutOfRangeError>()));
+      }
+    });
+
+    test('короткая семья отвечает, у неё делителя и так нет', () {
+      final value = ShortDecimal(1, shiftRight: max);
+
+      // Всё число стоит правее запрошенной позиции — дальше решает правило.
+      expect(value.round(-1).toString(), '0');
+      expect(value.floor(-1).toString(), '0');
+      expect(value.truncate(-1).toString(), '0');
+      expect(value.roundToEven(-1).toString(), '0');
+      expect(value.ceil(-1).toString(), '10');
+      expect(value.roundAwayFromZero(-1).toString(), '10');
+    });
+  });
+
+  group('Д44 исключение деления отвечает и без дроби', () {
+    const min = -9223372036854775808;
+
+    test('пара 1/int.min округляется всеми шестью правилами', () {
+      try {
+        final impossible = ShortDecimal.one / ShortDecimal(min);
+        fail('ожидалось исключение, получено $impossible');
+      } on ShortDecimalDivideException catch (e) {
+        // Дроби у этой пары нет: знаменателю 2^63 негде быть положительным.
+        expect(() => e.fraction, throwsArgumentError);
+
+        // А округлённые ответы есть, и они обычные числа.
+        expect(e.round().toString(), '0');
+        expect(e.floor().toString(), '-1');
+        expect(e.ceil().toString(), '0');
+        expect(e.truncate().toString(), '0');
+        expect(e.roundToEven().toString(), '0');
+        expect(e.roundAwayFromZero().toString(), '-1');
+        expect(e.round(18).toString(), '0');
+        expect(e.roundAwayFromZero(18).toString(), '-0.000000000000000001');
+      }
+    });
+
+    test('обычная пара отвечает как прежде', () {
+      expect(
+        () => ShortDecimal(1) / ShortDecimal(3),
+        throwsA(
+          isA<ShortDecimalDivideException>()
+              .having((e) => e.round(4).toString(), 'round(4)', '0.3333')
+              .having((e) => e.floor(4).toString(), 'floor(4)', '0.3333')
+              .having((e) => e.fraction.toString(), 'fraction', '1/3'),
+        ),
+      );
+    });
+
+    test('число знаков за миллионом отвергается и здесь', () {
+      try {
+        final impossible = ShortDecimal(1) / ShortDecimal(3);
+        fail('ожидалось исключение, получено $impossible');
+      } on ShortDecimalDivideException catch (e) {
+        expect(
+          () => e.round(-1000000000),
+          throwsA(isA<DecimalDigitsOutOfRangeError>()),
+        );
+      }
+    });
+  });
+
+  group('Д45 граница toStringAsPrecision описана тем, что проверяет', () {
+    test('целых цифр числа граница не касается', () {
+      // Позиционная запись длиннее миллиона символов допустима — столько же
+      // отдаёт и toString. Ограничены знаки после точки.
+      expect(
+        (Decimal.one << 1999999).toStringAsPrecision(1000000).length,
+        2000000,
+      );
+      expect(
+        (ShortDecimal.one << 1999999).toStringAsPrecision(1000000).length,
+        2000000,
+      );
+    });
+
+    test('а знаки после точки — касается, и отказ типизирован', () {
+      for (final call in <String Function()>[
+        () => Decimal.parse('1e-1000000').toStringAsPrecision(3),
+        () => ShortDecimal.parse('1e-1000000').toStringAsPrecision(3),
+      ]) {
+        expect(
+          call,
+          throwsA(
+            isA<DecimalDigitsOutOfRangeError>()
+                .having((e) => e.name, 'name', 'precision')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'The number would need more than a million digits'
+                      ' after the point',
+                ),
           ),
         );
       }

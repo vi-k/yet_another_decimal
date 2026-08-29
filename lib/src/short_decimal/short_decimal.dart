@@ -1144,10 +1144,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   ///
   /// A negative [exponent] is one over the positive power, so it throws what
   /// division throws: [ShortDecimalDivideException] when the result has no
-  /// finite decimal form, [UnsupportedError] on zero — and [UnsupportedError]
-  /// again where the answer itself leaves int64, the refusal [inverse] makes
-  /// for the same reason. What it will not do is divide by a power that
-  /// wrapped: `ShortDecimal(int.min).pow(-3)` reported a division by zero
+  /// finite decimal form, [UnsupportedError] on zero. Where the power itself
+  /// leaves int64 the refusal is [UnsupportedError] too — the one [inverse]
+  /// makes, and for the same reason. What it will not do is divide by a power
+  /// that wrapped: `ShortDecimal(int.min).pow(-3)` reported a division by zero
   /// because the cube had wrapped to zero, not because the base was.
   ///
   /// ```dart
@@ -1185,12 +1185,15 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     // a power of five outlives it — `5 ^ -30` is `0.2 ^ 30`, where 5^30 is
     // long gone and 2^30 has room to spare. Where the base has no finite
     // reciprocal, no power of it has one either.
+    //
+    // Both dead ends refuse the same way, and neither of them raises a divide
+    // exception: that exception carries the pair it was raised on, and the
+    // divisor here — the power itself — is the number that would not fit. A
+    // pair of one and the base is a different division, and answering `3 ^ -40`
+    // from it gave 0.33 where the truth rounds to nothing.
     final reciprocal = one.divideOrNull(this);
-    if (reciprocal == null) {
-      throw ShortDecimalDivideException._(one, this);
-    }
 
-    return reciprocal._powOrNull(-exponent) ??
+    return reciprocal?._powOrNull(-exponent) ??
         (throw UnsupportedError(
           'The result of $this to the power of $exponent has no'
           ' $ShortDecimal form',
@@ -1200,12 +1203,24 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// This decimal to a non-negative [exponent], or null past int64.
   ///
   /// The scale is checked the way [pow] checks it; only the base can come back
-  /// missing. Squaring is not worth it here: anything past one in magnitude is
-  /// gone by the sixty-third step, and the loop below never runs longer.
+  /// missing. Squaring is not worth it: a base of two or more in magnitude is
+  /// gone by the sixty-fourth step — `(-2) ^ 63` is the last one that fits,
+  /// and it fits exactly — so the loop never runs longer than that. The three
+  /// bases the loop would run to the end for answer without it.
   ShortDecimal? _powOrNull(int exponent) {
+    assert(exponent > 0, 'A zeroth power does not come from `pow`');
     final scale = _scaleTimes(this.scale, exponent, 'exponent');
 
-    if (base != 0 && base != 1 && base != -1 && exponent >= 63) {
+    switch (base) {
+      case 0:
+        return ShortDecimal._pack(0, scale);
+      case 1:
+        return ShortDecimal._pack(1, scale);
+      case -1:
+        return ShortDecimal._pack(exponent.isEven ? 1 : -1, scale);
+    }
+
+    if (exponent >= 64) {
       return null;
     }
 
@@ -1547,9 +1562,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// ```
   ///
   /// Like [toStringAsExponential] it rounds the leading digits as digits and
-  /// builds no power of ten, so what it costs does not grow with the scale.
-  /// It refuses at the same two ends of int64, and at one more place: the
-  /// multiple of three below the floor is past it.
+  /// builds no power of ten, so what it costs does not grow with the scale. It
+  /// refuses only where the exponent it would write is itself past int64 —
+  /// which is later than [toStringAsExponential] refuses, the multiple of
+  /// three below being the smaller number of the two.
   @override
   String toStringAsEngineering([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
@@ -1560,35 +1576,41 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     }
 
     final digits = _digits;
-    var leading = _scaleMinus(digits.length - 1, scale, 'scale');
 
-    // The mantissa takes as many integer digits as the leading one stands
-    // above the multiple of three below it — one, two or three of them.
-    var mantissaDigits = digits.roundDigits(leading % 3 + 1 + fractionDigits);
+    // How far the leading digit stands above the multiple of three below it —
+    // one, two or three integer digits for the mantissa. The power the leading
+    // digit sits at can itself be past int64 while the exponent this notation
+    // writes is not, so the remainder is taken apart rather than from it.
+    final offset = ((digits.length - 1) % 3 - scale % 3 + 3) % 3;
+    var exponent = _scaleMinus(digits.length - 1 - offset, scale, 'scale');
+    var integerDigits = offset + 1;
 
-    // Rounding can carry into a new power of ten, and there the mantissa is a
-    // one with zeros — however many places the new exponent asks for.
+    var mantissaDigits = digits.roundDigits(integerDigits + fractionDigits);
+
+    // A carry takes the mantissa out of its group of three only when it had
+    // three integer digits already: 99.9 rounds to 100 at the same exponent,
+    // 999.9 rounds to 1000 and needs the next one.
     if (mantissaDigits.$2) {
-      if (leading == 9223372036854775807) {
-        throw ScaleOutOfRangeError(scale, 'scale');
+      if (offset == 2) {
+        if (exponent > 9223372036854775807 - 3) {
+          throw ScaleOutOfRangeError(scale, 'scale');
+        }
+
+        exponent += 3;
+        integerDigits = 1;
+      } else {
+        integerDigits++;
       }
 
-      leading++;
       mantissaDigits = ('1', false);
     }
 
-    final offset = leading % 3;
-    // The floor of int64 is not a multiple of three, so the last two exponents
-    // above it have no engineering form to be written in.
-    if (leading < -9223372036854775808 + offset) {
-      throw ScaleOutOfRangeError(scale, 'scale');
-    }
-
-    final exponent = leading - offset;
-    final padded = mantissaDigits.$1.padRight(offset + 1 + fractionDigits, '0');
+    final padded =
+        mantissaDigits.$1.padRight(integerDigits + fractionDigits, '0');
     final mantissa = fractionDigits == 0
         ? padded
-        : '${padded.substring(0, offset + 1)}.${padded.substring(offset + 1)}';
+        : '${padded.substring(0, integerDigits)}'
+            '.${padded.substring(integerDigits)}';
 
     return '${isNegative ? '-' : ''}$mantissa'
         'e${exponent.isNegative ? '' : '+'}$exponent';
@@ -1601,9 +1623,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// print(ShortDecimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
   /// ```
   ///
-  /// Unlike [toStringAsExponential] this one writes the number out in full, so
-  /// it refuses a value whose full form would run past a million digits — the
-  /// bound every count of digits in this package is held to.
+  /// Unlike [toStringAsExponential] this one writes the number out in full, and
+  /// the digits it needs after the point are a number of digits like any other
+  /// here: past a million of them it refuses. The digits before the point are
+  /// the number's own and are not bounded — [toString] writes them too.
   @override
   String toStringAsPrecision(int precision) {
     if (precision <= 0) {
@@ -1641,10 +1664,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     // argument the caller passed.
     if (exponent < precision - 1 - maxDecimalExponent ||
         exponent > precision - 1 + maxDecimalExponent) {
-      throw ArgumentError.value(
+      throw DecimalDigitsOutOfRangeError(
         precision,
         'precision',
-        'The number would take more than a million digits to write in full',
+        'The number would need more than a million digits after the point',
       );
     }
 
@@ -1902,11 +1925,21 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
     final exponent = scale - fractionDigits;
 
+    // The exponent is a difference of two int64 numbers and can leave int64
+    // itself: a scale at the ceiling with a negative number of digits asks for
+    // a power past everything, and the wrapped one indexed the table with a
+    // negative number. Either way the whole value stands to the right of the
+    // position asked for, which is the road below.
+    final wide = (scale ^ fractionDigits) < 0 && (exponent ^ scale) < 0;
+
     // There is no divisor to divide by above 10^18, and no need for one: it is
     // bigger than any base, so the quotient is zero and the remainder is the
     // whole base. What is left is the rule of the calling method.
-    if (exponent > _maxPow10Exponent) {
-      return ShortDecimal._pack(onDivisorOverflow(exponent), fractionDigits);
+    if (wide || exponent > _maxPow10Exponent) {
+      return ShortDecimal._pack(
+        onDivisorOverflow(wide ? 9223372036854775807 : exponent),
+        fractionDigits,
+      );
     }
 
     final divisor = _pow10(exponent);
@@ -1973,27 +2006,47 @@ final class ShortDecimalDivideException implements Exception {
 
   /// The exact result rounded towards minus infinity, [fractionDigits] digits.
   ShortDecimal floor([int fractionDigits = 0]) =>
-      fraction.floor(fractionDigits);
+      _rounded(fractionDigits, _Rounding.floor);
 
   /// The exact result rounded to [fractionDigits] digits, halves away from
   /// zero.
   ShortDecimal round([int fractionDigits = 0]) =>
-      fraction.round(fractionDigits);
+      _rounded(fractionDigits, _Rounding.round);
 
   /// The exact result rounded to [fractionDigits] digits, halves to even.
   ShortDecimal roundToEven([int fractionDigits = 0]) =>
-      fraction.roundToEven(fractionDigits);
+      _rounded(fractionDigits, _Rounding.roundToEven);
 
   /// The exact result rounded towards plus infinity, [fractionDigits] digits.
-  ShortDecimal ceil([int fractionDigits = 0]) => fraction.ceil(fractionDigits);
+  ShortDecimal ceil([int fractionDigits = 0]) =>
+      _rounded(fractionDigits, _Rounding.ceil);
 
   /// The exact result with everything past [fractionDigits] digits cut off.
   ShortDecimal truncate([int fractionDigits = 0]) =>
-      fraction.truncate(fractionDigits);
+      _rounded(fractionDigits, _Rounding.truncate);
 
   /// The exact result rounded away from zero, [fractionDigits] digits.
   ShortDecimal roundAwayFromZero([int fractionDigits = 0]) =>
-      fraction.roundAwayFromZero(fractionDigits);
+      _rounded(fractionDigits, _Rounding.awayFromZero);
+
+  /// The pair this exception was raised on, rounded as it is.
+  ///
+  /// Not through [fraction]: a divisor of 2^63 leaves the denominator nowhere
+  /// to be positive, so `1 / int.min` has no fraction in int64 — while its
+  /// rounded value is an ordinary number, and refusing to give it turned every
+  /// way of asking again into a dead end. The pair is rounded on the road
+  /// [ShortDecimal.divide] takes for the same case.
+  ShortDecimal _rounded(int fractionDigits, _Rounding rounding) {
+    ShortDecimal._checkDigits(fractionDigits, 'fractionDigits');
+    final (numerator, denominator) = dividend._fractionPair(divisor);
+
+    return ShortFraction._roundExactly(
+      numerator,
+      denominator,
+      fractionDigits,
+      rounding,
+    );
+  }
 
   @override
   String toString() {

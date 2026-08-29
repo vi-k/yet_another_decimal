@@ -1223,9 +1223,10 @@ final class Decimal implements FixedPoint<Decimal> {
   /// ```
   ///
   /// Like [toStringAsExponential] it rounds the leading digits as digits and
-  /// builds no power of ten, so what it costs does not grow with the scale.
-  /// It refuses at the same two ends of int64, and at one more place: the
-  /// multiple of three below the floor is past it.
+  /// builds no power of ten, so what it costs does not grow with the scale. It
+  /// refuses only where the exponent it would write is itself past int64 —
+  /// which is later than [toStringAsExponential] refuses, the multiple of
+  /// three below being the smaller number of the two.
   @override
   String toStringAsEngineering([int fractionDigits = 0]) {
     _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
@@ -1236,35 +1237,41 @@ final class Decimal implements FixedPoint<Decimal> {
     }
 
     final digits = _digits;
-    var leading = _scaleMinus(digits.length - 1, scale, 'scale');
 
-    // The mantissa takes as many integer digits as the leading one stands
-    // above the multiple of three below it — one, two or three of them.
-    var mantissaDigits = digits.roundDigits(leading % 3 + 1 + fractionDigits);
+    // How far the leading digit stands above the multiple of three below it —
+    // one, two or three integer digits for the mantissa. The power the leading
+    // digit sits at can itself be past int64 while the exponent this notation
+    // writes is not, so the remainder is taken apart rather than from it.
+    final offset = ((digits.length - 1) % 3 - scale % 3 + 3) % 3;
+    var exponent = _scaleMinus(digits.length - 1 - offset, scale, 'scale');
+    var integerDigits = offset + 1;
 
-    // Rounding can carry into a new power of ten, and there the mantissa is a
-    // one with zeros — however many places the new exponent asks for.
+    var mantissaDigits = digits.roundDigits(integerDigits + fractionDigits);
+
+    // A carry takes the mantissa out of its group of three only when it had
+    // three integer digits already: 99.9 rounds to 100 at the same exponent,
+    // 999.9 rounds to 1000 and needs the next one.
     if (mantissaDigits.$2) {
-      if (leading == 9223372036854775807) {
-        throw ScaleOutOfRangeError(scale, 'scale');
+      if (offset == 2) {
+        if (exponent > 9223372036854775807 - 3) {
+          throw ScaleOutOfRangeError(scale, 'scale');
+        }
+
+        exponent += 3;
+        integerDigits = 1;
+      } else {
+        integerDigits++;
       }
 
-      leading++;
       mantissaDigits = ('1', false);
     }
 
-    final offset = leading % 3;
-    // The floor of int64 is not a multiple of three, so the last two exponents
-    // above it have no engineering form to be written in.
-    if (leading < -9223372036854775808 + offset) {
-      throw ScaleOutOfRangeError(scale, 'scale');
-    }
-
-    final exponent = leading - offset;
-    final padded = mantissaDigits.$1.padRight(offset + 1 + fractionDigits, '0');
+    final padded =
+        mantissaDigits.$1.padRight(integerDigits + fractionDigits, '0');
     final mantissa = fractionDigits == 0
         ? padded
-        : '${padded.substring(0, offset + 1)}.${padded.substring(offset + 1)}';
+        : '${padded.substring(0, integerDigits)}'
+            '.${padded.substring(integerDigits)}';
 
     return '${isNegative ? '-' : ''}$mantissa'
         'e${exponent.isNegative ? '' : '+'}$exponent';
@@ -1277,9 +1284,10 @@ final class Decimal implements FixedPoint<Decimal> {
   /// print(Decimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
   /// ```
   ///
-  /// Unlike [toStringAsExponential] this one writes the number out in full, so
-  /// it refuses a value whose full form would run past a million digits — the
-  /// bound every count of digits in this package is held to.
+  /// Unlike [toStringAsExponential] this one writes the number out in full, and
+  /// the digits it needs after the point are a number of digits like any other
+  /// here: past a million of them it refuses. The digits before the point are
+  /// the number's own and are not bounded — [toString] writes them too.
   @override
   String toStringAsPrecision(int precision) {
     if (precision <= 0) {
@@ -1317,10 +1325,10 @@ final class Decimal implements FixedPoint<Decimal> {
     // argument the caller passed.
     if (exponent < precision - 1 - maxDecimalExponent ||
         exponent > precision - 1 + maxDecimalExponent) {
-      throw ArgumentError.value(
+      throw DecimalDigitsOutOfRangeError(
         precision,
         'precision',
-        'The number would take more than a million digits to write in full',
+        'The number would need more than a million digits after the point',
       );
     }
 
@@ -1520,7 +1528,22 @@ final class Decimal implements FixedPoint<Decimal> {
       return this;
     }
 
-    final divisor = _pow10(scale - fractionDigits);
+    final exponent = scale - fractionDigits;
+
+    // The exponent is a difference of two int64 numbers and can leave int64: a
+    // scale at the ceiling with a negative number of digits asks for a power
+    // past everything, and the wrapped one indexed the cache with a negative
+    // number. Past int64 it is past the million as well, so the refusal is the
+    // one the power of ten makes on its own.
+    if ((scale ^ fractionDigits) < 0 && (exponent ^ scale) < 0) {
+      throw DecimalDigitsOutOfRangeError(
+        scale,
+        'scale',
+        'Ten to this power is a number too large to build',
+      );
+    }
+
+    final divisor = _pow10(exponent);
     final result = callback(base ~/ divisor, divisor);
 
     return Decimal._asIs(result, fractionDigits);
