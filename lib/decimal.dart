@@ -19,3 +19,4 @@ library;
 import 'src/decimal/decimal.dart';
 
 export 'src/decimal/decimal.dart';
+export 'src/errors.dart';

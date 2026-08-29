@@ -18,4 +18,5 @@ library;
 // above resolve: a library's own scope does not include what it re-exports.
 import 'src/short_decimal/short_decimal.dart';
 
+export 'src/errors.dart';
 export 'src/short_decimal/short_decimal.dart';

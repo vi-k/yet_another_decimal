@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 
+import '../errors.dart';
 import '../fixed_point.dart';
 import '../helpers.dart';
 
@@ -31,7 +32,8 @@ part 'fraction.dart';
 /// One bound the type does have: the power of ten it will build. Past a
 /// million, ten to that power is a number nobody can hold —
 /// `round(-1000000000)` asks for ten to the billionth — and the package
-/// refuses with `ArgumentError` instead of exhausting the memory. It refuses
+/// refuses with [DecimalDigitsOutOfRangeError] instead of exhausting the
+/// memory. It refuses
 /// where the request comes in and again where the power would be built, so a
 /// scale driven that far by shifting is caught too. `Decimal.parse` refuses to
 /// read such a number in the first place.
@@ -81,7 +83,8 @@ final class Decimal implements FixedPoint<Decimal> {
   /// them at once, whether the exponent came from a number of digits, from a
   /// scale or from the gap between two scales. Past [maxDecimalExponent] it
   /// refuses: ten to the billionth is four hundred megabytes, and an
-  /// `ArgumentError` is a better answer than the death of the process.
+  /// [DecimalDigitsOutOfRangeError] is a better answer than the death of the
+  /// process.
   static BigInt _pow10(int exponent) {
     assert(exponent >= 0, "exponent can't be negative");
 
@@ -89,7 +92,7 @@ final class Decimal implements FixedPoint<Decimal> {
       // On the rare road only: the cached powers are the hot ones, and they
       // are all far below the bound.
       if (exponent > maxDecimalExponent) {
-        throw ArgumentError.value(
+        throw DecimalDigitsOutOfRangeError(
           exponent,
           'exponent',
           'Ten to this power is a number too large to build',
@@ -357,7 +360,7 @@ final class Decimal implements FixedPoint<Decimal> {
       final dividend = normalized();
       final divisor = other.normalized();
       if (dividend.scale == this.scale && divisor.scale == otherScale) {
-        throw ArgumentError.value(otherScale, 'other', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(otherScale, 'other');
       }
 
       return dividend.divideOrNull(divisor);
@@ -1193,7 +1196,7 @@ final class Decimal implements FixedPoint<Decimal> {
     // the point is 10.0, which is 1.0e+1 and not 10.0e+0.
     if (carried) {
       if (exponent == 9223372036854775807) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       exponent++;
@@ -1243,7 +1246,7 @@ final class Decimal implements FixedPoint<Decimal> {
     // one with zeros — however many places the new exponent asks for.
     if (mantissaDigits.$2) {
       if (leading == 9223372036854775807) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       leading++;
@@ -1254,7 +1257,7 @@ final class Decimal implements FixedPoint<Decimal> {
     // The floor of int64 is not a multiple of three, so the last two exponents
     // above it have no engineering form to be written in.
     if (leading < -9223372036854775808 + offset) {
-      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      throw ScaleOutOfRangeError(scale, 'scale');
     }
 
     final exponent = leading - offset;
@@ -1300,7 +1303,7 @@ final class Decimal implements FixedPoint<Decimal> {
     // read off the digits, so the value below is rounded once and not twice.
     if (digits.roundDigits(precision).$2) {
       if (exponent == 9223372036854775807) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       exponent++;
@@ -1354,11 +1357,7 @@ final class Decimal implements FixedPoint<Decimal> {
   /// produced can need one.
   static void _checkDigits(int value, String name) {
     if (value < -maxDecimalExponent || value > maxDecimalExponent) {
-      throw ArgumentError.value(
-        value,
-        name,
-        'The number of digits must be within a million of zero',
-      );
+      throw DecimalDigitsOutOfRangeError(value, name);
     }
   }
 
@@ -1371,7 +1370,7 @@ final class Decimal implements FixedPoint<Decimal> {
   static int _scalePlus(int scale, int by, String name) {
     final result = scale + by;
     if ((scale ^ by) >= 0 && (result ^ scale) < 0) {
-      throw ArgumentError.value(by, name, _scaleOutOfRange);
+      throw ScaleOutOfRangeError(by, name);
     }
 
     return result;
@@ -1381,7 +1380,7 @@ final class Decimal implements FixedPoint<Decimal> {
   static int _scaleMinus(int scale, int by, String name) {
     final result = scale - by;
     if ((scale ^ by) < 0 && (result ^ scale) < 0) {
-      throw ArgumentError.value(by, name, _scaleOutOfRange);
+      throw ScaleOutOfRangeError(by, name);
     }
 
     return result;
@@ -1395,15 +1394,13 @@ final class Decimal implements FixedPoint<Decimal> {
 
     final result = scale * by;
     if (result ~/ by != scale) {
-      throw ArgumentError.value(by, name, _scaleOutOfRange);
+      throw ScaleOutOfRangeError(by, name);
     }
 
     return result;
   }
 
   static const _maxScale = 9223372036854775807;
-
-  static const _scaleOutOfRange = 'The scale would leave int64';
 
   Decimal get _requirePacked {
     var packed = _packed;
@@ -1447,7 +1444,7 @@ final class Decimal implements FixedPoint<Decimal> {
     // the count has no bound here, so the check is on the subtraction itself.
     final result = scale - zeros;
     if (zeros > 0 && result > scale) {
-      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      throw ScaleOutOfRangeError(scale, 'scale');
     }
 
     return Decimal._asIs(packed, result);

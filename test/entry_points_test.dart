@@ -26,6 +26,16 @@ void main() {
         () => Decimal(1) / Decimal(3),
         throwsA(isA<DecimalDivideException>()),
       );
+
+      // Типизированные отказы общие для семей и приходят в обе двери.
+      expect(
+        () => Decimal.one.round(-1000000000),
+        throwsA(isA<DecimalDigitsOutOfRangeError>()),
+      );
+      expect(
+        () => (Decimal.one >> 9223372036854775807) >> 1,
+        throwsA(isA<ScaleOutOfRangeError>()),
+      );
     });
 
     test('short_decimal.dart отдаёт семейство на int целиком', () {
@@ -45,6 +55,15 @@ void main() {
       expect(
         () => ShortDecimal(1) / ShortDecimal(3),
         throwsA(isA<ShortDecimalDivideException>()),
+      );
+
+      expect(
+        () => ShortDecimal.one.round(-1000000000),
+        throwsA(isA<DecimalDigitsOutOfRangeError>()),
+      );
+      expect(
+        () => (ShortDecimal.one >> 9223372036854775807) >> 1,
+        throwsA(isA<ScaleOutOfRangeError>()),
       );
     });
 

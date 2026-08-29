@@ -22,7 +22,8 @@ part of 'short_decimal.dart';
 /// ```
 ///
 /// [round] and its three neighbours take a number of digits, and past a
-/// million they refuse it with `ArgumentError`: the power of ten such a
+/// million they refuse it with [DecimalDigitsOutOfRangeError]: the power of
+/// ten such a
 /// request needs is built in `BigInt` here, and it is a number nobody can
 /// hold.
 final class ShortFraction implements Comparable<ShortFraction> {

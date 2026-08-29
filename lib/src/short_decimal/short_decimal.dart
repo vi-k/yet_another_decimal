@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 
+import '../errors.dart';
 import '../fixed_point.dart';
 import '../helpers.dart';
 
@@ -38,7 +39,7 @@ part 'short_division.dart';
 /// One bound beside the width of int64: the number of digits a member may be
 /// asked for. Past a million the power of ten behind it is a number nobody can
 /// hold — `round(-1000000000)` asks for ten to the billionth — and the request
-/// is refused with `ArgumentError` rather than attempted.
+/// is refused with [DecimalDigitsOutOfRangeError] rather than attempted.
 /// `ShortDecimal.parse` refuses to read such a number in the first place.
 // Both fields are `int`, so the class qualifies: the VM may share its
 // instances between isolates. `Decimal` never will — a field of type `BigInt`
@@ -171,7 +172,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   factory ShortDecimal._packNearFloor(int base, int scale) {
     while (base % 10 == 0) {
       if (scale == _minScale) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       base ~/= 10;
@@ -232,13 +233,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// The power of ten [unscaledValue] is multiplied by.
   ///
-  /// Throws `ArgumentError` at the floor of int64: the minimum integer has no
+  /// Throws [ScaleOutOfRangeError] at the floor of int64: the minimum integer
+  /// has no
   /// negation, so a scale of `-2^63` has no exponent to name — the value can
   /// be held, but not taken apart.
   @override
   int get exponent {
     if (scale == _minScale) {
-      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      throw ScaleOutOfRangeError(scale, 'scale');
     }
 
     return -scale;
@@ -422,7 +424,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static int _scalePlus(int scale, int by, String name) {
     final result = scale + by;
     if ((scale ^ by) >= 0 && (result ^ scale) < 0) {
-      throw ArgumentError.value(by, name, _scaleOutOfRange);
+      throw ScaleOutOfRangeError(by, name);
     }
 
     return result;
@@ -432,7 +434,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static int _scaleMinus(int scale, int by, String name) {
     final result = scale - by;
     if ((scale ^ by) < 0 && (result ^ scale) < 0) {
-      throw ArgumentError.value(by, name, _scaleOutOfRange);
+      throw ScaleOutOfRangeError(by, name);
     }
 
     return result;
@@ -446,7 +448,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
     final result = scale * by;
     if (result ~/ by != scale) {
-      throw ArgumentError.value(by, name, _scaleOutOfRange);
+      throw ScaleOutOfRangeError(by, name);
     }
 
     return result;
@@ -456,8 +458,6 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// Below this a scale can be driven past int64 by stripping zeros alone.
   static const _scaleFloorForPacking = _minScale + 19;
-
-  static const _scaleOutOfRange = 'The scale would leave int64';
 
   /// Whether `a * b` stays within int64.
   static bool _productFits(int a, int b) {
@@ -540,7 +540,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final otherScale = other.scale;
     var scale = this.scale - otherScale;
     if ((this.scale ^ otherScale) < 0 && (scale ^ this.scale) < 0) {
-      throw ArgumentError.value(otherScale, 'other', _scaleOutOfRange);
+      throw ScaleOutOfRangeError(otherScale, 'other');
     }
 
     // The sign is taken out of the divisor before the factorization below.
@@ -1520,7 +1520,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     // the point is 10.0, which is 1.0e+1 and not 10.0e+0.
     if (carried) {
       if (exponent == 9223372036854775807) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       exponent++;
@@ -1570,7 +1570,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     // one with zeros — however many places the new exponent asks for.
     if (mantissaDigits.$2) {
       if (leading == 9223372036854775807) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       leading++;
@@ -1581,7 +1581,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     // The floor of int64 is not a multiple of three, so the last two exponents
     // above it have no engineering form to be written in.
     if (leading < -9223372036854775808 + offset) {
-      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      throw ScaleOutOfRangeError(scale, 'scale');
     }
 
     final exponent = leading - offset;
@@ -1627,7 +1627,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     // read off the digits, so the value below is rounded once and not twice.
     if (digits.roundDigits(precision).$2) {
       if (exponent == 9223372036854775807) {
-        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+        throw ScaleOutOfRangeError(scale, 'scale');
       }
 
       exponent++;
@@ -1681,11 +1681,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// produced can need one.
   static void _checkDigits(int value, String name) {
     if (value < -maxDecimalExponent || value > maxDecimalExponent) {
-      throw ArgumentError.value(
-        value,
-        name,
-        'The number of digits must be within a million of zero',
-      );
+      throw DecimalDigitsOutOfRangeError(value, name);
     }
   }
 

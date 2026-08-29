@@ -33,6 +33,12 @@ under Changed.
   throws and stays the fast form for the case where the division is known to be
   exact.
 - Exponential notation in `parse` and `tryParse`: `Decimal.parse('1.5e21')`.
+- Two typed refusals, shared by both families: `ScaleOutOfRangeError` where a
+  scale would leave int64, and `DecimalDigitsOutOfRangeError` where a number of
+  digits — or a power of ten an operation needs — goes past a million. Both
+  extend `ArgumentError` and carry the same `name`, `invalidValue`, `message`
+  and text as before, so code catching `ArgumentError` sees no change; the type
+  is there for code that wants to tell one refusal from another.
 - `toStringAsEngineering` in both families: an exponential form whose exponent
   is a multiple of three, so the mantissa carries one, two or three digits
   before the point — the form an SI prefix is read in.

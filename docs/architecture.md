@@ -437,7 +437,14 @@ ShortDecimal(9223372036854775807) + ShortDecimal.one; // -9223372036854775808
 | `DecimalDivideException`, `ShortDecimalDivideException` | результат деления непредставим |
 | `FormatException` | `parse` не разобрал строку (`tryParse` вернёт `null`) |
 | `UnsupportedError` | деление на ноль — везде, включая `operator /`, `divideOrNull` и `inverse` |
-| `ArgumentError` | отрицательный `fractionDigits`, `precision <= 0`, `lowerLimit > upperLimit` в `clamp`, непредставимая нормализация `ShortFraction`, отрицательный сдвиг в конструкторе, заворот масштаба, ноль делителем в `forTest`, и **число знаков или показатель степени больше миллиона** |
+| `ScaleOutOfRangeError` | масштаб ушёл бы за int64: сдвиги, `pow`, `exponent` у дна, печать у краёв |
+| `DecimalDigitsOutOfRangeError` | число знаков или показатель степени больше миллиона — и у вызывающего, и у степени десятки, которую строит операция |
+| `ArgumentError` | отрицательный `fractionDigits`, `precision <= 0`, `lowerLimit > upperLimit` в `clamp`, непредставимая нормализация `ShortFraction`, отрицательный сдвиг в конструкторе, ноль делителем в `forTest` |
+
+Оба типизированных отказа — наследники `ArgumentError` с теми же полями
+(`name`, `invalidValue`, `message`) и теми же текстами, что были до них: код,
+ловивший `ArgumentError`, продолжает работать, а тип нужен тем, кому надо
+отличить один отказ от другого, не разбирая сообщение.
 
 Тексты всех сообщений — по-английски.
 

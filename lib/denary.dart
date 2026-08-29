@@ -40,4 +40,5 @@ import 'src/short_decimal/short_decimal.dart';
 
 export 'src/bridge.dart';
 export 'src/decimal/decimal.dart';
+export 'src/errors.dart';
 export 'src/short_decimal/short_decimal.dart';

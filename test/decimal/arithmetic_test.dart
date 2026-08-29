@@ -263,7 +263,11 @@ void main() {
       };
 
       for (final entry in calls.entries) {
-        expect(entry.value, throwsArgumentError, reason: entry.key);
+        expect(
+          entry.value,
+          throwsA(isA<DecimalDigitsOutOfRangeError>()),
+          reason: entry.key,
+        );
       }
 
       // Внутри границы — обычная работа; сверху она достаётся даром, потому
