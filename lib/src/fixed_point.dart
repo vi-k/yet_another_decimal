@@ -135,6 +135,9 @@ abstract interface class FixedPoint<T extends FixedPoint<T>>
   /// Rounds towards zero to [fractionDigits].
   T truncate([int fractionDigits]);
 
+  /// Rounds away from zero to [fractionDigits].
+  T roundAwayFromZero([int fractionDigits]);
+
   /// This clamped to be in the range [lowerLimit]-[upperLimit].
   T clamp(T lowerLimit, T upperLimit);
 

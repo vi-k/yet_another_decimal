@@ -49,6 +49,10 @@ under Changed.
 - `normalized()`, which answers with the value in its canonical form. It
   replaces `optimize()`, which returned nothing and changed the receiver
   instead and is gone from this package (see Removed).
+- `roundAwayFromZero`, in the same six places as `roundToEven`: any remainder
+  at all moves the last digit one step further from zero, so 2.01 to one digit
+  is 2.1 and -2.01 is -2.1. The mirror of `truncate`, and `ROUND_UP` in General
+  Decimal Arithmetic — a name that would read as `ceil` here.
 - `roundToEven`, on both number types, both fraction types and both divide
   exceptions: rounds a half to the even neighbour — 2.5 to 2, 3.5 to 4 —
   instead of away from zero. The rule accounting asks for, and the default one

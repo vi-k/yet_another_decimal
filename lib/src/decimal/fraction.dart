@@ -207,6 +207,22 @@ final class Fraction implements Comparable<Fraction> {
     return Decimal._asIs(numerator ~/ denominator, fractionDigits);
   }
 
+  /// Rounds the fraction away from zero to [fractionDigits].
+  ///
+  /// The mirror of [truncate]: any remainder at all moves the last digit one
+  /// step further from zero.
+  Decimal roundAwayFromZero([int fractionDigits = 0]) {
+    final (numerator, denominator) = _align(fractionDigits);
+    final quotient = numerator ~/ denominator;
+
+    return Decimal._asIs(
+      numerator.remainder(denominator) != BigInt.zero
+          ? quotient + BigInt.from(numerator.sign)
+          : quotient,
+      fractionDigits,
+    );
+  }
+
   /// The fraction brought to [fractionDigits] digits after the decimal point.
   ///
   /// A negative [fractionDigits] rounds to tens, hundreds and so on — the same

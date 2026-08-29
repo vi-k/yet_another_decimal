@@ -1102,6 +1102,27 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
         onDivisorOverflow: (_) => 0,
       );
 
+  /// Rounds the decimal away from zero to [fractionDigits].
+  ///
+  /// The mirror of [truncate]: where that one drops whatever is past the digit
+  /// asked for, this one lets any remainder move the last digit one step
+  /// further from zero — 2.01 becomes 2.1 and -2.01 becomes -2.1. This is
+  /// `ROUND_UP` in General Decimal Arithmetic, a name that reads as [ceil]
+  /// here and means something else.
+  ///
+  /// ```dart
+  /// print(ShortDecimal.parse('2.01').roundAwayFromZero(1)); // 2.1
+  /// print(ShortDecimal.parse('-2.01').roundAwayFromZero(1)); // -2.1
+  /// ```
+  @override
+  ShortDecimal roundAwayFromZero([int fractionDigits = 0]) => _dropFraction(
+        fractionDigits,
+        (result, divisor) => base % divisor != 0 ? result + base.sign : result,
+        // Every digit of the value is past the position asked for, so anything
+        // but zero moves the last one a step out.
+        onDivisorOverflow: (_) => base.sign,
+      );
+
   /// Returns this decimal clamped to be in the range [lowerLimit]-[upperLimit].
   ///
   /// The arguments [lowerLimit] and [upperLimit] must form a valid range where
@@ -1973,6 +1994,10 @@ final class ShortDecimalDivideException implements Exception {
   /// The exact result with everything past [fractionDigits] digits cut off.
   ShortDecimal truncate([int fractionDigits = 0]) =>
       fraction.truncate(fractionDigits);
+
+  /// The exact result rounded away from zero, [fractionDigits] digits.
+  ShortDecimal roundAwayFromZero([int fractionDigits = 0]) =>
+      fraction.roundAwayFromZero(fractionDigits);
 
   @override
   String toString() {

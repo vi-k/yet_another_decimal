@@ -90,12 +90,14 @@ print(Decimal.parse('4.50').toStringAsFixed(2)); // 4.50
 
 **Округляйте по своим правилам.** `round` отправляет половину от нуля,
 `roundToEven` — к чётному соседу; этого правила требует бухгалтерия, чтобы
-столбец половин не кренился в одну сторону. `floor`, `ceil` и `truncate` тоже
+столбец половин не кренился в одну сторону. `roundAwayFromZero` двигает
+последнюю цифру от нуля при любом остатке. `floor`, `ceil` и `truncate` тоже
 принимают число знаков.
 
 ```dart
-print(Decimal.parse('2.5').round());       // 3
-print(Decimal.parse('2.5').roundToEven()); // 2
+print(Decimal.parse('2.5').round());               // 3
+print(Decimal.parse('2.5').roundToEven());         // 2
+print(Decimal.parse('2.01').roundAwayFromZero(1)); // 2.1
 ```
 
 **Делите в нужную сторону.** `divide` округляет к ближайшему; когда важно

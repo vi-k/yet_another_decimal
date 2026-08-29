@@ -848,6 +848,26 @@ final class Decimal implements FixedPoint<Decimal> {
   Decimal truncate([int fractionDigits = 0]) =>
       _dropFraction(fractionDigits, (result, divisor) => result);
 
+  /// Rounds the decimal away from zero to [fractionDigits].
+  ///
+  /// The mirror of [truncate]: where that one drops whatever is past the digit
+  /// asked for, this one lets any remainder move the last digit one step
+  /// further from zero — 2.01 becomes 2.1 and -2.01 becomes -2.1. This is
+  /// `ROUND_UP` in General Decimal Arithmetic, a name that reads as [ceil]
+  /// here and means something else.
+  ///
+  /// ```dart
+  /// print(Decimal.parse('2.01').roundAwayFromZero(1)); // 2.1
+  /// print(Decimal.parse('-2.01').roundAwayFromZero(1)); // -2.1
+  /// ```
+  @override
+  Decimal roundAwayFromZero([int fractionDigits = 0]) => _dropFraction(
+        fractionDigits,
+        (result, divisor) => base % divisor != BigInt.zero
+            ? result + BigInt.from(base.sign)
+            : result,
+      );
+
   /// Returns this decimal clamped to be in the range [lowerLimit]-[upperLimit].
   ///
   /// The arguments [lowerLimit] and [upperLimit] must form a valid range where
@@ -1578,6 +1598,10 @@ final class DecimalDivideException implements Exception {
   /// The exact result with everything past [fractionDigits] digits cut off.
   Decimal truncate([int fractionDigits = 0]) =>
       fraction.truncate(fractionDigits);
+
+  /// The exact result rounded away from zero, [fractionDigits] digits.
+  Decimal roundAwayFromZero([int fractionDigits = 0]) =>
+      fraction.roundAwayFromZero(fractionDigits);
 
   @override
   String toString() {

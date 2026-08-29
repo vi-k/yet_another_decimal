@@ -333,6 +333,13 @@ final class ShortFraction implements Comparable<ShortFraction> {
   ShortDecimal truncate([int fractionDigits = 0]) =>
       _dropFraction(fractionDigits, _Rounding.truncate);
 
+  /// Rounds the fraction away from zero to [fractionDigits].
+  ///
+  /// The mirror of [truncate]: any remainder at all moves the last digit one
+  /// step further from zero.
+  ShortDecimal roundAwayFromZero([int fractionDigits = 0]) =>
+      _dropFraction(fractionDigits, _Rounding.awayFromZero);
+
   /// Brings the fraction to [fractionDigits] digits by [rounding].
   ///
   /// A negative [fractionDigits] rounds to tens, hundreds and so on, the same
@@ -495,7 +502,8 @@ enum _Rounding {
   round,
   roundToEven,
   ceil,
-  truncate;
+  truncate,
+  awayFromZero;
 
   /// What to add to the quotient: -1, 0 or 1.
   ///
@@ -517,5 +525,6 @@ enum _Rounding {
         _Rounding.round => atLeastHalf ? sign : 0,
         _Rounding.roundToEven =>
           atLeastHalf && !(exactlyHalf && quotientIsEven) ? sign : 0,
+        _Rounding.awayFromZero => hasRemainder ? sign : 0,
       };
 }

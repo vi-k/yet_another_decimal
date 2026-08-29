@@ -250,6 +250,7 @@ void main() {
         'floor': () => Decimal.one.floor(-huge),
         'ceil': () => Decimal.one.ceil(-huge),
         'truncate': () => Decimal.one.truncate(-huge),
+        'roundAwayFromZero': () => Decimal.one.roundAwayFromZero(-huge),
         'round вверх': () => Decimal.one.round(huge),
         'divide': () =>
             Decimal.one.divide(Decimal(3), scaleOnInfinitePrecision: huge),
@@ -258,6 +259,7 @@ void main() {
         'toStringAsPrecision': () => Decimal.one.toStringAsPrecision(huge),
         'Fraction.round': () => third.round(-huge),
         'Fraction.truncate': () => third.truncate(huge),
+        'Fraction.roundAwayFromZero': () => third.roundAwayFromZero(-huge),
       };
 
       for (final entry in calls.entries) {
@@ -268,6 +270,64 @@ void main() {
       // что просить больше знаков, чем есть, значит ничего не менять.
       expectDecimal(Decimal.parse('1.5').round(1000000), '1.5');
       expectDecimal(Decimal.parse('123.4').round(-1), '120');
+    });
+
+    group('roundAwayFromZero', () {
+      // Зеркало truncate: любой остаток двигает последнюю цифру на шаг от
+      // нуля. Это ROUND_UP в терминах General Decimal Arithmetic — имя,
+      // которое здесь читалось бы как ceil.
+      for (final (source, digits, expected) in <(String, int, String)>[
+        ('2.01', 1, '2.1'),
+        ('-2.01', 1, '-2.1'),
+        ('2.5', 0, '3'),
+        ('-2.5', 0, '-3'),
+        ('2', 0, '2'),
+        ('-2', 0, '-2'),
+        ('0', 2, '0'),
+        ('0.0001', 2, '0.01'),
+        ('-0.0001', 2, '-0.01'),
+        ('1.999', 2, '2'),
+        ('2.10', 1, '2.1'),
+        ('123', -1, '130'),
+        ('-123', -1, '-130'),
+      ]) {
+        test('$source до $digits знаков даёт $expected', () {
+          expectDecimal(
+            Decimal.parse(source).roundAwayFromZero(digits),
+            expected,
+          );
+        });
+      }
+
+      test('дробь округляется тем же правилом', () {
+        expect(
+          Decimal(1)
+              .divideToFraction(Decimal(3))
+              .roundAwayFromZero(2)
+              .toString(),
+          '0.34',
+        );
+        expect(
+          Decimal(-1)
+              .divideToFraction(Decimal(3))
+              .roundAwayFromZero(2)
+              .toString(),
+          '-0.34',
+        );
+      });
+
+      test('исключение деления отвечает тем же правилом', () {
+        expect(
+          () => Decimal(1) / Decimal(3),
+          throwsA(
+            isA<DecimalDivideException>().having(
+              (e) => e.roundAwayFromZero(2).toString(),
+              'roundAwayFromZero(2)',
+              '0.34',
+            ),
+          ),
+        );
+      });
     });
 
     group('roundToEven', () {

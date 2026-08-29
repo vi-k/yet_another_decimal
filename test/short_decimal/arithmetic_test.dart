@@ -458,6 +458,7 @@ void main() {
         'floor': () => ShortDecimal.one.floor(-huge),
         'ceil': () => ShortDecimal.one.ceil(-huge),
         'truncate': () => ShortDecimal.one.truncate(-huge),
+        'roundAwayFromZero': () => ShortDecimal.one.roundAwayFromZero(-huge),
         'round вверх': () => ShortDecimal.one.round(huge),
         'divide': () => ShortDecimal.one
             .divide(ShortDecimal(3), scaleOnInfinitePrecision: huge),
@@ -467,6 +468,7 @@ void main() {
         'toStringAsPrecision': () => ShortDecimal.one.toStringAsPrecision(huge),
         'ShortFraction.round': () => third.round(-huge),
         'ShortFraction.truncate': () => third.truncate(huge),
+        'ShortFraction.roundAwayFromZero': () => third.roundAwayFromZero(-huge),
       };
 
       for (final entry in calls.entries) {
@@ -483,6 +485,75 @@ void main() {
       expectShortDecimal(5.toShortDecimal(), '5');
       expectShortDecimal((-5).toShortDecimal(), '-5');
       expectShortDecimal(100.toShortDecimal(), '100');
+    });
+
+    group('roundAwayFromZero', () {
+      // Зеркало truncate: любой остаток двигает последнюю цифру на шаг от
+      // нуля. Это ROUND_UP в терминах General Decimal Arithmetic — имя,
+      // которое здесь читалось бы как ceil.
+      for (final (source, digits, expected) in <(String, int, String)>[
+        ('2.01', 1, '2.1'),
+        ('-2.01', 1, '-2.1'),
+        ('2.5', 0, '3'),
+        ('-2.5', 0, '-3'),
+        ('2', 0, '2'),
+        ('-2', 0, '-2'),
+        ('0', 2, '0'),
+        ('0.0001', 2, '0.01'),
+        ('-0.0001', 2, '-0.01'),
+        ('1.999', 2, '2'),
+        ('2.10', 1, '2.1'),
+        ('123', -1, '130'),
+        ('-123', -1, '-130'),
+      ]) {
+        test('$source до $digits знаков даёт $expected', () {
+          expectShortDecimal(
+            ShortDecimal.parse(source).roundAwayFromZero(digits),
+            expected,
+          );
+        });
+      }
+
+      test('оба семейства отвечают одинаково', () {
+        for (final source in ['2.01', '-2.01', '2.5', '-0.0001', '1.999']) {
+          expect(
+            ShortDecimal.parse(source).roundAwayFromZero(2).toString(),
+            Decimal.parse(source).roundAwayFromZero(2).toString(),
+            reason: source,
+          );
+        }
+      });
+
+      test('позиция вне досягаемости степени десятки', () {
+        // Делителя 10^25 в int64 нет, и всё число целиком стоит правее
+        // запрошенной позиции: от нуля оно уходит на один шаг этой позиции.
+        expectShortDecimal(
+          ShortDecimal.parse('0.5').roundAwayFromZero(-25),
+          '10000000000000000000000000',
+        );
+        expectShortDecimal(
+          ShortDecimal.parse('-0.5').roundAwayFromZero(-25),
+          '-10000000000000000000000000',
+        );
+        expectShortDecimal(ShortDecimal.zero.roundAwayFromZero(-25), '0');
+      });
+
+      test('дробь и исключение деления отвечают тем же правилом', () {
+        expect(
+          ShortFraction(1, 3).roundAwayFromZero(2).toString(),
+          '0.34',
+        );
+        expect(
+          () => ShortDecimal(1) / ShortDecimal(3),
+          throwsA(
+            isA<ShortDecimalDivideException>().having(
+              (e) => e.roundAwayFromZero(2).toString(),
+              'roundAwayFromZero(2)',
+              '0.34',
+            ),
+          ),
+        );
+      });
     });
 
     group('roundToEven', () {

@@ -86,12 +86,14 @@ print(Decimal.parse('4.50').toStringAsFixed(2)); // 4.50
 
 **Round the way your rules round.** `round` sends a half away from zero,
 `roundToEven` sends it to the even neighbour — the rule accounting asks for, so
-that a column of halves does not lean one way. `floor`, `ceil` and `truncate`
-take a number of digits as well.
+that a column of halves does not lean one way. `roundAwayFromZero` moves the
+last digit out on any remainder at all. `floor`, `ceil` and `truncate` take a
+number of digits as well.
 
 ```dart
-print(Decimal.parse('2.5').round());       // 3
-print(Decimal.parse('2.5').roundToEven()); // 2
+print(Decimal.parse('2.5').round());               // 3
+print(Decimal.parse('2.5').roundToEven());         // 2
+print(Decimal.parse('2.01').roundAwayFromZero(1)); // 2.1
 ```
 
 **Divide in the direction you need.** `divide` rounds to the closest; where the
