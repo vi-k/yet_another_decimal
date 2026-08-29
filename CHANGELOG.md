@@ -108,6 +108,13 @@ touched.
 - Addition and subtraction lost a result whose canonical form fits: the sum of
   `9223372036854775807` and `3` wrapped instead of moving its trailing zero
   into the scale. The same argument that fixed multiplication.
+- `pow` with a negative exponent answered differently for equal values: ten
+  held as `10 × 10^0` refused where the same ten held as `1 × 10^1` did not.
+  It works from the canonical form now.
+- `ShortDecimal.inverse` threw `ArgumentError` from the fraction factory where
+  its own doc promises `UnsupportedError`.
+- Dividing zero by a negative number gave `0.0` in the BigInt family and
+  `-0.0` in the int64 one. Both give `-0.0` now, as plain Dart does.
 - A divide exception could not be printed: `toString` built parts that throw on
   the very values that produced the exception.
 - `divideToFraction` truncated a ratio that has no fraction in int64 instead of

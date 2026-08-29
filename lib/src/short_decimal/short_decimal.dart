@@ -1130,13 +1130,23 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final exponent = scale.abs();
     if (exponent >= 0 && exponent <= _maxPow10Exponent) {
       final power = _pow10(exponent);
+      // Either way the pair can be one no fraction is built from — a base of
+      // `int.min` leaves the denominator nowhere to be positive. That is the
+      // case the doc promises `UnsupportedError` for, so the throw below
+      // answers it rather than the factory with its own kind of complaint.
       if (scale >= 0) {
-        return ShortFraction(power, base);
-      }
-
-      final denominator = _productOrNull(base, power);
-      if (denominator != null) {
-        return ShortFraction(1, denominator);
+        final fraction = ShortFraction._orNull(power, base);
+        if (fraction != null) {
+          return fraction;
+        }
+      } else {
+        final denominator = _productOrNull(base, power);
+        if (denominator != null) {
+          final fraction = ShortFraction._orNull(1, denominator);
+          if (fraction != null) {
+            return fraction;
+          }
+        }
       }
     }
 

@@ -615,8 +615,12 @@ final class Decimal implements FixedPoint<Decimal> {
   @override
   double divideToDouble(Decimal other) {
     final fraction = divideToFraction(other);
+    final result = _ratioToDouble(fraction.numerator, fraction.denominator);
 
-    return _ratioToDouble(fraction.numerator, fraction.denominator);
+    // Zero keeps the sign the division gave it, as it does in plain Dart and
+    // as the int64 family already did: the fraction cannot carry it, because a
+    // reduced `0/-5` is `0/1` and the minus is gone by then.
+    return result == 0 && isZero && other.isNegative ? -result : result;
   }
 
   /// The value of `numerator / denominator` as a [double].
@@ -857,9 +861,15 @@ final class Decimal implements FixedPoint<Decimal> {
   @override
   Decimal pow(int exponent) {
     if (exponent >= 0) {
+      // From the canonical form, so that equal values answer equally: ten held
+      // as `10 × 10^0` needs a power of ten the bound refuses, while the same
+      // ten held as `1 × 10^1` needs none. The packing is free where the form
+      // is canonical already.
+      final it = _requirePacked;
+
       return Decimal._asIs(
-        base.pow(exponent),
-        _scaleTimes(scale, exponent, 'exponent'),
+        it.base.pow(exponent),
+        _scaleTimes(it.scale, exponent, 'exponent'),
       );
     }
 

@@ -536,4 +536,48 @@ void main() {
       }
     });
   });
+
+  group('Д25 равные значения возводятся одинаково', () {
+    test('десятка в отрицательной степени не зависит от формы хранения', () {
+      // Одно и то же значение: 10 × 10^0 и 1 × 10^-1.
+      final raw = Decimal.ten;
+      final packed = Decimal.parse('1e1');
+
+      expect(raw == packed, isTrue);
+      expect(
+        raw.pow(-1000001).debugToString(),
+        packed.pow(-1000001).debugToString(),
+      );
+    });
+  });
+
+  group('Д33 inverse бросает то, что обещает', () {
+    test('минимальное целое даёт UnsupportedError', () {
+      const min = -9223372036854775808;
+
+      expect(
+        () => ShortDecimal(min).inverse,
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+  });
+
+  group('Д36 знак нуля в divideToDouble', () {
+    test('ноль на отрицательное даёт минус ноль в обеих семьях', () {
+      final short = ShortDecimal(0).divideToDouble(ShortDecimal(-5));
+
+      expect(short.isNegative, isTrue);
+      expect(Decimal(0).divideToDouble(Decimal(-5)).isNegative, isTrue);
+
+      // Как обычное деление в Dart, и как было у быстрого пути короткой семьи.
+      expect(Decimal(0).divideToDouble(Decimal(-5)), 0 / -5);
+    });
+
+    test('ноль на положительное остаётся плюс нулём', () {
+      final short = ShortDecimal(0).divideToDouble(ShortDecimal(5));
+
+      expect(short.isNegative, isFalse);
+      expect(Decimal(0).divideToDouble(Decimal(5)).isNegative, isFalse);
+    });
+  });
 }
