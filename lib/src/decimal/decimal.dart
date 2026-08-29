@@ -1188,6 +1188,65 @@ final class Decimal implements FixedPoint<Decimal> {
         'e${exponent.isNegative ? '' : '+'}$exponent';
   }
 
+  /// An engineering representation of this decimal with [fractionDigits]
+  /// digits after the decimal point.
+  ///
+  /// The exponent is a multiple of three, so the mantissa carries one, two or
+  /// three digits before the point — the form an SI prefix is read in.
+  ///
+  /// ```dart
+  /// print(Decimal.parse('12345').toStringAsEngineering(2)); // 12.35e+3
+  /// print(Decimal.parse('0.00001234').toStringAsEngineering(1)); // 12.3e-6
+  /// ```
+  ///
+  /// Like [toStringAsExponential] it rounds the leading digits as digits and
+  /// builds no power of ten, so what it costs does not grow with the scale.
+  /// It refuses at the same two ends of int64, and at one more place: the
+  /// multiple of three below the floor is past it.
+  @override
+  String toStringAsEngineering([int fractionDigits = 0]) {
+    _checkNonNegativeArgument(fractionDigits, 'fractionDigits');
+    _checkDigits(fractionDigits, 'fractionDigits');
+
+    if (isZero) {
+      return '${zero.toStringAsFixed(fractionDigits)}e+0';
+    }
+
+    final digits = _digits;
+    var leading = _scaleMinus(digits.length - 1, scale, 'scale');
+
+    // The mantissa takes as many integer digits as the leading one stands
+    // above the multiple of three below it — one, two or three of them.
+    var mantissaDigits = digits.roundDigits(leading % 3 + 1 + fractionDigits);
+
+    // Rounding can carry into a new power of ten, and there the mantissa is a
+    // one with zeros — however many places the new exponent asks for.
+    if (mantissaDigits.$2) {
+      if (leading == 9223372036854775807) {
+        throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+      }
+
+      leading++;
+      mantissaDigits = ('1', false);
+    }
+
+    final offset = leading % 3;
+    // The floor of int64 is not a multiple of three, so the last two exponents
+    // above it have no engineering form to be written in.
+    if (leading < -9223372036854775808 + offset) {
+      throw ArgumentError.value(scale, 'scale', _scaleOutOfRange);
+    }
+
+    final exponent = leading - offset;
+    final padded = mantissaDigits.$1.padRight(offset + 1 + fractionDigits, '0');
+    final mantissa = fractionDigits == 0
+        ? padded
+        : '${padded.substring(0, offset + 1)}.${padded.substring(offset + 1)}';
+
+    return '${isNegative ? '-' : ''}$mantissa'
+        'e${exponent.isNegative ? '' : '+'}$exponent';
+  }
+
   /// A representation of this decimal with [precision] significant digits.
   ///
   /// ```dart

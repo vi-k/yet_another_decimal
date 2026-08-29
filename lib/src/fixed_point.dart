@@ -159,6 +159,9 @@ abstract interface class FixedPoint<T extends FixedPoint<T>>
   /// An exponential string with [fractionDigits] digits after the point.
   String toStringAsExponential([int fractionDigits]);
 
+  /// An engineering string, the exponent a multiple of three.
+  String toStringAsEngineering([int fractionDigits]);
+
   /// A string with [precision] significant digits.
   String toStringAsPrecision(int precision);
 }

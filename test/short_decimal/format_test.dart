@@ -549,6 +549,60 @@ void main() {
       });
     });
 
+    group('toStringAsEngineering', () {
+      for (final (source, digits, expected) in [
+        ('0', 0, '0e+0'),
+        ('0', 2, '0.00e+0'),
+        ('1', 0, '1e+0'),
+        ('1', 3, '1.000e+0'),
+        ('1000', 0, '1e+3'),
+        ('12345', 2, '12.35e+3'),
+        ('-12345', 2, '-12.35e+3'),
+        ('123456789', 0, '123e+6'),
+        ('1e4', 2, '10.00e+3'),
+        ('0.5', 2, '500.00e-3'),
+        ('-0.5', 0, '-500e-3'),
+        ('0.000001', 3, '1.000e-6'),
+        ('0.00001234', 1, '12.3e-6'),
+        // Перенос при округлении: 999.99 к одному знаку — это тысяча.
+        ('999.99', 1, '1.0e+3'),
+      ]) {
+        test('$source с $digits знаками даёт $expected', () {
+          expect(
+            ShortDecimal.parse(source).toStringAsEngineering(digits),
+            expected,
+          );
+        });
+      }
+
+      test('отрицательный аргумент не принимается', () {
+        expect(
+          () => ShortDecimal.parse('1').toStringAsEngineering(-1),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('у дна показателя кратного трём под ним нет', () {
+        const max = 9223372036854775807;
+
+        // Показатель ведущей цифры здесь -(2^63-1), а ближайшее кратное трём
+        // снизу — уже за int64.
+        expect(
+          () => ShortDecimal(1, shiftRight: max).toStringAsEngineering(2),
+          throwsArgumentError,
+        );
+      });
+
+      test('у потолка показателя переносу некуда идти', () {
+        const max = 9223372036854775807;
+
+        expect(
+          (ShortDecimal(999) << (max - 2)).toStringAsEngineering,
+          throwsArgumentError,
+        );
+      });
+    });
+
     group('toStringAsPrecision', () {
       for (final (source, precision, expected) in [
         ('0', 1, '0'),

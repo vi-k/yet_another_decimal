@@ -33,6 +33,10 @@ under Changed.
   throws and stays the fast form for the case where the division is known to be
   exact.
 - Exponential notation in `parse` and `tryParse`: `Decimal.parse('1.5e21')`.
+- `toStringAsEngineering` in both families: an exponential form whose exponent
+  is a multiple of three, so the mantissa carries one, two or three digits
+  before the point — the form an SI prefix is read in.
+  `Decimal.parse('12345').toStringAsEngineering(2)` is `12.35e+3`.
 - `toStringAsExponential` and `toStringAsPrecision` in both families. They used
   to throw `UnimplementedError` in `Decimal` and were absent from
   `ShortDecimal`.
