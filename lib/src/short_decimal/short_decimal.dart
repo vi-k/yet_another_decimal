@@ -1195,10 +1195,24 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
     return reciprocal?._powOrNull(-exponent) ??
         (throw UnsupportedError(
-          'The result of $this to the power of $exponent has no'
+          'The result of $_named to the power of $exponent has no'
           ' $ShortDecimal form',
         ));
   }
+
+  /// This decimal named for a refusal, without writing it out in full.
+  ///
+  /// A refusal must not cost more than the operation it refuses. Interpolating
+  /// the decimal itself spells out the positional form, and nothing bounds the
+  /// scale but int64: `ShortDecimal(3, shiftRight: 224944935700986765)` asked
+  /// for 2.2e17 bytes and came back `OutOfMemoryError` where the doc promises
+  /// `UnsupportedError` — to a caller who caught the refusal and never printed
+  /// it. The two ints name the same number and cost nothing.
+  ///
+  /// Printing the number is still the caller's to ask for, and
+  /// [ShortDecimalDivideException] does write its pair out: there the string
+  /// is built when the exception is printed, not when it is raised.
+  String get _named => '$base at scale $scale';
 
   /// This decimal to a non-negative [exponent], or null past int64.
   ///
@@ -1298,7 +1312,9 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       }
     }
 
-    throw UnsupportedError('The inverse of $this has no fraction in int64');
+    throw UnsupportedError(
+      'The inverse of $_named has no fraction in int64',
+    );
   }
 
   /// A JSON representation of this decimal: the string [toString] returns.
@@ -1623,10 +1639,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// print(ShortDecimal.parse('0.05').toStringAsPrecision(3)); // 0.0500
   /// ```
   ///
-  /// Unlike [toStringAsExponential] this one writes the number out in full, and
-  /// the digits it needs after the point are a number of digits like any other
-  /// here: past a million of them it refuses. The digits before the point are
-  /// the number's own and are not bounded — [toString] writes them too.
+  /// Unlike [toStringAsExponential] this one writes the number out in full, so
+  /// what it asks for is a position to round at — and a position is a number
+  /// of digits like any other here: past a million of them, on either side of
+  /// the point, it refuses. The digits the number already carries are not
+  /// counted: [toString] writes them all, however many there are.
   @override
   String toStringAsPrecision(int precision) {
     if (precision <= 0) {
@@ -1656,18 +1673,30 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       exponent++;
     }
 
-    // Unlike the exponential form this one writes the number out in full, and
-    // that is a count of digits like any other the caller asks for: past the
-    // million there is nothing to give back. The bound is checked before the
-    // count is worked out, because the count itself wraps at the far ends of
-    // the scale — and the wrapped number used to come back named as the
-    // argument the caller passed.
-    if (exponent < precision - 1 - maxDecimalExponent ||
-        exponent > precision - 1 + maxDecimalExponent) {
+    // Unlike the exponential form this one writes the number out in full, so
+    // the position it rounds at is a count of digits like any other the caller
+    // asks for: past the million there is nothing to give back. The bound is
+    // checked before the count is worked out, because the count itself wraps
+    // at the far ends of the scale — and the wrapped number used to come back
+    // named as the argument the caller passed.
+    //
+    // Both sides are bounded and each says which side it is: the position runs
+    // away from the point in either direction, and a power of ten that far off
+    // is the same number to build whichever way it went.
+    if (exponent < precision - 1 - maxDecimalExponent) {
       throw DecimalDigitsOutOfRangeError(
         precision,
         'precision',
         'The number would need more than a million digits after the point',
+      );
+    }
+
+    if (exponent > precision - 1 + maxDecimalExponent) {
+      throw DecimalDigitsOutOfRangeError(
+        precision,
+        'precision',
+        'The number would be rounded more than a million digits before the'
+            ' point',
       );
     }
 

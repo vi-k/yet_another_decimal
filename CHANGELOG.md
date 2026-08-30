@@ -129,8 +129,11 @@ touched.
   argument the caller never passed: `1e-1000000` to two digits asked for a
   million and two of them. The leading digits are rounded as digits now, so no
   power of ten is built at all — which also takes the cost of the notation off
-  the size of the number. `toStringAsPrecision` writes a number out in full and
-  still holds to a million digits, but says so in terms of `precision`.
+  the size of the number. `toStringAsPrecision` writes a number out in full, so
+  what it holds to a million is the position it rounds at — a million digits
+  after the point, and a million before it — and the refusal says which of the
+  two it is. The digits the number already carries are not counted: `toString`
+  writes them all.
 - Rounding at a position the scale is further than int64 from raised a
   `RangeError` from a table of powers, in every rounding mode and in both
   families: `Decimal(1, shiftRight: 9223372036854775807).round(-1)`. The BigInt

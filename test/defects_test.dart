@@ -1036,4 +1036,112 @@ void main() {
       }
     });
   });
+
+  group('Д46 отказ pow не разворачивает получателя в строку', () {
+    test('масштаб, на котором позиционная запись не помещается в память', () {
+      // Отказ строится из base и scale. Раньше он интерполировал само число,
+      // и его позиционная запись просила 2,2·10^17 байт: вызывающий, который
+      // исключение ловит и не печатает, получал OutOfMemoryError вместо
+      // обещанного UnsupportedError.
+      expect(
+        () => ShortDecimal(3, shiftRight: 224944935700986765).pow(-41),
+        throwsUnsupportedError,
+      );
+
+      // Тот же приём в inverse — второе место, где отказ называл получателя.
+      expect(
+        () => ShortDecimal(3, shiftRight: 224944935700986765).inverse,
+        throwsUnsupportedError,
+      );
+    });
+
+    test('и сообщение остаётся коротким на любом масштабе', () {
+      for (final call in <void Function()>[
+        () => ShortDecimal(3, shiftRight: 2000000).pow(-41),
+        () => ShortDecimal(3, shiftRight: 2000000).inverse,
+      ]) {
+        expect(
+          call,
+          throwsA(
+            isA<UnsupportedError>().having(
+              (e) => e.message?.length ?? 0,
+              'message length',
+              lessThan(100),
+            ),
+          ),
+        );
+      }
+    });
+
+    test('получатель в сообщении назван парой', () {
+      expect(
+        () => ShortDecimal(3, shiftRight: 100).pow(-41),
+        throwsA(
+          isA<UnsupportedError>().having(
+            (e) => e.message,
+            'message',
+            'The result of 3 at scale 100 to the power of -41 has no'
+                ' $ShortDecimal form',
+          ),
+        ),
+      );
+    });
+  });
+
+  group('Д47 обе стороны границы toStringAsPrecision названы своим', () {
+    test('граница проходит по позиции округления, а не по числу', () {
+      // Ограничена позиция, считаемая от точки: при precision 1 она равна
+      // показателю ведущей цифры. Миллион — последняя допустимая.
+      expect(
+        (Decimal.one << 1000000).toStringAsPrecision(1).length,
+        1000001,
+      );
+      expect(
+        (ShortDecimal.one << 1000000).toStringAsPrecision(1).length,
+        1000001,
+      );
+    });
+
+    test('отказ слева от точки говорит про то, что проверяет', () {
+      // Знаков после точки у этого числа нет вовсе, и прежний текст про них
+      // был неправдой; ограничена позиция округления.
+      for (final call in <String Function()>[
+        () => (Decimal.one << 1000001).toStringAsPrecision(1),
+        () => (ShortDecimal.one << 1000001).toStringAsPrecision(1),
+      ]) {
+        expect(
+          call,
+          throwsA(
+            isA<DecimalDigitsOutOfRangeError>()
+                .having((e) => e.name, 'name', 'precision')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'The number would be rounded more than a million digits'
+                      ' before the point',
+                ),
+          ),
+        );
+      }
+    });
+
+    test('справа от точки текст прежний', () {
+      for (final call in <String Function()>[
+        () => Decimal.parse('1e-1000000').toStringAsPrecision(3),
+        () => ShortDecimal.parse('1e-1000000').toStringAsPrecision(3),
+      ]) {
+        expect(
+          call,
+          throwsA(
+            isA<DecimalDigitsOutOfRangeError>().having(
+              (e) => e.message,
+              'message',
+              'The number would need more than a million digits'
+                  ' after the point',
+            ),
+          ),
+        );
+      }
+    });
+  });
 }
