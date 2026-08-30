@@ -262,6 +262,13 @@ touched.
 
 ### Performance
 
+Multiplication on `ShortDecimal` clears the common case with four integer
+comparisons before it asks anything else: two values under 2^31 cannot make a
+product that leaves int64, and the check that follows — an approximate product
+in `double` — is a chain three operations long that every multiplication would
+otherwise wait on. Worth about a fifth of the operation. The check itself
+stays: it is what keeps `2^62 * 5` from wrapping.
+
 Rounding on `ShortDecimal` is a third faster than it was a version ago — `round`
 and its five siblings hand their rules to the shared road as static functions
 rather than as closures over the value, and a closure is an object built on

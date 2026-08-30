@@ -375,10 +375,23 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final a = base;
     final b = other.base;
 
-    // The approximate product decides the common case: a double is off by a
-    // part in 2^52 at worst, which against the gap between the threshold and
-    // int.max — more than 2·10^17 — is nothing. Everything close to the
-    // boundary goes the careful way, where the check costs a division.
+    // Both sides under 2^31 make a product under 2^62, and nothing below needs
+    // asking about them. Four comparisons that do not depend on one another,
+    // against a chain of two conversions, a multiplication and a comparison in
+    // double — and it is the chain that costs, because multiplications run one
+    // after another and each waits for the one before it. A fifth of the
+    // operation, measured; what the test does not clear goes on as it did.
+    if (a > -2147483648 &&
+        a < 2147483648 &&
+        b > -2147483648 &&
+        b < 2147483648) {
+      return ShortDecimal._pack(a * b, scale + other.scale);
+    }
+
+    // The approximate product decides the rest: a double is off by a part in
+    // 2^52 at worst, which against the gap between the threshold and int.max —
+    // more than 2·10^17 — is nothing. Everything close to the boundary goes the
+    // careful way, where the check costs a division.
     final approximate = a.toDouble() * b.toDouble();
 
     return approximate > -_productThreshold && approximate < _productThreshold
