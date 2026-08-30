@@ -278,11 +278,11 @@ in `double` — is a chain three operations long that every multiplication would
 otherwise wait on. Worth about a fifth of the operation. The check itself
 stays: it is what keeps `2^62 * 5` from wrapping.
 
-Rounding on `ShortDecimal` is a third faster than it was a version ago — `round`
-and its five siblings hand their rules to the shared road as static functions
-rather than as closures over the value, and a closure is an object built on
-every call. `toStringAsFixed`, which rounds on the way, is a tenth faster with
-it.
+Rounding on `ShortDecimal` is a quarter faster than it was a version ago —
+`round` and its five siblings hand their rules to the shared road as static
+functions rather than as closures over the value, and a closure is an object
+built on every call. `toStringAsFixed`, which rounds on the way, is a tenth
+faster with it.
 
 Addition and subtraction are a tenth faster on `Decimal`, and a fifth where the
 two scales already match: the alignment is written out in the operators instead
