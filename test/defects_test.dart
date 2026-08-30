@@ -1144,4 +1144,240 @@ void main() {
       }
     });
   });
+  group('Д48 округление к большому числу знаков не идёт по одной цифре', () {
+    test('миллион знаков считается, а не крутит миллион делений', () {
+      final stopwatch = Stopwatch()..start();
+
+      // Ответ всегда умещается в девятнадцать цифр: масштаб спускается до
+      // представимого. Спуск по одной цифре делал это миллион раз, каждый раз
+      // заново деля число в миллион цифр.
+      expect(ShortFraction(1, 3).round(1000000).toString().length, 21);
+      expect(
+        ShortDecimal.one
+            .divide(ShortDecimal(3), scaleOnInfinitePrecision: 1000000)
+            .toString()
+            .length,
+        21,
+      );
+
+      // Порог с запасом: на десяти тысячах знаков спуск занимал секунду, на
+      // ста тысячах не кончался за двадцать.
+      expect(stopwatch.elapsedMilliseconds, lessThan(20000));
+    });
+
+    test('и ответ тот же, что на числе знаков поменьше', () {
+      for (final digits in [20, 100, 1000, 10000]) {
+        expect(
+          ShortFraction(1, 3).round(digits).toString(),
+          ShortFraction(1, 3).round(20).toString(),
+          reason: 'знаков: $digits',
+        );
+      }
+    });
+  });
+
+  group('Д49 разрыв масштабов не строит степень десятки', () {
+    // Десять миллионов: старая дорога строила число в десять миллионов цифр и
+    // не возвращалась.
+    final a = ShortDecimal(1, shiftRight: 10000000);
+    final b = ShortDecimal(3);
+
+    test('целое деление, остаток и модуль отвечают сразу', () {
+      final stopwatch = Stopwatch()..start();
+
+      expect(a ~/ b, 0);
+      expect(a % b, a);
+      expect(a.remainder(b), a);
+      expect(a.divideWithRemainder(b).quotient, 0);
+      expect(a.divideWithRemainder(b).remainder, a);
+      expect(a.compareTo(b), -1);
+
+      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+    });
+
+    test('за миллионом отказ, где короткого пути нет', () {
+      // Дробь такой пары в int64 не существует, и знать это без степени
+      // десятки нельзя: отказ приходит оттуда же, откуда у старшей семьи, —
+      // степень за миллионной границей.
+      expect(
+        () => a.divideToFraction(b),
+        throwsA(isA<DecimalDigitsOutOfRangeError>()),
+      );
+
+      // Модуль отрицательного: евклидов ответ — это делимое плюс делитель, а
+      // делитель и есть число, которое не помещается.
+      expect(
+        () => (-a) % b,
+        throwsA(isA<DecimalDigitsOutOfRangeError>()),
+      );
+    });
+
+    test('разрыв в пределах миллиона считается прежней дорогой', () {
+      // Оба масштаба за миллионом, а разрыв между ними нулевой: короткий путь
+      // не берётся, и пара выравнивается как раньше.
+      final wide = ShortDecimal(1, shiftRight: 1500000);
+      final other = ShortDecimal(3, shiftRight: 1500000);
+
+      expect(
+        wide.divide(other, scaleOnInfinitePrecision: 4).toString(),
+        '0.3333',
+      );
+      expect(wide ~/ other, 0);
+    });
+
+    test('деление с числом знаков округляется в ноль', () {
+      final stopwatch = Stopwatch()..start();
+
+      expect(
+        a.divide(b, scaleOnInfinitePrecision: 0),
+        ShortDecimal.zero,
+      );
+      expect(
+        a.divide(b, scaleOnInfinitePrecision: 1000000),
+        ShortDecimal.zero,
+      );
+
+      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+    });
+
+    test('исключение деления отвечает всеми шестью округлениями', () {
+      final stopwatch = Stopwatch()..start();
+
+      // Значение — крошечное положительное число, поэтому вниз ноль, а вверх
+      // единица последнего разряда.
+      expect(
+        () => a / b,
+        throwsA(
+          isA<ShortDecimalDivideException>()
+              .having((e) => e.round(), 'round', ShortDecimal.zero)
+              .having((e) => e.floor(), 'floor', ShortDecimal.zero)
+              .having((e) => e.truncate(), 'truncate', ShortDecimal.zero)
+              .having((e) => e.roundToEven(), 'roundToEven', ShortDecimal.zero)
+              .having((e) => e.ceil(), 'ceil', ShortDecimal.one)
+              .having(
+                (e) => e.roundAwayFromZero(),
+                'roundAwayFromZero',
+                ShortDecimal.one,
+              ),
+        ),
+      );
+
+      expect(stopwatch.elapsedMilliseconds, lessThan(1000));
+    });
+  });
+
+  group('Д50 pow(int.min) на основаниях, где ответ известен', () {
+    const min = -9223372036854775808;
+
+    test('единица и минус единица отвечают, ноль отказывает делением', () {
+      // int.min чётен, поэтому обе единицы дают единицу.
+      expect(Decimal.one.pow(min).toString(), '1');
+      expect(Decimal(-1).pow(min).toString(), '1');
+      expect(ShortDecimal.one.pow(min).toString(), '1');
+      expect(ShortDecimal(-1).pow(min).toString(), '1');
+
+      // У нуля обратного нет, и отказ об этом и говорит.
+      expect(() => Decimal.zero.pow(min), throwsUnsupportedError);
+      expect(() => ShortDecimal.zero.pow(min), throwsUnsupportedError);
+    });
+
+    test('на остальных основаниях отказ прежний', () {
+      expect(() => Decimal(2).pow(min), throwsArgumentError);
+      expect(() => ShortDecimal(2).pow(min), throwsArgumentError);
+    });
+  });
+
+  group('Д51 обход через обратное основание при переполнении масштаба', () {
+    // Масштаб положительной степени выходит из int64 — 2^62 умножить на два, —
+    // а канонический ответ помещается: обратная величина основания несёт
+    // масштаб в другую сторону.
+    const scale = 4611686018427387904;
+    const answerScale = -9223372036854775806;
+
+    test('обе семьи отвечают одинаково', () {
+      final big = Decimal(5, shiftRight: scale).pow(-2);
+      final short = ShortDecimal(5, shiftRight: scale).pow(-2);
+
+      expect(big.base, BigInt.from(4));
+      expect(big.scale, answerScale);
+      expect(short.base, 4);
+      expect(short.scale, answerScale);
+    });
+
+    test('а без обратной величины отказ остаётся', () {
+      // У тройки конечной обратной величины нет, и обходить нечем.
+      expect(
+        () => ShortDecimal(3, shiftRight: scale).pow(-2),
+        throwsUnsupportedError,
+      );
+
+      // Положительная степень того же основания отказывает как прежде:
+      // обходить там нечего, масштаб и есть ответ.
+      expect(
+        () => Decimal(5, shiftRight: scale).pow(2),
+        throwsA(isA<ScaleOutOfRangeError>()),
+      );
+    });
+  });
+
+  group('Д52 разрыв масштабов не заворачивается', () {
+    const max = 9223372036854775807;
+    // Разрыв здесь `int.max + 1` — он из int64 выходит, и заворот уходил
+    // отрицательным индексом в таблицу степеней.
+    final a = ShortDecimal(1, shiftRight: max);
+    const b = ShortDecimal.ten;
+
+    test('сравнение отвечает, а не падает', () {
+      expect(a.compareTo(b), -1);
+      expect(a < b, isTrue);
+      expect(a == b, isFalse);
+      expect(b.compareTo(a), 1);
+    });
+
+    test('целое деление, модуль и остаток отвечают', () {
+      expect(a ~/ b, 0);
+      expect(a % b, a);
+      expect(a.remainder(b), a);
+      expect(a.divideWithRemainder(b).quotient, 0);
+      expect(a.divideWithRemainder(b).remainder, a);
+      expect((-a).remainder(b), -a);
+    });
+
+    test('сложение и вычитание отвечают по своему правилу', () {
+      // Точный ответ непредставим, и молчаливое переполнение здесь — правило
+      // семьи. Проверяется, что оно и происходит, а не падение.
+      expect((a + b).scale, max);
+      expect((a - b).scale, max);
+    });
+  });
+
+  group('Д53 ноль округляется в ноль на любом масштабе', () {
+    // Старшая семья держит ноль ненормализованным, короткая канонизирует его.
+    final big = Decimal(0, shiftRight: 9000000000000000000);
+    final short = ShortDecimal(0, shiftRight: 9000000000000000000);
+
+    test('обе семьи отвечают нулём во всех шести режимах', () {
+      expect(big.isZero, isTrue);
+      expect(big.scale, 9000000000000000000);
+
+      for (final digits in [-21, 0, 21]) {
+        expect(big.round(digits).toString(), '0', reason: 'знаков: $digits');
+        expect(big.floor(digits).toString(), '0', reason: 'знаков: $digits');
+        expect(big.ceil(digits).toString(), '0', reason: 'знаков: $digits');
+        expect(big.truncate(digits).toString(), '0', reason: 'знаков: $digits');
+        expect(
+          big.roundToEven(digits).toString(),
+          '0',
+          reason: 'знаков: $digits',
+        );
+        expect(
+          big.roundAwayFromZero(digits).toString(),
+          '0',
+          reason: 'знаков: $digits',
+        );
+
+        expect(short.round(digits).toString(), '0', reason: 'знаков: $digits');
+      }
+    });
+  });
 }

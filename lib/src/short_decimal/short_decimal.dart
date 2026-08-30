@@ -441,17 +441,24 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   }
 
   /// The scale repeated [by] times, with the same refusal.
-  static int _scaleTimes(int scale, int by, String name) {
+  static int _scaleTimes(int scale, int by, String name) =>
+      _scaleTimesOrNull(scale, by) ?? (throw ScaleOutOfRangeError(by, name));
+
+  /// The same, null where it leaves int64.
+  ///
+  /// For the caller that has a second road to try. `pow` with a negative
+  /// exponent has one: where the scale of the positive power leaves int64,
+  /// the reciprocal of the base carries the scale the other way and its power
+  /// may still fit — `5e-2^62` to the minus second is four at a scale int64
+  /// holds, while five squared at that scale is not.
+  static int? _scaleTimesOrNull(int scale, int by) {
     if (scale == 0 || by == 0) {
       return 0;
     }
 
     final result = scale * by;
-    if (result ~/ by != scale) {
-      throw ScaleOutOfRangeError(by, name);
-    }
 
-    return result;
+    return result ~/ by == scale ? result : null;
   }
 
   static const _minScale = -9223372036854775808;
@@ -736,6 +743,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       );
     }
 
+    // Past a gap of eighteen the dividend is smaller in magnitude than the
+    // divisor; twenty past the digits asked for it is smaller than half of the
+    // last of them, and the rounded answer is nothing. Said here rather than
+    // found out by building the power: a scale of a million and a half asked
+    // for a number of that many digits to answer zero.
+    final gap = _scaleGap(other);
+    if (gap > _maxPow10Exponent && gap - 20 >= fractionDigits) {
+      return ShortDecimal._pack(0, fractionDigits);
+    }
+
     // Past the power of ten anyone can hold, the aligned pair is the old road
     // and it reaches the same answer. The pair is rounded as it is, without
     // being made into a fraction first: getting here means the scales are a
@@ -779,6 +796,15 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       final (a, b, _) = aligned;
 
       return a ~/ b;
+    }
+
+    // A gap wider than eighteen settles this without a power of ten: the side
+    // being scaled up is never zero here — [_scaledOrNull] answers a zero
+    // without looking at the exponent at all — so ten to the nineteenth makes
+    // it larger in magnitude than any int64 the other side holds. Truncating
+    // the smaller by the larger gives nothing.
+    if (_scaleGap(other) > _maxPow10Exponent) {
+      return 0;
     }
 
     final (a, b, _) = _alignExactly(other);
@@ -885,6 +911,14 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return ShortDecimal._pack(a % b, scale);
     }
 
+    // See [operator ~/]: past that gap this is smaller in magnitude than the
+    // divisor, so the whole of it is the remainder. Only where it is not
+    // negative, though — there the euclidean answer is this plus the divisor,
+    // and the divisor is the number that would not fit.
+    if (!isNegative && _scaleGap(other) > _maxPow10Exponent) {
+      return this;
+    }
+
     final (a, b, scale) = _alignExactly(other);
 
     return ShortDecimal._pack((a % b).toInt(), scale);
@@ -908,6 +942,12 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       final (a, b, scale) = aligned;
 
       return ShortDecimal._pack(a.remainder(b), scale);
+    }
+
+    // See [operator ~/]. This remainder carries the sign of the dividend, so
+    // the whole of the dividend is the answer whichever side of zero it is on.
+    if (_scaleGap(other) > _maxPow10Exponent) {
+      return this;
     }
 
     final (a, b, scale) = _alignExactly(other);
@@ -1166,6 +1206,22 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       );
     }
 
+    // Three bases reach an answer without a positive counterpart to raise to,
+    // and that is what takes them past the refusal below: one and minus one
+    // are their own reciprocals, and zero has none at all. `_powOrNull` skips
+    // the loop for the same three; here they skip the minimum integer, whose
+    // power they do not depend on.
+    switch (base) {
+      case 0:
+        throw UnsupportedError('division by zero');
+      case 1:
+      case -1:
+        return ShortDecimal._pack(
+          base == 1 || exponent.isEven ? 1 : -1,
+          _scaleTimes(scale, exponent, 'exponent'),
+        );
+    }
+
     // The minimum integer has no positive counterpart to raise to.
     if (exponent == -exponent) {
       throw ArgumentError.value(exponent, 'exponent', 'The value is too small');
@@ -1216,23 +1272,28 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// This decimal to a non-negative [exponent], or null past int64.
   ///
-  /// The scale is checked the way [pow] checks it; only the base can come back
-  /// missing. Squaring is not worth it: a base of two or more in magnitude is
-  /// gone by the sixty-fourth step — `(-2) ^ 63` is the last one that fits,
-  /// and it fits exactly — so the loop never runs longer than that. The three
-  /// bases the loop would run to the end for answer without it.
+  /// Squaring is not worth it: a base of two or more in magnitude is gone by
+  /// the sixty-fourth step — `(-2) ^ 63` is the last one that fits, and it
+  /// fits exactly — so the loop never runs longer than that. The three bases
+  /// it would run to the end for do not arrive: [pow] answers them itself,
+  /// before either of its two calls here.
   ShortDecimal? _powOrNull(int exponent) {
     assert(exponent > 0, 'A zeroth power does not come from `pow`');
-    final scale = _scaleTimes(this.scale, exponent, 'exponent');
 
-    switch (base) {
-      case 0:
-        return ShortDecimal._pack(0, scale);
-      case 1:
-        return ShortDecimal._pack(1, scale);
-      case -1:
-        return ShortDecimal._pack(exponent.isEven ? 1 : -1, scale);
+    // Null rather than a refusal, for the same reason the base gives one: the
+    // caller has the reciprocal to try, and its scale runs the other way.
+    final scale = _scaleTimesOrNull(this.scale, exponent);
+    if (scale == null) {
+      return null;
     }
+
+    // Zero, one and minus one answer in [pow]: the first call here comes after
+    // that answer, and the second comes on a reciprocal, whose base is one of
+    // the three only when this one was.
+    assert(
+      base != 0 && base != 1 && base != -1,
+      'A base whose power does not depend on the exponent is answered in `pow`',
+    );
 
     if (exponent >= 64) {
       return null;
@@ -1874,9 +1935,55 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return base.compareTo(other.base).sign;
     }
 
-    return as > bs
-        ? _compareScaled(base, other.base, as - bs)
-        : -_compareScaled(other.base, base, bs - as);
+    // The saturation of [_scaleGap] written out rather than called: comparison
+    // is on the hot path, and a call around two operations is not inlined —
+    // the same reason the overflow check sits inside `operator *`. A gap taken
+    // in the direction it grows comes back negative only when it left int64,
+    // and a gap that wide is past every threshold [_compareScaled] has.
+    if (as > bs) {
+      final gap = as - bs;
+
+      return _compareScaled(
+        base,
+        other.base,
+        gap < 0 ? 9223372036854775807 : gap,
+      );
+    }
+
+    final gap = bs - as;
+
+    return -_compareScaled(
+      other.base,
+      base,
+      gap < 0 ? 9223372036854775807 : gap,
+    );
+  }
+
+  /// The distance from this scale to [other]'s, saturated where the
+  /// subtraction leaves int64.
+  ///
+  /// `int.max - (-1)` wraps to the minimum integer, and the wrapped number
+  /// went on to index the table of powers: every operation that aligns fell
+  /// over with a `RangeError`, `operator ==` among them. A gap that wide is
+  /// past every threshold this family has, so the saturated one answers the
+  /// same question the exact one would. It saturates to plus or minus
+  /// `int.max` rather than to `int.min`, so that negating it is safe.
+  int _scaleGap(ShortDecimal other) {
+    final as = scale;
+    final bs = other.scale;
+    final gap = as - bs;
+
+    if ((as ^ bs) < 0 && (gap ^ as) < 0) {
+      return as.isNegative ? -9223372036854775807 : 9223372036854775807;
+    }
+
+    // The floor of int64 is a gap the subtraction reaches without overflowing
+    // — a scale of minus one against one at the ceiling — and every reader
+    // here negates the gap to look at it the other way round. Negating the
+    // floor gives the floor back, and the negative that came out of it indexed
+    // the table of powers. One short of the floor is past every threshold in
+    // this file just the same.
+    return gap == -9223372036854775808 ? -9223372036854775807 : gap;
   }
 
   /// The two bases brought to a common scale, or null when the shift itself
@@ -1887,22 +1994,21 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// which is the one that was not going to move the answer. Where the answer
   /// is still representable, callers fall back to [_alignExactly].
   (int, int, int)? _alignOrNull(ShortDecimal other) {
-    final as = scale;
-    final bs = other.scale;
+    final gap = _scaleGap(other);
 
-    if (as == bs) {
-      return (base, other.base, as);
+    if (gap == 0) {
+      return (base, other.base, scale);
     }
 
-    if (as > bs) {
-      final scaled = _scaledOrNull(other.base, as - bs);
+    if (gap > 0) {
+      final scaled = _scaledOrNull(other.base, gap);
 
-      return scaled == null ? null : (base, scaled, as);
+      return scaled == null ? null : (base, scaled, scale);
     }
 
-    final scaled = _scaledOrNull(base, bs - as);
+    final scaled = _scaledOrNull(base, -gap);
 
-    return scaled == null ? null : (scaled, other.base, bs);
+    return scaled == null ? null : (scaled, other.base, other.scale);
   }
 
   /// The same pair in `BigInt`, where the shift cannot overflow.
@@ -1912,18 +2018,43 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// alignment often does not: `2e19 ~/ 4` is `5e18`, and int64 holds it with
   /// room to spare.
   (BigInt, BigInt, int) _alignExactly(ShortDecimal other) {
-    final as = scale;
-    final bs = other.scale;
+    final gap = _scaleGap(other);
     final a = BigInt.from(base);
     final b = BigInt.from(other.base);
 
-    if (as == bs) {
-      return (a, b, as);
+    if (gap == 0) {
+      return (a, b, scale);
     }
 
-    return as > bs
-        ? (a, b * _bigInt10.pow(as - bs), as)
-        : (a * _bigInt10.pow(bs - as), b, bs);
+    return gap > 0
+        ? (a, b * _bigInt10Power(gap), scale)
+        : (a * _bigInt10Power(-gap), b, other.scale);
+  }
+
+  /// Ten to [exponent] in `BigInt`, held to the bound the package holds
+  /// everywhere else.
+  ///
+  /// The second place in the package that builds a power of ten, and the only
+  /// one that had no bound: a scale gap of ten million asked for a number of
+  /// ten million digits and the operation never came back. The BigInt family
+  /// refuses the same gap on the same operations, and refuses it at this same
+  /// million — `Decimal(1, shiftRight: 1000001) % Decimal(3)` always has. Now
+  /// the two families agree; below the bound nothing changes.
+  ///
+  /// The gaps that carry an answer do not come here at all: past eighteen the
+  /// side being scaled up is larger than any int64 the other side holds, and
+  /// the operations that only need to know which side is larger say so
+  /// themselves.
+  static BigInt _bigInt10Power(int exponent) {
+    if (exponent > maxDecimalExponent) {
+      throw DecimalDigitsOutOfRangeError(
+        exponent,
+        'exponent',
+        'Ten to this power is a number too large to build',
+      );
+    }
+
+    return _bigInt10.pow(exponent);
   }
 
   (int, int, int) _align(ShortDecimal other) {
@@ -1934,11 +2065,22 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return (base, other.base, as);
     }
 
+    // Written out rather than called, like the check in `operator *`: this is
+    // the alignment addition and subtraction take, and they are the hottest
+    // thing in the family. Two gaps get no power of ten built for them — the
+    // one that wrapped, which comes back negative, and the one past the
+    // sixty-fourth power. Both multiply by nothing: ten to the n carries two
+    // to the n, and past the sixty-fourth that leaves nothing in int64. The
+    // wrapping did the same before, only slower and by accident.
     if (as > bs) {
-      return (base, other.base * _pow10(as - bs), as);
+      final gap = as - bs;
+
+      return (base, other.base * (gap < 0 || gap > 63 ? 0 : _pow10(gap)), as);
     }
 
-    return (base * _pow10(bs - as), other.base, bs);
+    final gap = bs - as;
+
+    return (base * (gap < 0 || gap > 63 ? 0 : _pow10(gap)), other.base, bs);
   }
 
   ShortDecimal _dropFraction(
@@ -2067,6 +2209,28 @@ final class ShortDecimalDivideException implements Exception {
   /// [ShortDecimal.divide] takes for the same case.
   ShortDecimal _rounded(int fractionDigits, _Rounding rounding) {
     ShortDecimal._checkDigits(fractionDigits, 'fractionDigits');
+
+    // The same short road [ShortDecimal.divide] takes, and for the same
+    // reason: past that gap the exact result is smaller in magnitude than half
+    // the last digit asked for, so the quotient is nothing and only the rule
+    // of the mode can move it — a floor takes it to minus one of the last
+    // digit, a ceiling to one. Found out from the scales, without building a
+    // power of ten of the width of the gap.
+    final gap = dividend._scaleGap(divisor);
+    if (gap > ShortDecimal._maxPow10Exponent && gap - 20 >= fractionDigits) {
+      return ShortDecimal._pack(
+        // A remainder there is, and half of the last digit it is not. The
+        // quotient is zero, which is even — the default the rest of the file
+        // relies on too.
+        rounding.correction(
+          sign: dividend.base.sign * divisor.base.sign,
+          hasRemainder: true,
+          atLeastHalf: false,
+        ),
+        fractionDigits,
+      );
+    }
+
     final (numerator, denominator) = dividend._fractionPair(divisor);
 
     return ShortFraction._roundExactly(

@@ -469,6 +469,22 @@ final class ShortFraction implements Comparable<ShortFraction> {
     // that does not fit is taken off the divisor, and the division is done
     // again against the whole of the original remainder.
     var value = _roundPair(numerator, denominator, rounding);
+
+    // The digits to drop are counted rather than walked off one at a time.
+    // Ten to the k carries 3.32193 bits per digit, so the bits standing above
+    // int64 name them; the count is rounded down, so the jump never takes off
+    // more than it must and the loop below finishes in a step or two. Walking
+    // cost a million divisions of million-digit numbers where the answer is
+    // nineteen digits — `ShortFraction(1, 3).round(1000000)` never came back.
+    if (!value.isValidInt) {
+      final drop = (value.bitLength - 63) * 100000 ~/ 332193;
+      if (drop > 0) {
+        denominator *= ten.pow(drop);
+        scale -= drop;
+        value = _roundPair(numerator, denominator, rounding);
+      }
+    }
+
     while (!value.isValidInt) {
       denominator *= ten;
       scale--;

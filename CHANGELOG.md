@@ -174,6 +174,36 @@ touched.
   It works from the canonical form now.
 - `ShortDecimal.inverse` threw `ArgumentError` from the fraction factory where
   its own doc promises `UnsupportedError`.
+- Every int64 operation that aligns two scales raised a `RangeError` where the
+  gap between them leaves int64 — `operator ==` among them, so a decimal at a
+  scale near the ceiling could not be put in a set or compared to a plain ten.
+  The gap saturates now, and the operations answer: `1e-9223372036854775807`
+  compares below ten, is not equal to it, and divides into it nothing.
+- The same alignment built a power of ten of the width of the gap, however wide
+  that was: a gap of ten million asked for a number of ten million digits, and
+  `~/`, `%`, `remainder` and `divide` never came back from it. Past a gap of
+  eighteen the answer follows from the gap alone — the quotient is nothing and
+  the remainder is the whole of the smaller side — and it is given without
+  building anything. Past a million, where no such answer exists, the refusal
+  is now the `DecimalDigitsOutOfRangeError` the BigInt family has always made
+  on the same operation at the same gap.
+- Rounding to a large number of digits stepped the scale down one digit at a
+  time, dividing the whole pair again at every step: `ShortFraction(1, 3)`
+  rounded to a million digits — a count the package accepts — never returned.
+  The digits to drop are counted now: ten thousand of them took nine tenths of
+  a second and take none.
+- `pow` refused the minimum exponent on the three bases whose power does not
+  depend on it: `Decimal.one.pow(-9223372036854775808)` is one, and
+  `Decimal.zero` at that exponent is a division by zero rather than an argument
+  out of range.
+- `pow` with a negative exponent refused where the scale of the positive power
+  leaves int64 but the answer does not: `Decimal(5, shiftRight: 2^62)` to the
+  minus second is four at a scale int64 holds. The reciprocal of the base
+  carries the scale the other way, and both families take that road now.
+- A zero kept at a large scale refused to be rounded, in all six modes, while
+  `toString` printed it as `0`: the BigInt family went looking for a power of
+  ten past the million to answer nothing. Zero rounds to zero wherever the
+  position is, and the two families agree again.
 - Dividing zero by a negative number gave `0.0` in the BigInt family and
   `-0.0` in the int64 one. Both give `-0.0` now, as plain Dart does.
 - A divide exception could not be printed: `toString` built parts that throw on

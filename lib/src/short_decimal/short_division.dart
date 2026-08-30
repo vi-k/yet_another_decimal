@@ -35,6 +35,13 @@ final class ShortDivision {
       return ShortDivision._(a ~/ b, ShortDecimal._pack(a.remainder(b), scale));
     }
 
+    // See [ShortDecimal.operator ~/]: past that gap the divisor is larger in
+    // magnitude than the dividend, so the whole quotient is zero and the whole
+    // dividend is the remainder.
+    if (dividend._scaleGap(divisor) > ShortDecimal._maxPow10Exponent) {
+      return ShortDivision._(0, dividend);
+    }
+
     final (a, b, scale) = dividend._alignExactly(divisor);
 
     return ShortDivision._(

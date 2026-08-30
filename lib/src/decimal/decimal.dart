@@ -912,9 +912,40 @@ final class Decimal implements FixedPoint<Decimal> {
       );
     }
 
+    // From the canonical form here too: what the three answers below depend
+    // on is the base, and ten held as `10 × 10^0` is the same one as `1 × 10^1`
+    // with a different base written down.
+    final it = _requirePacked;
+
+    // Three bases reach an answer without a positive counterpart to raise to,
+    // and that is what takes them past the refusal below: one and minus one
+    // are their own reciprocals, and zero has none at all.
+    if (it.base == BigInt.zero) {
+      throw UnsupportedError('division by zero');
+    }
+
+    if (it.base.abs() == BigInt.one) {
+      return Decimal._asIs(
+        it.base.isNegative && exponent.isOdd ? -BigInt.one : BigInt.one,
+        _scaleTimes(it.scale, exponent, 'exponent'),
+      );
+    }
+
     // The minimum integer has no positive counterpart to raise to.
     if (exponent == -exponent) {
       throw ArgumentError.value(exponent, 'exponent', 'The value is too small');
+    }
+
+    // Where the scale of the positive power leaves int64, the reciprocal of
+    // the base carries the scale the other way and its power may still fit:
+    // `5e-2^62` to the minus second is four at a scale int64 holds, while five
+    // squared at that scale is not. The same road `ShortDecimal.pow` takes,
+    // and it is taken only where the direct one has no answer at all.
+    if (_scaleTimesOrNull(it.scale, -exponent) == null) {
+      final reciprocal = one.divideOrNull(this);
+      if (reciprocal != null) {
+        return reciprocal.pow(-exponent);
+      }
     }
 
     return one / pow(-exponent);
@@ -1408,17 +1439,22 @@ final class Decimal implements FixedPoint<Decimal> {
   }
 
   /// The scale repeated [by] times, with the same refusal.
-  static int _scaleTimes(int scale, int by, String name) {
+  static int _scaleTimes(int scale, int by, String name) =>
+      _scaleTimesOrNull(scale, by) ?? (throw ScaleOutOfRangeError(by, name));
+
+  /// The same, null where it leaves int64.
+  ///
+  /// For the caller that has a second road to try — [pow] with a negative
+  /// exponent has one, and the same helper stands in `ShortDecimal` for the
+  /// same reason.
+  static int? _scaleTimesOrNull(int scale, int by) {
     if (scale == 0 || by == 0) {
       return 0;
     }
 
     final result = scale * by;
-    if (result ~/ by != scale) {
-      throw ScaleOutOfRangeError(by, name);
-    }
 
-    return result;
+    return result ~/ by == scale ? result : null;
   }
 
   static const _maxScale = 9223372036854775807;
@@ -1539,6 +1575,15 @@ final class Decimal implements FixedPoint<Decimal> {
 
     if (scale <= fractionDigits) {
       return this;
+    }
+
+    // The value of zero does not depend on where it is rounded, and this
+    // family keeps a zero unnormalised: `Decimal(0, shiftRight: 9e18)` went
+    // looking for a power of ten past the million to answer nothing, in all
+    // six modes, while `toString` printed the same number as `0`. The int64
+    // family packs the zero away and has always answered.
+    if (isZero) {
+      return Decimal._asIs(BigInt.zero, fractionDigits);
     }
 
     final exponent = scale - fractionDigits;
