@@ -51,6 +51,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   static final _charCode0 = '0'.codeUnitAt(0);
   static final _charCode9 = '9'.codeUnitAt(0);
   static final _charCodeMinus = '-'.codeUnitAt(0);
+  static final _charCodeDot = '.'.codeUnitAt(0);
 
   /// A decimal with the numerical value 0.
   static const ShortDecimal zero = ShortDecimal._asIs(0, 0);
@@ -190,6 +191,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// whitespace, and refuses an exponent past a million — the same grammar the
   /// BigInt family reads. Returns null on failure.
   static ShortDecimal? tryParse(String string) {
+    final plain = _tryParsePlain(string);
+    if (plain != null) {
+      return plain;
+    }
+
     final scanned = string.scanDecimal();
     if (scanned == null) {
       return null;
@@ -215,6 +221,85 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final base = int.tryParse(digits.substring(0, end));
 
     return base == null ? null : ShortDecimal._asIs(base, packedScale);
+  }
+
+  /// The common shape read without building anything, or null for the rest.
+  ///
+  /// `-?digits('.'digits)?` and nothing else — no exponent, no spaces, no
+  /// leading plus, and few enough digits that the value cannot leave int64 on
+  /// the way in. Everything this does not take goes the road below, which
+  /// reads the whole grammar; null here means «not my shape», never «not a
+  /// number».
+  ///
+  /// Worth it because that road hands the digits back as a string: two
+  /// substrings and an interpolation to build it, a record to carry it and a
+  /// third substring to trim its zeros. Money is read in a loop, and a loop
+  /// reads this shape.
+  static ShortDecimal? _tryParsePlain(String string) {
+    final length = string.length;
+    var index = 0;
+    var negative = false;
+
+    if (length != 0 && string.codeUnitAt(0) == _charCodeMinus) {
+      negative = true;
+      index = 1;
+    }
+
+    var base = 0;
+    var digits = 0;
+    var scale = 0;
+    var afterDot = false;
+
+    while (index < length) {
+      final code = string.codeUnitAt(index);
+
+      if (code == _charCodeDot) {
+        if (afterDot) {
+          return null;
+        }
+
+        afterDot = true;
+        index++;
+        continue;
+      }
+
+      final digit = code - _charCode0;
+      if (digit < 0 || digit > 9) {
+        return null;
+      }
+
+      // Eighteen digits cannot take the value out of int64; the nineteenth
+      // might, and that is what the other road is for.
+      if (digits == 18) {
+        return null;
+      }
+
+      base = base * 10 + digit;
+      digits++;
+      if (afterDot) {
+        scale++;
+      }
+      index++;
+    }
+
+    // Nothing to read, and a point with nothing behind it, are not numbers —
+    // but saying so is the other road's job, not this one's.
+    if (digits == 0 || (afterDot && scale == 0)) {
+      return null;
+    }
+
+    if (base == 0) {
+      return zero;
+    }
+
+    // The same trailing zeros the other road drops from the text, dropped from
+    // the number: they belong in the scale, and it goes below zero for them.
+    while (base % 10 == 0) {
+      base ~/= 10;
+      scale--;
+    }
+
+    return ShortDecimal._asIs(negative ? -base : base, scale);
   }
 
   static bool _isDigit(int code) => code >= _charCode0 && code <= _charCode9;

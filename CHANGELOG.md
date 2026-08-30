@@ -262,6 +262,12 @@ touched.
 
 ### Performance
 
+`ShortDecimal.parse` reads the shape a loop reads — a sign, digits, a point,
+digits — without building anything on the way: the number is accumulated as it
+is scanned. The full grammar, with its exponent and its whitespace, is still
+there and still read; it is just no longer what every ordinary string pays for.
+Twice as fast as a version ago, and better than twice against 1.1.2.
+
 Multiplication on `ShortDecimal` clears the common case with four integer
 comparisons before it asks anything else: two values under 2^31 cannot make a
 product that leaves int64, and the check that follows — an approximate product
