@@ -235,6 +235,10 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// substrings and an interpolation to build it, a record to carry it and a
   /// third substring to trim its zeros. Money is read in a loop, and a loop
   /// reads this shape.
+  ///
+  /// Written out again in `Decimal` rather than shared: a shared form would
+  /// hand its two numbers back in a record, and a record is an object — the
+  /// very thing this road exists to not build.
   static ShortDecimal? _tryParsePlain(String string) {
     final length = string.length;
     var index = 0;

@@ -40,6 +40,7 @@ part 'fraction.dart';
 final class Decimal implements FixedPoint<Decimal> {
   static final _char0 = '0'.codeUnitAt(0);
   static final _charMinus = '-'.codeUnitAt(0);
+  static final _charDot = '.'.codeUnitAt(0);
 
   static final _bigInt5 = BigInt.from(5);
   static final _bigInt10 = BigInt.from(10);
@@ -198,6 +199,82 @@ final class Decimal implements FixedPoint<Decimal> {
 
   Decimal._asIs(this.base, this.scale);
 
+  /// The common shape read without building anything, or null for the rest.
+  ///
+  /// `-?digits('.'digits)?` and nothing else — no exponent, no spaces, no
+  /// leading plus, and few enough digits that the value cannot leave int64 on
+  /// the way in. Everything this does not take goes the road below, which
+  /// reads the whole grammar; null here means «not my shape», never «not a
+  /// number».
+  ///
+  /// Worth it because that road hands the digits back as a string: two
+  /// substrings and an interpolation to build it, a record to carry it, and
+  /// `BigInt.parse` to read it back. Here the digits become a number as they
+  /// are scanned, and the `BigInt` is made once from the result.
+  ///
+  /// Written out again in `ShortDecimal` rather than shared: a shared form
+  /// would hand its two numbers back in a record, and a record is an object —
+  /// the very thing this road exists to not build.
+  ///
+  /// Unlike the int64 family this one keeps the zeros it was written with:
+  /// `Decimal.parse('1.50')` stores `150` at a scale of two, and canonical
+  /// form is asked for separately.
+  static Decimal? _tryParsePlain(String string) {
+    final length = string.length;
+    var index = 0;
+    var negative = false;
+
+    if (length != 0 && string.codeUnitAt(0) == _charMinus) {
+      negative = true;
+      index = 1;
+    }
+
+    var base = 0;
+    var digits = 0;
+    var scale = 0;
+    var afterDot = false;
+
+    while (index < length) {
+      final code = string.codeUnitAt(index);
+
+      if (code == _charDot) {
+        if (afterDot) {
+          return null;
+        }
+
+        afterDot = true;
+        index++;
+        continue;
+      }
+
+      final digit = code - _char0;
+      if (digit < 0 || digit > 9) {
+        return null;
+      }
+
+      // Eighteen digits cannot take the value out of int64, and past that the
+      // accumulator is the wrong tool: that is what the other road is for.
+      if (digits == 18) {
+        return null;
+      }
+
+      base = base * 10 + digit;
+      digits++;
+      if (afterDot) {
+        scale++;
+      }
+      index++;
+    }
+
+    // Nothing to read, and a point with nothing behind it, are not numbers —
+    // but saying so is the other road's job, not this one's.
+    if (digits == 0 || (afterDot && scale == 0)) {
+      return null;
+    }
+
+    return Decimal._asIs(BigInt.from(negative ? -base : base), scale);
+  }
+
   /// Parse the [string] to [Decimal].
   ///
   /// Accepts an optional sign, an optional exponent and surrounding
@@ -214,6 +291,11 @@ final class Decimal implements FixedPoint<Decimal> {
   /// Decimal.tryParse('0x10'); // null
   /// ```
   static Decimal? tryParse(String string) {
+    final plain = _tryParsePlain(string);
+    if (plain != null) {
+      return plain;
+    }
+
     final scanned = string.scanDecimal();
     if (scanned == null) {
       return null;
