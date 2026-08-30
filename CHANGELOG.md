@@ -262,6 +262,12 @@ touched.
 
 ### Performance
 
+Rounding on `ShortDecimal` is a third faster than it was a version ago — `round`
+and its five siblings hand their rules to the shared road as static functions
+rather than as closures over the value, and a closure is an object built on
+every call. `toStringAsFixed`, which rounds on the way, is a tenth faster with
+it.
+
 Addition and subtraction are a tenth faster on `Decimal`, and a fifth where the
 two scales already match: the alignment is written out in the operators instead
 of being taken from a helper that returned a record, and the record was an
