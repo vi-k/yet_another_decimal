@@ -529,9 +529,9 @@ was generated blind — not by hunting for values where somebody fails — and t
 expected answers were computed outside Dart by exact conversion. Of the twenty,
 `decimal` misses the nearest double on seven and `big_decimal` on seven as well;
 both divide one `double` by another, which rounds twice. Over 100 000 random
-values the two packages disagree on 33 815 of them, and on 300 sampled
-disagreements checked against exact arithmetic, this package was right every
-time and `decimal` never.
+values `decimal` and this package disagree on 33 815 of them, and on 300 of
+those disagreements checked against exact arithmetic, this package was right
+every time and `decimal` never.
 
 That row is also where the fastest answers are the wrong ones:
 `big_decimal` finishes it in 0.8 µs and `decimal` in 2.4, against 2.3 here.
