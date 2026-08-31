@@ -377,25 +377,49 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// result this family owes. Past that the overflow stays silent, as the
   /// family promises.
   factory ShortDecimal._sumThatOverflowed(int a, int b, int scale) {
-    var value = BigInt.from(a) + BigInt.from(b);
+    // Both magnitudes are 2^63 here and their sum is exactly 2^64, which not
+    // even an unsigned word holds: it wraps to zero. The road below answers
+    // this one correctly by an accident of arithmetic — the wrapped zero fits
+    // and negates to itself — and an accident is not something a reader
+    // should have to reconstruct.
+    if (a == _minInt && b == _minInt) {
+      return ShortDecimal._pack(a + b, scale);
+    }
+
+    // The signs are equal, or the addition would not have overflowed, so the
+    // sum of the two magnitudes is below 2^64 and an unsigned word holds it.
+    // `int.min` keeps its own magnitude here: `-int.min` is the bit pattern
+    // of 2^63, which is what the unsigned reading of it wants anyway.
+    final negative = a < 0;
+    var magnitude = (negative ? -a : a) + (negative ? -b : b);
     var result = scale;
+    var fits = _magnitudeFits(magnitude, negative);
 
     // A sum of two int64 values is at most one digit wider than one of them,
     // so a single zero is all that can ever be moved into the scale — the
     // bound is there to keep the loop honest, not because it is reached.
-    for (var i = 0; i < 19 && !value.isValidInt; i++) {
-      if (value.remainder(_bigInt10) != BigInt.zero) {
+    for (var i = 0; i < 19 && !fits; i++) {
+      final (quotient, remainder) = udivmod10(magnitude);
+      if (remainder != 0) {
         break;
       }
 
-      value = value ~/ _bigInt10;
+      magnitude = quotient;
       result--;
+      fits = _magnitudeFits(magnitude, negative);
     }
 
-    return value.isValidInt
-        ? ShortDecimal._pack(value.toInt(), result)
+    return fits
+        ? ShortDecimal._pack(negative ? -magnitude : magnitude, result)
         : ShortDecimal._pack(a + b, scale);
   }
+
+  /// Whether [magnitude], read as unsigned, is a value this family can hold.
+  ///
+  /// Positive values stop one short of 2^63; negative ones reach it, and that
+  /// last step is `int.min`, whose unsigned reading is 2^63 exactly.
+  static bool _magnitudeFits(int magnitude, bool negative) =>
+      magnitude >= 0 || (negative && magnitude == _minInt);
 
   /// Adds [other] to this decimal.
   ///
@@ -1880,6 +1904,12 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// The largest integer a double holds exactly, `2^53`.
   static const _maxExactInDouble = 9007199254740992;
+
+  /// The one value of the family that has no magnitude of its own.
+  ///
+  /// `-int.min` is `int.min` again, so a sum of two of them is the single
+  /// place where the unsigned road below runs out of road.
+  static const _minInt = -9223372036854775808;
 
   /// The largest power of ten that fits into int64.
   static const _maxPow10Exponent = 18;
