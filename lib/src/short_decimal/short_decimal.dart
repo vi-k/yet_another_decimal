@@ -502,14 +502,16 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       return ShortDecimal._pack(a * b, scale + other.scale);
     }
 
-    // The approximate product decides the rest: a double is off by a part in
-    // 2^52 at worst, which against the gap between the threshold and int.max —
-    // more than 2·10^17 — is nothing. Everything close to the boundary goes the
-    // careful way, where the check costs a division.
-    final approximate = a.toDouble() * b.toDouble();
+    // Past that the product itself answers, in full and exactly: it fits into
+    // a word when its high half is the sign extension of its low half, and the
+    // low half is the product. The approximation in a double that used to
+    // stand here asked the question with two conversions and a multiplication,
+    // and sent everything within 2·10^17 of int.max the careful way for a
+    // division it did not need.
+    final (high, low) = mul128(a, b);
 
-    return approximate > -_productThreshold && approximate < _productThreshold
-        ? ShortDecimal._pack(a * b, scale + other.scale)
+    return high == (low >> 63)
+        ? ShortDecimal._pack(low, scale + other.scale)
         : _multiplyCarefully(other);
   }
 
@@ -524,7 +526,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     var b = other.base;
     var scale = this.scale + other.scale;
 
-    while (!_productFits(a, b)) {
+    while (!productFits(a, b)) {
       if (a.isEven && b % 5 == 0) {
         a ~/= 2;
         b ~/= 5;
@@ -593,28 +595,8 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// Below this a scale can be driven past int64 by stripping zeros alone.
   static const _scaleFloorForPacking = _minScale + 19;
 
-  /// Whether `a * b` stays within int64.
-  static bool _productFits(int a, int b) {
-    // The approximate product decides the common case. A double multiplication
-    // is off by a part in 2^52 at worst, which against the gap between the
-    // threshold and int.max — more than 2·10^17 — is nothing; and it costs a
-    // few cycles where the reliable check below costs a division.
-    final approximate = a.toDouble() * b.toDouble();
-    if (approximate > -_productThreshold && approximate < _productThreshold) {
-      return true;
-    }
-
-    if (a == 0 || b == 0) {
-      return true;
-    }
-
-    final product = a * b;
-
-    return product ~/ b == a;
-  }
-
   /// `a * b`, or null when it does not stay within int64.
-  static int? _productOrNull(int a, int b) => _productFits(a, b) ? a * b : null;
+  static int? _productOrNull(int a, int b) => productFits(a, b) ? a * b : null;
 
   /// `a + b`, or null when it does not stay within int64.
   ///
@@ -1497,7 +1479,7 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
     final exponent = -t.scale;
     if (exponent <= _maxPow10Exponent) {
       final power = _pow10(exponent);
-      if (_productFits(base, power)) {
+      if (productFits(base, power)) {
         return base * power;
       }
     }
@@ -1914,12 +1896,6 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   /// The largest power of ten that fits into int64.
   static const _maxPow10Exponent = 18;
 
-  /// Below this an approximate product is known to fit into int64.
-  ///
-  /// int.max is about 9.223·10^18, so the margin left for the rounding of a
-  /// double is over 2·10^17.
-  static const _productThreshold = 9.0e18;
-
   /// Powers of five, built the same way and for the same reason.
   ///
   /// Dividing by `2^n` is multiplying by `5^n` with the scale moved by `n`.
@@ -1934,9 +1910,11 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
 
   /// The largest base each power of five may be applied to.
   ///
-  /// Asking `_productFits` instead cost the division path a fifth of its time:
-  /// it multiplies doubles and sometimes divides, where a table turns the
-  /// whole question into one comparison against a number already computed.
+  /// Asking the overflow check instead cost the division path a fifth of its
+  /// time back when that check went through a double. It is exact and cheaper
+  /// now, but a table still turns the whole question into one comparison
+  /// against a number already computed, and that is less than any
+  /// multiplication.
   static final List<int> _pow5Ceiling = List<int>.generate(
     _maxPow5Exponent + 1,
     (i) => 9223372036854775807 ~/ _pow5Table[i],
