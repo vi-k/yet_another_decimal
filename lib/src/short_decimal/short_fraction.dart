@@ -285,10 +285,12 @@ final class ShortFraction implements Comparable<ShortFraction> {
       return own.compareTo(theirs).sign;
     }
 
-    // The cross products do not fit; the comparison is exact anyway.
-    return (BigInt.from(numerator) * BigInt.from(other.denominator))
-        .compareTo(BigInt.from(other.numerator) * BigInt.from(denominator))
-        .sign;
+    // The cross products do not fit into a word, but they always fit into
+    // 128 bits, and the comparison is exact there without a single BigInt.
+    final (ownHigh, ownLow) = mul128(numerator, other.denominator);
+    final (theirsHigh, theirsLow) = mul128(other.numerator, denominator);
+
+    return compare128(ownHigh, ownLow, theirsHigh, theirsLow);
   }
 
   /// Converts this fraction to [double].

@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import '../errors.dart';
 import '../fixed_point.dart';
 import '../helpers.dart';
+import 'wide.dart';
 
 part 'short_fraction.dart';
 part 'short_division.dart';
