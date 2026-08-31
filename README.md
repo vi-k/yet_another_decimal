@@ -604,12 +604,13 @@ Division of numbers and converting the result in a readable format.
 
 Packages can use intermediate results in their work, which speed up the speed
 of operations, but do not have a decimal form understandable to the user. (This
-is what [decimal](https://pub.dev/packages/decimal) did until version 3.2.0).
-Therefore, the divide-large and divide-small test, where only division is
-performed, may be far from real life. This tests perform the same operation as
-divide-large and divide-small, but additionally convert the result of the
-operation (only the operation, not each step in this operation) into a readable
-form.
+is what [decimal](https://pub.dev/packages/decimal) did until version 3.2.0;
+none of the packages compared here does it today — all of them keep a
+significand and a scale). Therefore, the divide-large and divide-small test,
+where only division is performed, may be far from real life. This tests perform
+the same operation as divide-large and divide-small, but additionally convert
+the result of the operation (only the operation, not each step in this
+operation) into a readable form.
 
 I'll be honest, it took me a long time to find a solution that satisfied me in
 terms of performance.
