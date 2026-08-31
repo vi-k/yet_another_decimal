@@ -836,6 +836,23 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
         }
       }
 
+      // Before BigInt: while the power of ten is one the table holds, the pair
+      // fits 128 bits. Ten to the eighteenth is under 2^60 and a base is under
+      // 2^63, so the dividend is never wider than 123 bits, and the divisor is
+      // a machine word by construction. One divmod then answers what two BigInt
+      // divisions did — `~/` and `remainder` are separate passes there, BigInt
+      // having no public divmod.
+      if (exponent >= 0 && exponent <= _maxPow10Exponent) {
+        final quotient = _roundedQuotient128(
+          base,
+          _pow10Table[exponent],
+          other.base,
+        );
+        if (quotient != null) {
+          return ShortDecimal._pack(quotient, fractionDigits);
+        }
+      }
+
       var numerator = BigInt.from(base);
       var denominator = BigInt.from(other.base);
       if (exponent > 0) {
@@ -876,6 +893,52 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
       fractionDigits,
       _Rounding.round,
     );
+  }
+
+  /// `base * power` over `divisor`, rounded half away from zero, or null.
+  ///
+  /// The 128-bit half of [_roundedQuotient]. Null means the answer is not a
+  /// machine word and the BigInt road has to take it whole:
+  /// [ShortFraction._roundScaled] answers that case by taking a power of ten
+  /// off the divisor and dividing again, and rounding a second time off an
+  /// already rounded value is wrong — so the loop that does it properly is left
+  /// where it is rather than written twice.
+  ///
+  /// Everything here runs on magnitudes. [udivmod128by64] reads its divisor
+  /// unsigned, which is what makes a divisor of `int.min` an ordinary case
+  /// rather than the one that does not come off; the sign goes back on at the
+  /// end.
+  static int? _roundedQuotient128(int base, int power, int divisor) {
+    var (high, low) = mul128(base, power);
+    if (base < 0) {
+      // The pair is negated, not the base: `-int.min` stays negative, and the
+      // magnitude of that product needs all 123 bits.
+      low = -low;
+      high = low == 0 ? -high : ~high;
+    }
+
+    final magnitude = divisor < 0 ? -divisor : divisor;
+    final (quotientHigh, quotientLow, remainder) =
+        udivmod128by64(high, low, magnitude);
+    if (quotientHigh != 0 || quotientLow < 0) {
+      return null;
+    }
+
+    // An exact division is settled before the comparison below, which is signed
+    // and would read a divisor of 2^63 as negative. With a remainder it cannot:
+    // `magnitude - remainder` is then below 2^63 whatever the divisor was.
+    final correction =
+        remainder != 0 && remainder >= magnitude - remainder ? 1 : 0;
+
+    if ((base < 0) != (divisor < 0)) {
+      return -quotientLow - correction;
+    }
+
+    // int.max with the half rounded away from zero is 2^63, and that is the
+    // BigInt road. The sum wraps negative, which is the whole of the check.
+    final value = quotientLow + correction;
+
+    return value < 0 ? null : value;
   }
 
   /// Whether dividing by [other] has a finite decimal form.
