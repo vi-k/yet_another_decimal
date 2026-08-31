@@ -778,8 +778,8 @@ The last thing I want to do is compete with the author of
 this package has been around and how well supported it is. I don't think I have
 anything overtly new to offer in the usual approach to decimal. Even using
 different approaches under the hood, the end result will be on the outside, not
-the inside. And it's pretty much the same feature set with pretty much the same
-performance.
+the inside. And it's pretty much the same feature set. I thought the same about
+performance — the table above says otherwise.
 
 But actually the decision to write my own
 [denary](https://pub.dev/packages/denary) was not
