@@ -199,8 +199,8 @@ finite decimal form says so instead of quietly rounding.
 
 #### [decimal_type](https://pub.dev/packages/decimal_type)
 
-This package also uses to divide `double`, but unlike
-[fixed](https://pub.dev/packages/fixed) it doesn't know some corner case:
+This package divides through `double`, and it does not know about one corner
+case:
 
 ```dart
 var a = Decimal(BigInt.parse('644385861467633436300000'), decimalPrecision: 0);

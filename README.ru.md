@@ -203,8 +203,7 @@ print(b / a); // 111111111111111111
 
 #### [decimal_type](https://pub.dev/packages/decimal_type)
 
-Этот пакет тоже делит через `double`, но, в отличие от
-[fixed](https://pub.dev/packages/fixed), не знает об одном крайнем случае:
+Этот пакет делит через `double` и не знает об одном крайнем случае:
 
 ```dart
 var a = Decimal(BigInt.parse('644385861467633436300000'), decimalPrecision: 0);
