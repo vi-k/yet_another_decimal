@@ -190,7 +190,8 @@ final class ShortDecimal implements FixedPoint<ShortDecimal> {
   ///
   /// Accepts an optional sign, an optional exponent and surrounding
   /// whitespace, and refuses an exponent past a million — the same grammar the
-  /// BigInt family reads. Returns null on failure.
+  /// BigInt family reads, down to a point having to be followed by digits:
+  /// `'.5'` is a number and `'5.'` is not. Returns null on failure.
   static ShortDecimal? tryParse(String string) {
     final plain = _tryParsePlain(string);
     if (plain != null) {

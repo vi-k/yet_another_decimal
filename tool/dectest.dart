@@ -70,7 +70,7 @@ enum _Skip {
   hugeExponent('exponent past our parsing limit'),
   rounding('rounding mode we do not have'),
   power('power that is not an integer one'),
-  spelling('a trailing point, which our parser refuses'),
+  spelling('a trailing point, which we refuse on purpose'),
   shortTooBig('does not fit the short family'),
   encoded('a value in an encoding test, not a number'),
   inexactDivide('quotient with no finite decimal form');
@@ -543,9 +543,12 @@ String _brief(Object value) {
 
 /// Whether the digits end with a point, as in `0.` or `2.E-3`.
 ///
-/// GDA allows that spelling and so does `double.parse`; `Decimal.parse` does
-/// not, though it takes a leading point (`.5`) happily. The gap is real and
-/// recorded, but it is not this script's to close.
+/// GDA allows that spelling and so does `double.parse`, and we refuse it: a
+/// point here has to be followed by digits, which is why `.5` is a number and
+/// `5.` is not. That is a decision, taken before this script existed and held
+/// by both families — see the group named for it in
+/// `test/competitors_test.dart`. These cases are counted, not silently
+/// dropped, so that the day the decision changes the count says so.
 bool _hasTrailingPoint(String value) {
   final at = value.indexOf(RegExp('[eE]'));
   final digits = at < 0 ? value : value.substring(0, at);

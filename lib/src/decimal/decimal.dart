@@ -281,6 +281,11 @@ final class Decimal implements FixedPoint<Decimal> {
   /// whitespace: `'1'`, `'-0.5'`, `'.5'`, `'+1e21'`. Returns null on anything
   /// else — hexadecimal included, which [BigInt.parse] would have accepted.
   ///
+  /// **A point has to be followed by digits.** `'.5'` is a number, `'5.'` is
+  /// not, and that is a decision rather than an oversight: `double.parse` and
+  /// the `decimal` package both read the second one as five, where a field cut
+  /// short is the likelier reason for a string to end in a point.
+  ///
   /// An exponent past a million is refused as well. The scale itself holds
   /// far more, but the number such a string asks for could not be printed
   /// back: a million digits is a megabyte of text, and a billion of them takes
