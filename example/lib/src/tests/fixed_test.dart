@@ -130,26 +130,28 @@ final class FixedTest extends MyBenchmarkBase {
     return _objectResult;
   }
 
-  static final _three = Fixed.parse('3');
-
-  static final _wideDivisor = Fixed.parse(MyBenchmarkBase.wideDivisor);
-
-  /// The dividend widened to the digits asked for, before the division.
+  /// Three, carrying the digits the answer is asked for.
   ///
-  /// `Fixed` gives a quotient as many digits as the wider of its two operands
-  /// had, and no argument asks it for more. Widening the dividend first is how
-  /// the package is told how far to divide — and it is real work, not a way of
-  /// arranging the answer, so it stays inside the measured loop. Both divisions
-  /// below then round halves away from zero, which is the rule these tests
-  /// check against.
-  Fixed _toInfiniteDigits(Fixed value) =>
-      value.copyWith(decimalDigits: MyBenchmarkBase.infiniteDigits);
+  /// `Fixed` takes no argument for how far to divide. `operator /` gives the
+  /// quotient as many digits as the wider of its two operands had, and it
+  /// widens both operands itself, so a divisor already that wide is how this
+  /// package is told what is wanted. The divisor is a constant and is built
+  /// once, the way every other adapter builds its own; the widening of each
+  /// dividend still happens inside the division, where it belongs.
+  static final _three =
+      Fixed.parse('3', decimalDigits: MyBenchmarkBase.infiniteDigits);
+
+  /// [MyBenchmarkBase.wideDivisor], carrying the same digits as [_three].
+  static final _wideDivisor = Fixed.parse(
+    MyBenchmarkBase.wideDivisor,
+    decimalDigits: MyBenchmarkBase.infiniteDigits,
+  );
 
   @override
   Object unrepresentableDivide() {
     final length = values.length;
     for (var i = 0; i < length; i++) {
-      _objectResult[i] = _toInfiniteDigits(values[i]) / _three;
+      _objectResult[i] = values[i] / _three;
     }
 
     return _objectResult;
@@ -159,7 +161,7 @@ final class FixedTest extends MyBenchmarkBase {
   Object unrepresentableDivideWide() {
     final length = values.length;
     for (var i = 0; i < length; i++) {
-      _objectResult[i] = _toInfiniteDigits(values[i]) / _wideDivisor;
+      _objectResult[i] = values[i] / _wideDivisor;
     }
 
     return _objectResult;
