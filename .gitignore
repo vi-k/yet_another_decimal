@@ -8,3 +8,7 @@ pubspec.lock
 
 # Coverage runs write here; the recipe is in docs/conventions.md.
 .coverage/
+
+# The dectest vectors are downloaded here, never committed: they are
+# IBM copyright with no redistribution grant. See docs/conventions.md.
+.dectest/

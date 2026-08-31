@@ -169,6 +169,11 @@ dart format --output=none --set-exit-if-changed .   # проверка форм�
 cd example && dart bin/benchmark.dart --help   # список бенчмарков
 cd example && dart bin/benchmark.dart all      # все бенчмарки, все пакеты
 
+# векторы General Decimal Arithmetic, подробности — в docs/conventions.md
+curl -sSL -o dectest.zip https://speleotrove.com/decimal/dectest.zip
+unzip -q dectest.zip -d .dectest
+dart run tool/dectest.dart --dir=.dectest
+
 dart pub publish --dry-run                     # проверка перед публикацией
 ```
 

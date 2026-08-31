@@ -1,0 +1,37 @@
+name: dectest
+
+# The General Decimal Arithmetic vectors are a stranger's oracle: IBM
+# copyright, offered as-is, with no grant to redistribute them. They are not in
+# this repository and are downloaded for the run.
+#
+# That download is why this lives apart from ci.yml. It depends on somebody
+# else's site being up, and a red run because that site is down must not block
+# ordinary work. The vectors themselves change once in years, so there is
+# nothing to gain from running this on every push.
+
+on:
+  schedule:
+    # Mondays, early. No hurry: this watches for regressions, not for pushes.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dectest:
+    name: General Decimal Arithmetic vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+
+      - name: Dependencies
+        run: dart pub get
+
+      - name: Vectors
+        run: |
+          curl -sSfL -o dectest.zip https://speleotrove.com/decimal/dectest.zip
+          unzip -q dectest.zip -d .dectest
+
+      - name: Run
+        run: dart run tool/dectest.dart --dir=.dectest

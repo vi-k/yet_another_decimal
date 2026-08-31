@@ -10,3 +10,6 @@ docs/
 
 # The Russian translation of the README lives in the repository only.
 README.ru.md
+
+# The dectest runner is for this repository, not for the package.
+tool/
