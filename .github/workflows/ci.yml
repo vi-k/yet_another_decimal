@@ -60,3 +60,10 @@ jobs:
       - name: Tour
         run: dart run example.dart
         working-directory: example
+
+      # Every cell of the stand, answers only — seconds, not the hour and
+      # three quarters a measured sweep takes. It is what keeps an adapter
+      # from going quietly wrong between two measured runs.
+      - name: Answers
+        run: dart bin/benchmark.dart all --check
+        working-directory: example

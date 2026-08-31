@@ -47,18 +47,35 @@ typedef CreateIntTestCallback = MyBenchmarkBase Function(
   Object result,
 );
 
-void run({
+/// Runs the stand, or only checks its answers; `false` if a package got one
+/// wrong.
+///
+/// The answer check is not the measurement and does not need it: every
+/// benchmark verifies itself against the expected result in `setup()`, before
+/// a single measured cycle. Asking for that alone takes seconds instead of
+/// hours, which is what makes it something CI can do — see
+/// `docs/records/2026-08-31[10]-bench-check-report.md`.
+bool run({
   required Set<Package> packages,
   required Set<Test> tests,
   int runs = defaultRuns,
   int passes = defaultPasses,
+  bool check = false,
 }) {
-  _printEnvironment(packages, runs, passes);
+  if (!check) {
+    _printEnvironment(packages, runs, passes);
+  }
   _printPackages(packages);
   _printTests(tests);
 
   // ignore: omit_local_variable_types
   final Summary summary = {};
+
+  if (check) {
+    _measurePass(summary, packages, tests, runs, 1, 1, check: true);
+
+    return _printCheck(summary);
+  }
 
   for (var pass = 1; pass <= passes; pass++) {
     _measurePass(summary, packages, tests, runs, pass, passes);
@@ -69,7 +86,105 @@ void run({
   }
 
   _printSummary(packages, tests, summary, passes);
+
+  return true;
 }
+
+/// The verdict of a check run: what answered wrongly, and whether anything did.
+///
+/// A `WARNING` is not a wrong answer — it means the answer matches down to
+/// trailing zeros, which is a difference in how a package spells a value, not
+/// in what it computed. Only [MyBenchmarkBase.error] counts, and that already
+/// excuses the packages allowed to disagree.
+bool _printCheck(Summary summary) {
+  final wrong = <(String, String), String>{};
+  for (final MapEntry(key: (package, test), value: benchmark)
+      in summary.entries) {
+    final error = benchmark.error;
+    if (error != null) {
+      wrong[(package.id, test.id)] = error;
+    }
+  }
+
+  final appeared =
+      wrong.keys.where((pair) => !_knownWrongAnswers.contains(pair)).toList();
+  final vanished =
+      _knownWrongAnswers.where((pair) => !wrong.containsKey(pair)).toList();
+
+  print('');
+  print(special('Answers'));
+  print('');
+
+  if (appeared.isEmpty && vanished.isEmpty) {
+    print(
+      ok(
+        '${summary.length} cells checked;'
+        ' the ${wrong.length} wrong answers are the known ones',
+      ),
+    );
+
+    return true;
+  }
+
+  for (final pair in appeared) {
+    print(
+      '${accentError('new')} ${accent('${pair.$1} ${pair.$2}')}:'
+      ' ${wrong[pair]}',
+    );
+  }
+
+  for (final pair in vanished) {
+    print(
+      '${accentWarning('gone')} ${accent('${pair.$1} ${pair.$2}')}:'
+      ' answers correctly now, and the list still says it does not',
+    );
+  }
+
+  print('');
+  print(
+    error(
+      'The set of wrong answers is not the recorded one:'
+      ' ${appeared.length} new, ${vanished.length} gone.',
+    ),
+  );
+
+  return false;
+}
+
+/// The cells where a package is known to answer wrongly.
+///
+/// Neither a defect list of ours nor a shame list of theirs: it is what the
+/// stand already publishes about these packages, written down so that CI can
+/// tell a known difference from a new one. Every pair is a model that cannot
+/// give the answer the test asks for — an inexact quotient refused or rounded,
+/// a comparison that reads the scale, a double built through a string.
+///
+/// Both directions fail. A pair that disappears means either the package has
+/// changed under us or our expectation has; either wants reading before the
+/// line is deleted.
+const _knownWrongAnswers = <(String, String)>{
+  ('decimal', 'to-double-wide'),
+  ('big_decimal', 'to-double-wide'),
+  ('big_decimal', 'divide-small-big-int'),
+  ('big_decimal', 'divide-small-int'),
+  ('big_decimal', 'divide-small-and-view-big-int'),
+  ('big_decimal', 'divide-small-and-view-int'),
+  ('fixed', 'compare'),
+  ('fixed', 'divide-small-big-int'),
+  ('fixed', 'divide-small-int'),
+  ('fixed', 'divide-small-and-view-big-int'),
+  ('fixed', 'divide-small-and-view-int'),
+  ('decimal_type', 'divide-large-big-int'),
+  ('decimal_type', 'divide-large-int'),
+  ('decimal_type', 'divide-small-big-int'),
+  ('decimal_type', 'divide-small-int'),
+  ('decimal_type', 'divide-dirty-big-int'),
+  ('decimal_type', 'divide-dirty-int'),
+  ('decimal_type', 'divide-large-and-view-big-int'),
+  ('decimal_type', 'divide-large-and-view-int'),
+  ('decimal_type', 'divide-small-and-view-big-int'),
+  ('decimal_type', 'divide-small-and-view-int'),
+};
 
 /// One sweep over every test, filling a pass into every benchmark.
 void _measurePass(
@@ -78,8 +193,9 @@ void _measurePass(
   Set<Test> tests,
   int runs,
   int pass,
-  int passes,
-) {
+  int passes, {
+  bool check = false,
+}) {
   if (passes > 1) {
     print('');
     print(special('Pass $pass of $passes'));
@@ -91,8 +207,9 @@ void _measurePass(
     final (bigIntValues: bigIntValues, intValues: intValues, result: result) =
         test.data();
 
-    // The values are the same in every pass; printing them once is enough.
-    if (pass == 1) {
+    // The values are the same in every pass; printing them once is enough,
+    // and a check does not need them at all.
+    if (pass == 1 && !check) {
       _printValues(bigIntValues, test.operation.sign, result);
     }
 
@@ -112,6 +229,7 @@ void _measurePass(
       runs,
       inputs,
       pass,
+      check: check,
     );
 
     if (intValues != null) {
@@ -124,6 +242,7 @@ void _measurePass(
         runs,
         inputs,
         pass,
+        check: check,
       );
     }
   }
@@ -314,8 +433,9 @@ void _measureBigIntTestsAndPrint(
   Object result,
   int runs,
   List<String> inputs,
-  int pass,
-) {
+  int pass, {
+  bool check = false,
+}) {
   for (final MapEntry(key: package, value: create) in _bigIntPackages.entries) {
     if (!packages.contains(package)) {
       continue;
@@ -334,7 +454,7 @@ void _measureBigIntTestsAndPrint(
         ..viewWindow = _viewWindow(test, values.length);
     }
 
-    if (_measureTest(benchmark, runs)) {
+    if (_measureTest(benchmark, runs, check: check)) {
       results[(package, test)] = benchmark;
     }
   }
@@ -348,8 +468,9 @@ void _measureIntTestsAndPrint(
   Object result,
   int runs,
   List<String> inputs,
-  int pass,
-) {
+  int pass, {
+  bool check = false,
+}) {
   for (final MapEntry(key: package, value: create) in _intPackages.entries) {
     if (!packages.contains(package)) {
       continue;
@@ -368,15 +489,31 @@ void _measureIntTestsAndPrint(
         ..viewWindow = _viewWindow(test, values.length);
     }
 
-    if (_measureTest(benchmark, runs)) {
+    if (_measureTest(benchmark, runs, check: check)) {
       results[(package, test)] = benchmark;
     }
   }
 }
 
 /// Measures one benchmark, `false` if the package has no such operation.
-bool _measureTest(MyBenchmarkBase benchmark, int runs) {
+///
+/// With [check] the answer is all that is wanted: `setup()` runs one cycle and
+/// compares it with the expected result, and nothing is measured.
+bool _measureTest(MyBenchmarkBase benchmark, int runs, {bool check = false}) {
   try {
+    if (check) {
+      benchmark.setup();
+
+      final package = benchmark.package;
+      final answer = benchmark.resultMessage;
+      print(
+        '${accent(package.id)} (${package.type}):'
+        ' ${answer ?? faintAccent('nothing to check against')}',
+      );
+
+      return true;
+    }
+
     for (var i = 0; i < runs; i++) {
       benchmark.scores.add(
         benchmark.measure() / benchmark.operation.numberOfCycles,

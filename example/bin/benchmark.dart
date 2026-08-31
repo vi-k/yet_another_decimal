@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ansi_escape_codes/ansi_escape_codes.dart';
 import 'package:example/benchmark.dart';
 
@@ -22,6 +24,10 @@ void printUsage() {
   print(
     '${accent('--passes=N')} - sweep every test N times and take the best'
     ' of the passes (default: $defaultPasses)',
+  );
+  print(
+    '${accent('--check')} - check the answers and measure nothing;'
+    ' exits non-zero if a package answers wrongly',
   );
 
   print('\nPackages:');
@@ -59,6 +65,10 @@ void printUsage() {
   print('> ${accent('dart benchmark.dart -denary')}');
 
   print('');
+  print('Check every answer without measuring anything:');
+  print('> ${accent('dart benchmark.dart all --check')}');
+
+  print('');
   print('All packages and all tests, one run instead of a series:');
   print('> ${accent('dart benchmark.dart all --runs=1')}');
 
@@ -81,6 +91,7 @@ void main(List<String> arguments) {
 
       var runs = defaultRuns;
       var passes = defaultPasses;
+      var check = false;
       final includePackages = <Package>{};
       final excludePackages = <Package>{};
       final includeTests = <Test>{};
@@ -91,6 +102,9 @@ void main(List<String> arguments) {
           case 'all':
             includePackages.addAll(Package.values);
             includeTests.addAll(Test.values);
+
+          case '--check':
+            check = true;
 
           case final String a when a.startsWith('--runs='):
             final value = int.tryParse(a.substring('--runs='.length));
@@ -167,12 +181,15 @@ void main(List<String> arguments) {
       final packages = includePackages.difference(excludePackages);
       final tests = includeTests.difference(excludeTests);
 
-      run(
+      if (!run(
         packages: packages,
         tests: tests,
         runs: runs,
         passes: passes,
-      );
+        check: check,
+      )) {
+        exitCode = 1;
+      }
     },
   );
 }
