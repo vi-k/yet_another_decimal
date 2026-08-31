@@ -15,8 +15,11 @@ dependencies:
   decimal_type: ^0.0.3
   denary:
     path: ..
-  # 6.2.0 wants a newer SDK than the floor here; on a current one pub still
-  # picks it.
+  # The caret spans both versions on purpose: on the 3.6 floor pub takes 6.1.1,
+  # on a current SDK it takes 6.2.0. Do not pin 6.2.0 — it would cost the floor
+  # and buy nothing. 6.2.0 differs from 6.1.1 by the version string in
+  # version.g.dart and by nothing else; what it does bring is intl ^0.20.3, and
+  # intl 0.20.3 wants Dart ^3.9.0.
   fixed: ^6.1.1
   format: ^4.1.0
   precise_decimal: ^0.0.1
