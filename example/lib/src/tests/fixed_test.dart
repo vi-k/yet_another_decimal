@@ -129,4 +129,39 @@ final class FixedTest extends MyBenchmarkBase {
 
     return _objectResult;
   }
+
+  static final _three = Fixed.parse('3');
+
+  static final _wideDivisor = Fixed.parse(MyBenchmarkBase.wideDivisor);
+
+  /// The dividend widened to the digits asked for, before the division.
+  ///
+  /// `Fixed` gives a quotient as many digits as the wider of its two operands
+  /// had, and no argument asks it for more. Widening the dividend first is how
+  /// the package is told how far to divide — and it is real work, not a way of
+  /// arranging the answer, so it stays inside the measured loop. Both divisions
+  /// below then round halves away from zero, which is the rule these tests
+  /// check against.
+  Fixed _toInfiniteDigits(Fixed value) =>
+      value.copyWith(decimalDigits: MyBenchmarkBase.infiniteDigits);
+
+  @override
+  Object unrepresentableDivide() {
+    final length = values.length;
+    for (var i = 0; i < length; i++) {
+      _objectResult[i] = _toInfiniteDigits(values[i]) / _three;
+    }
+
+    return _objectResult;
+  }
+
+  @override
+  Object unrepresentableDivideWide() {
+    final length = values.length;
+    for (var i = 0; i < length; i++) {
+      _objectResult[i] = _toInfiniteDigits(values[i]) / _wideDivisor;
+    }
+
+    return _objectResult;
+  }
 }
