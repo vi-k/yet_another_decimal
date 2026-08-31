@@ -283,10 +283,10 @@ on `int`.
 Three packages out of five did not satisfy me because of bugs in calculations,
 incomplete functionality (division) or use of `double` under the hood.
 
-The [decimal](https://pub.dev/packages/decimal),
+[decimal](https://pub.dev/packages/decimal),
 [precise_decimal](https://pub.dev/packages/precise_decimal) and
 [denary](https://pub.dev/packages/denary)
-does not have the above division problems. No need to calculate `scale`
+do not have the above division problems. No need to calculate `scale`
 yourself, and no `double` under the hood.
 
 Numbers are read from strings — exponential notation included — and written
@@ -298,9 +298,9 @@ print(Decimal.parse('-0.000001')); // -0.000001
 print(Decimal.parse('19.99').toStringAsFixed(4)); // 19.9900
 ```
 
-[decimal](https://pub.dev/packages/decimal) returns the result as `Rational`
-([rational](https://pub.dev/packages/rational)), since not every division
-result can be represented by a decimal. But it can be easily converted
+[decimal](https://pub.dev/packages/decimal) returns the result of a division as
+`Rational` ([rational](https://pub.dev/packages/rational)), since not every
+quotient can be represented by a decimal. But it can be easily converted
 to `Decimal`:
 
 ```dart

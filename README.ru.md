@@ -299,9 +299,9 @@ print(Decimal.parse('-0.000001')); // -0.000001
 print(Decimal.parse('19.99').toStringAsFixed(4)); // 19.9900
 ```
 
-[decimal](https://pub.dev/packages/decimal) возвращает результат как `Rational`
-([rational](https://pub.dev/packages/rational)), поскольку не всякий результат
-деления представим десятичным числом. Но его легко превратить в `Decimal`:
+[decimal](https://pub.dev/packages/decimal) возвращает результат деления как
+`Rational` ([rational](https://pub.dev/packages/rational)), поскольку не всякое
+частное представимо десятичным числом. Но его легко превратить в `Decimal`:
 
 ```dart
 final a = Decimal.one;
