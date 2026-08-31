@@ -120,6 +120,8 @@ final class PreciseDecimalTest extends MyBenchmarkBase {
 
   static final _three = BigDecimal.parse('3');
 
+  static final _wideDivisor = BigDecimal.parse(MyBenchmarkBase.wideDivisor);
+
   @override
   Object parse() {
     final length = inputs.length;
@@ -182,6 +184,20 @@ final class PreciseDecimalTest extends MyBenchmarkBase {
     for (var i = 0; i < length; i++) {
       _objectResult[i] = values[i].divideToScale(
         _three,
+        scale: MyBenchmarkBase.infiniteDigits,
+        roundingMode: RoundingMode.halfUp,
+      );
+    }
+
+    return _objectResult;
+  }
+
+  @override
+  Object unrepresentableDivideWide() {
+    final length = values.length;
+    for (var i = 0; i < length; i++) {
+      _objectResult[i] = values[i].divideToScale(
+        _wideDivisor,
         scale: MyBenchmarkBase.infiniteDigits,
         roundingMode: RoundingMode.halfUp,
       );

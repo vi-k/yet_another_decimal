@@ -84,6 +84,19 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
   /// `ShortDecimal` would be measured overflowing instead of dividing.
   static const int infiniteDigits = 10;
 
+  /// What [unrepresentableDivideWide] divides by, in every package's own type.
+  ///
+  /// A money-shaped number rather than three, and that is the whole point of
+  /// the test. Dividing by three keeps the exact dividend and the answer the
+  /// same width, so a dividend that needs more than a machine word gives an
+  /// answer that needs one too and the case cannot be measured. A divisor of
+  /// this size pulls the answer back under four thousand while the dividend,
+  /// carrying [infiniteDigits] more digits, runs up to `8.9e22`.
+  ///
+  /// Odd, not a multiple of five, and a divisor of none of the values, so every
+  /// quotient is endless and every one of them has to be rounded.
+  static const String wideDivisor = '2946.253023';
+
   MyBenchmarkBase(
     this.package,
     this.operation, [
@@ -319,6 +332,11 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
         for (var i = 0; i < count; i++) {
           blackhole = result = unrepresentableDivide();
         }
+
+      case Op.unrepresentableDivideWide:
+        for (var i = 0; i < count; i++) {
+          blackhole = result = unrepresentableDivideWide();
+        }
     }
 
     return result;
@@ -352,6 +370,9 @@ abstract base class MyBenchmarkBase extends BenchmarkBase {
       throw UnsupportedOperation(package, operation);
 
   Object unrepresentableDivide() =>
+      throw UnsupportedOperation(package, operation);
+
+  Object unrepresentableDivideWide() =>
       throw UnsupportedOperation(package, operation);
 }
 

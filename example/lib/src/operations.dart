@@ -10,7 +10,8 @@ enum Op {
   round('round', null, 100),
   toDouble('to-double', null, 100),
   toStringAsFixed('to-string-as-fixed', null, 100),
-  unrepresentableDivide('unrepresentable-divide', '/', 100);
+  unrepresentableDivide('unrepresentable-divide', '/', 100),
+  unrepresentableDivideWide('unrepresentable-divide-wide', '/', 100);
 
   final String id;
   final String? sign;

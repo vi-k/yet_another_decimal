@@ -278,6 +278,15 @@ enum Test {
     'Divide by three. Not one of the results has a finite decimal form,'
         '\nso every one of them has to be rounded to ten digits.',
     {'int', 'unrepresentable-divide', 'money'},
+  ),
+  unrepresentableDivideWide(
+    'unrepresentable-divide-wide',
+    Op.unrepresentableDivideWide,
+    'Divide money by money, again to ten digits. The values and the answers'
+        '\nare machine words, but the exact quotient in between is not: the'
+        '\ndividend carries ten more digits before the division, and that is'
+        '\nwhere a fixed-width implementation has to widen or give up.',
+    {'int', 'unrepresentable-divide', 'wide', 'money'},
   );
 
   final String id;
@@ -699,6 +708,13 @@ enum Test {
           result: _moneyThirds,
         );
 
+      case Test.unrepresentableDivideWide:
+        return (
+          bigIntValues: bigIntValuesFromIntValues(_moneyValues),
+          intValues: _moneyValues,
+          result: _moneyWideQuotients,
+        );
+
       case Test.repeatViewZerosInt:
         final values = List<(int, int)>.generate(
           20,
@@ -974,6 +990,43 @@ const _moneyThirds = <String>[
   '1243038.5329811467',
   '982084.5136666667',
   '1895259.6375666667',
+];
+
+/// [_moneyValues] divided by `2946.253023`, rounded to ten digits.
+///
+/// The divisor is `MyBenchmarkBase.wideDivisor`, one money-shaped number every
+/// package parses into its own type. It is odd and not a multiple of five, and
+/// it divides none of the bases, so not one of these divisions has a finite
+/// decimal form either.
+///
+/// What sets this apart from [_moneyThirds] is the width in between. Ten digits
+/// asked of a value already carrying up to eight puts the exact dividend past
+/// `2^63` for every one of these — up to `8.9e22` — while the answers come back
+/// under four thousand. A fixed-width implementation has to carry that middle
+/// somewhere wider than a machine word, and `divide by three` never asks it to:
+/// there the quotient is a third of the dividend, so a dividend that overflows
+/// gives an answer that overflows too, and the case cannot be put on a stand.
+const _moneyWideQuotients = <String>[
+  '3025.0421000586',
+  '3008.4100990331',
+  '2336.0938864245',
+  '610.4408483735',
+  '1661.5644090122',
+  '908.9379688519',
+  '1206.5674038343',
+  '1645.0895029256',
+  '1623.1894223465',
+  '1246.0816481752',
+  '2023.3466834595',
+  '2897.0876961387',
+  '3001.8764858133',
+  '2219.3400843224',
+  '626.7382518491',
+  '607.1331362266',
+  '3047.5504139848',
+  '1265.7146449514',
+  '1000.0001758165',
+  '1929.8338833474',
 ];
 
 /// The sum of the signs of `compareTo` over the neighbours in

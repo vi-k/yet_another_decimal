@@ -100,6 +100,8 @@ final class DecimalTest extends MyBenchmarkBase {
 
   static final _three = Decimal.fromInt(3);
 
+  static final _wideDivisor = Decimal.parse(MyBenchmarkBase.wideDivisor);
+
   @override
   Object parse() {
     final length = inputs.length;
@@ -157,6 +159,19 @@ final class DecimalTest extends MyBenchmarkBase {
     final length = values.length;
     for (var i = 0; i < length; i++) {
       _objectResult[i] = (values[i] / _three).toDecimal(
+        scaleOnInfinitePrecision: MyBenchmarkBase.infiniteDigits,
+        toBigInt: (value) => value.round(),
+      );
+    }
+
+    return _objectResult;
+  }
+
+  @override
+  Object unrepresentableDivideWide() {
+    final length = values.length;
+    for (var i = 0; i < length; i++) {
+      _objectResult[i] = (values[i] / _wideDivisor).toDecimal(
         scaleOnInfinitePrecision: MyBenchmarkBase.infiniteDigits,
         toBigInt: (value) => value.round(),
       );

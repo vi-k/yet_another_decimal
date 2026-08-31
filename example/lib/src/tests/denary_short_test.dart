@@ -104,6 +104,8 @@ final class YetAnotherDecimalShortTest extends MyBenchmarkBase {
 
   static final _three = ShortDecimal(3);
 
+  static final _wideDivisor = ShortDecimal.parse(MyBenchmarkBase.wideDivisor);
+
   @override
   Object parse() {
     final length = inputs.length;
@@ -162,6 +164,19 @@ final class YetAnotherDecimalShortTest extends MyBenchmarkBase {
     for (var i = 0; i < length; i++) {
       _objectResult[i] = values[i].divide(
         _three,
+        scaleOnInfinitePrecision: MyBenchmarkBase.infiniteDigits,
+      );
+    }
+
+    return _objectResult;
+  }
+
+  @override
+  Object unrepresentableDivideWide() {
+    final length = values.length;
+    for (var i = 0; i < length; i++) {
+      _objectResult[i] = values[i].divide(
+        _wideDivisor,
         scaleOnInfinitePrecision: MyBenchmarkBase.infiniteDigits,
       );
     }
