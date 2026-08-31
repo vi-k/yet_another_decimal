@@ -51,7 +51,7 @@ API двух семейств совпадает не полностью. Осо
 | Конструктор | `shiftRight` | `shiftRight` **и** `shiftLeft` |
 | Из целого | `Decimal(int)`, `Decimal.fromBigInt(BigInt)` | `ShortDecimal(int)` |
 | Из строки | `parse`, `tryParse`, `fromJson` | то же |
-| Расширения | `int.toDecimal()`, `BigInt.toDecimal()` — оба устарели с 1.2.0, они конфликтуют с одноимёнными из пакета `decimal` | `int.toShortDecimal()` |
+| Расширения | `int.toDecimal()` и `BigInt.toDecimal()` **удалены в 1.2.0**: они конфликтовали с одноимёнными из пакета `decimal`. Вместо них — `Decimal(int)` и `Decimal.fromBigInt(BigInt)` | `int.toShortDecimal()` |
 | `normalized()` | снимает каноническую форму лениво и запоминает | отдаёт `this`: форма канонична всегда |
 
 `shiftLeft` у `ShortDecimal` — не украшение: отрицательный `scale` для него
