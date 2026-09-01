@@ -1,3 +1,21 @@
+## 1.2.1
+
+**`ShortDecimal` divides faster where the exact quotient does not fit a machine
+word.** Four places in the short family reached for `BigInt` where a pair of
+`int` covers 128 bits; they no longer do. No API changed and no answer changed:
+the suite and the General Decimal Arithmetic vectors both say every result is
+the value it was.
+
+- Rounding a quotient that has no finite decimal form is 1.8–2.35× quicker on
+  values whose exact dividend outgrows an `int`, and unchanged where it does
+  not.
+- Multiplication decides an overflow on the exact product rather than on a
+  `double` that stands in for it — a few percent, and one guess fewer.
+- Comparing fractions and adding a sum that overflowed no longer build a
+  `BigInt` at all.
+- Documented rather than changed: `parse` wants a point followed by digits, so
+  `.5` is a number and `5.` is not.
+
 ## 1.2.0
 
 **The package is now called `denary`.** It was published as

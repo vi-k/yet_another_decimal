@@ -1,6 +1,6 @@
 name: denary
 description: Decimal numbers with a fixed point and no loss of precision. Two independent families - one on BigInt with no bounds on magnitude, one on int for speed.
-version: 1.2.0
+version: 1.2.1
 homepage: https://github.com/vi-k/denary
 repository: https://github.com/vi-k/denary
 issue_tracker: https://github.com/vi-k/denary/issues
