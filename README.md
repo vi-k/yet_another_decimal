@@ -475,41 +475,42 @@ one.
 
 |                               |            decimal |        decimal_type |              fixed |       big_decimal |  precise_decimal |     Decimal | ShortDecimal |
 |:------------------------------|-------------------:|--------------------:|-------------------:|------------------:|-----------------:|------------:|-------------:|
-| add-big-int                   |           1.567 µs |      (▼2x) 2.651 µs |           1.941 µs |          1.856 µs |         1.441 µs |  ★ 0.996 µs |            — |
-| add-int                       |           0.581 µs |      (▼2x) 0.979 µs |     (▼2x) 0.727 µs |          0.697 µs |         0.559 µs |  ★ 0.357 µs |  ★★ 0.141 µs |
-| add-dirty-big-int             |           0.778 µs |      (▼2x) 1.288 µs |           0.966 µs |          0.925 µs |         0.720 µs |  ★ 0.504 µs |            — |
-| add-dirty-int                 |     (▼2x) 0.346 µs |      (▼3x) 0.563 µs |     (▼2x) 0.435 µs |    (▼2x) 0.418 µs |       ★ 0.167 µs |    0.223 µs |  ★★ 0.087 µs |
-| multiply-large-big-int        |         ★ 0.117 µs |          ★ 0.107 µs |           0.145 µs |        ★ 0.110 µs |   (▼2x) 0.291 µs |  ★ 0.115 µs |            — |
-| multiply-large-int            |         ★ 0.101 µs |          ★ 0.094 µs |           0.130 µs |        ★ 0.096 µs |   (▼2x) 0.240 µs |  ★ 0.099 µs |  ★★ 0.047 µs |
-| multiply-small-big-int        |         ★ 0.116 µs |          ★ 0.108 µs |    (▼46x) 5.040 µs |        ★ 0.110 µs |   (▼2x) 0.290 µs |  ★ 0.115 µs |            — |
-| multiply-small-int            |         ★ 0.098 µs |          ★ 0.092 µs |    (▼35x) 3.231 µs |        ★ 0.091 µs |         0.106 µs |  ★ 0.095 µs |  ★★ 0.047 µs |
-| multiply-dirty-big-int        |         ★ 0.091 µs |          ★ 0.086 µs |    (▼31x) 2.733 µs |        ★ 0.087 µs |   (▼2x) 0.253 µs |  ★ 0.090 µs |            — |
-| multiply-dirty-int            |           0.038 µs |          ★ 0.034 µs |    (▼28x) 0.979 µs |        ★ 0.035 µs |         0.046 µs |  ★ 0.037 µs |  ★★ 0.017 µs |
-| divide-large-big-int          |     (▼5x) 8.990 µs |               ERROR |           2.081 µs |          1.936 µs |         2.022 µs |  ★ 1.675 µs |            — |
-| divide-large-int              |     (▼5x) 7.690 µs |               ERROR |           1.738 µs |          1.638 µs |         1.719 µs |  ★ 1.444 µs |  ★★ 0.053 µs |
-| divide-small-big-int          | (▼110x) 589.243 µs |               ERROR |              ERROR |             ERROR |  (▼2x) 11.506 µs |  ★ 5.314 µs |            — |
-| divide-small-int              |  (▼51x) 136.201 µs |               ERROR |              ERROR |             ERROR |   (▼2x) 6.928 µs |  ★ 2.635 µs |  ★★ 0.118 µs |
-| divide-dirty-big-int          | (▼343x) 449.916 µs |               ERROR |     (▼2x) 3.293 µs |          1.822 µs | (▼32x) 42.967 µs |  ★ 1.309 µs |            — |
-| divide-dirty-int              |   (▼64x) 36.797 µs |               ERROR |     (▼2x) 1.238 µs |          0.795 µs |  (▼10x) 5.867 µs |  ★ 0.574 µs |  ★★ 0.023 µs |
-| divide-large-and-view-big-int |     (▼5x) 9.059 µs |               ERROR |           2.189 µs |          1.937 µs |         2.107 µs |  ★ 1.675 µs |            — |
-| divide-large-and-view-int     |     (▼5x) 7.817 µs |               ERROR |           1.856 µs |          1.653 µs |         1.807 µs |  ★ 1.445 µs |  ★★ 0.056 µs |
-| divide-small-and-view-big-int |  (▼91x) 595.201 µs |               ERROR |              ERROR |             ERROR |        11.697 µs |  ★ 6.506 µs |            — |
-| divide-small-and-view-int     |  (▼43x) 138.236 µs |               ERROR |              ERROR |             ERROR |   (▼2x) 7.115 µs |  ★ 3.182 µs |  ★★ 0.317 µs |
-| raw-view-big-int              |          22.705 µs |     (▼2x) 48.778 µs |    (▼2x) 53.323 µs |       ★ 19.714 µs |        31.444 µs | ★ 18.464 µs |            — |
-| raw-view-int                  |          10.303 µs |     (▼3x) 23.894 µs |    (▼3x) 24.063 µs |          8.069 µs |  (▼2x) 19.398 µs |  ★ 6.888 µs |  ★★ 1.584 µs |
-| raw-view-zeros-big-int        |   (▼6x) 111.538 µs |    (▼7x) 137.132 µs |    (▼3x) 62.897 µs |       ★ 18.886 µs |        31.330 µs | ★ 18.121 µs |            — |
-| raw-view-zeros-int            |    (▼6x) 48.973 µs |     (▼6x) 47.820 µs |    (▼4x) 30.115 µs |          8.172 µs |  (▼2x) 20.465 µs |  ★ 7.068 µs |  ★★ 1.108 µs |
-| repeat-view-big-int           |  (▼622x) 18.049 µs |  (▼1697x) 49.241 µs | (▼1828x) 53.035 µs | (▼668x) 19.372 µs |  (▼67x) 1.949 µs |  ★ 0.029 µs |            — |
-| repeat-view-int               |   (▼227x) 6.362 µs |   (▼852x) 23.863 µs |  (▼851x) 23.839 µs |  (▼274x) 7.695 µs |  (▼59x) 1.653 µs |  ★ 0.028 µs |     1.546 µs |
-| repeat-view-zeros-big-int     |    (▼43x) 1.253 µs | (▼5121x) 148.533 µs | (▼2159x) 62.628 µs | (▼637x) 18.484 µs |  (▼68x) 1.991 µs |  ★ 0.029 µs |            — |
-| repeat-view-zeros-int         |    (▼35x) 1.031 µs |  (▼1779x) 51.617 µs | (▼1026x) 29.757 µs |  (▼268x) 7.781 µs |  (▼59x) 1.736 µs |  ★ 0.029 µs |     0.927 µs |
-| parse                         |   (▼12x) 14.092 µs |    (▼12x) 14.269 µs |   (▼76x) 85.361 µs |   (▼9x) 10.812 µs | (▼10x) 11.638 µs |  ★ 1.120 µs |  ★★ 0.819 µs |
-| compare                       |           0.633 µs |      (▼7x) 2.537 µs |              ERROR |    (▼3x) 1.183 µs |         0.635 µs |  ★ 0.334 µs |  ★★ 0.157 µs |
-| round                         |           3.913 µs |                   — |           4.354 µs |          4.257 µs |         5.349 µs |  ★ 3.487 µs |  ★★ 0.206 µs |
-| to-double                     |     (▼2x) 1.844 µs |    (▼30x) 19.876 µs |                  — |          0.744 µs | (▼20x) 13.024 µs |  ★ 0.650 µs |  ★★ 0.092 µs |
-| to-double-wide                |              ERROR |    (▼14x) 34.358 µs |                  — |             ERROR |  (▼8x) 20.006 µs |  ★ 2.306 µs |            — |
-| to-string-as-fixed            |    (▼2x) 15.063 µs |                   — |                  — |                 — |         7.406 µs |  ★ 5.664 µs |  ★★ 1.846 µs |
-| unrepresentable-divide        |  (▼32x) 124.302 µs |                   — |                  — |          4.780 µs |         4.255 µs |  ★ 3.789 µs |  ★★ 0.388 µs |
+| add-big-int                   |           1.578 µs |      (▼2x) 2.686 µs |           1.963 µs |          1.860 µs |         1.429 µs |  ★ 0.996 µs |            — |
+| add-int                       |           0.589 µs |      (▼2x) 0.989 µs |     (▼2x) 0.738 µs |          0.701 µs |         0.556 µs |  ★ 0.355 µs |  ★★ 0.150 µs |
+| add-dirty-big-int             |           0.778 µs |      (▼2x) 1.283 µs |           0.970 µs |          0.917 µs |         0.700 µs |  ★ 0.490 µs |            — |
+| add-dirty-int                 |     (▼2x) 0.353 µs |      (▼3x) 0.568 µs |     (▼2x) 0.440 µs |    (▼2x) 0.415 µs |       ★ 0.164 µs |    0.223 µs |  ★★ 0.092 µs |
+| multiply-large-big-int        |           0.118 µs |          ★ 0.107 µs |           0.151 µs |        ★ 0.110 µs |   (▼2x) 0.294 µs |  ★ 0.115 µs |            — |
+| multiply-large-int            |         ★ 0.101 µs |          ★ 0.093 µs |           0.135 µs |        ★ 0.094 µs |   (▼2x) 0.241 µs |  ★ 0.098 µs |  ★★ 0.045 µs |
+| multiply-small-big-int        |           0.119 µs |          ★ 0.107 µs |    (▼46x) 5.048 µs |        ★ 0.110 µs |   (▼2x) 0.294 µs |  ★ 0.116 µs |            — |
+| multiply-small-int            |           0.100 µs |          ★ 0.088 µs |    (▼36x) 3.208 µs |        ★ 0.091 µs |         0.107 µs |  ★ 0.096 µs |  ★★ 0.045 µs |
+| multiply-dirty-big-int        |         ★ 0.093 µs |          ★ 0.085 µs |    (▼31x) 2.720 µs |        ★ 0.088 µs |   (▼2x) 0.254 µs |  ★ 0.090 µs |            — |
+| multiply-dirty-int            |           0.038 µs |          ★ 0.034 µs |    (▼28x) 0.968 µs |        ★ 0.035 µs |         0.046 µs |  ★ 0.037 µs |  ★★ 0.017 µs |
+| divide-large-big-int          |     (▼5x) 8.830 µs |               ERROR |           2.056 µs |          1.926 µs |         2.001 µs |  ★ 1.653 µs |            — |
+| divide-large-int              |     (▼5x) 7.589 µs |               ERROR |           1.731 µs |          1.648 µs |         1.708 µs |  ★ 1.414 µs |  ★★ 0.057 µs |
+| divide-small-big-int          | (▼108x) 579.441 µs |               ERROR |              ERROR |             ERROR |  (▼2x) 11.322 µs |  ★ 5.322 µs |            — |
+| divide-small-int              |  (▼51x) 134.427 µs |               ERROR |              ERROR |             ERROR |   (▼2x) 6.957 µs |  ★ 2.633 µs |  ★★ 0.123 µs |
+| divide-dirty-big-int          | (▼341x) 443.722 µs |               ERROR |     (▼2x) 3.288 µs |          1.811 µs | (▼32x) 42.037 µs |  ★ 1.300 µs |            — |
+| divide-dirty-int              |   (▼64x) 36.411 µs |               ERROR |     (▼2x) 1.234 µs |          0.789 µs |  (▼10x) 5.788 µs |  ★ 0.567 µs |  ★★ 0.025 µs |
+| divide-large-and-view-big-int |     (▼5x) 8.977 µs |               ERROR |           2.161 µs |          1.928 µs |         2.090 µs |  ★ 1.648 µs |            — |
+| divide-large-and-view-int     |     (▼5x) 7.746 µs |               ERROR |           1.848 µs |          1.656 µs |         1.809 µs |  ★ 1.421 µs |  ★★ 0.060 µs |
+| divide-small-and-view-big-int |  (▼90x) 581.455 µs |               ERROR |              ERROR |             ERROR |        11.309 µs |  ★ 6.459 µs |            — |
+| divide-small-and-view-int     |  (▼43x) 134.752 µs |               ERROR |              ERROR |             ERROR |   (▼2x) 7.038 µs |  ★ 3.133 µs |  ★★ 0.321 µs |
+| raw-view-big-int              |          22.341 µs |     (▼2x) 48.948 µs |    (▼2x) 52.652 µs |       ★ 19.366 µs |        30.749 µs | ★ 18.071 µs |            — |
+| raw-view-int                  |          10.192 µs |     (▼3x) 23.962 µs |    (▼3x) 23.825 µs |          7.984 µs |  (▼2x) 19.160 µs |  ★ 6.800 µs |  ★★ 1.578 µs |
+| raw-view-zeros-big-int        |   (▼6x) 109.526 µs |    (▼8x) 142.183 µs |    (▼3x) 61.879 µs |       ★ 18.675 µs |        30.721 µs | ★ 17.723 µs |            — |
+| raw-view-zeros-int            |    (▼6x) 47.844 µs |     (▼7x) 48.987 µs |    (▼4x) 29.784 µs |          8.033 µs |  (▼2x) 20.093 µs |  ★ 6.943 µs |  ★★ 1.114 µs |
+| repeat-view-big-int           |  (▼592x) 17.592 µs |  (▼1614x) 47.914 µs | (▼1763x) 52.323 µs | (▼639x) 18.987 µs |  (▼68x) 2.046 µs |  ★ 0.030 µs |            — |
+| repeat-view-int               |   (▼221x) 6.257 µs |   (▼829x) 23.446 µs |  (▼829x) 23.422 µs |  (▼269x) 7.627 µs |  (▼60x) 1.703 µs |  ★ 0.028 µs |     1.545 µs |
+| repeat-view-zeros-big-int     |    (▼41x) 1.240 µs | (▼4771x) 142.148 µs | (▼2068x) 61.638 µs | (▼607x) 18.091 µs |  (▼65x) 1.961 µs |  ★ 0.030 µs |            — |
+| repeat-view-zeros-int         |    (▼34x) 1.024 µs |  (▼1692x) 50.379 µs |  (▼983x) 29.284 µs |  (▼256x) 7.647 µs |  (▼58x) 1.729 µs |  ★ 0.030 µs |     0.930 µs |
+| parse                         |   (▼12x) 14.030 µs |    (▼12x) 14.252 µs |   (▼76x) 85.171 µs |   (▼9x) 10.785 µs | (▼10x) 11.604 µs |  ★ 1.113 µs |  ★★ 0.819 µs |
+| compare                       |           0.636 µs |      (▼7x) 2.556 µs |              ERROR |    (▼3x) 1.174 µs |         0.616 µs |  ★ 0.329 µs |  ★★ 0.159 µs |
+| round                         |           3.873 µs |                   — |           4.278 µs |          4.218 µs |         5.250 µs |  ★ 3.425 µs |  ★★ 0.215 µs |
+| to-double                     |     (▼2x) 1.842 µs |    (▼30x) 19.662 µs |                  — |          0.740 µs | (▼19x) 13.009 µs |  ★ 0.652 µs |  ★★ 0.094 µs |
+| to-double-wide                |              ERROR |    (▼14x) 33.923 µs |                  — |             ERROR |  (▼8x) 19.973 µs |  ★ 2.348 µs |            — |
+| to-string-as-fixed            |    (▼2x) 15.102 µs |                   — |                  — |                 — |         7.302 µs |  ★ 5.504 µs |  ★★ 1.835 µs |
+| unrepresentable-divide        |  (▼32x) 122.338 µs |                   — |           6.683 µs |          4.758 µs |         4.184 µs |  ★ 3.708 µs |  ★★ 0.397 µs |
+| unrepresentable-divide-wide   |  (▼71x) 283.447 µs |                   — |           6.627 µs |          5.289 µs |         4.456 µs |  ★ 3.966 µs |  ★★ 3.123 µs |
 
 `ERROR` is not a crash. It means the package answered and the answer was wrong.
 [fixed](https://pub.dev/packages/fixed) and
@@ -539,12 +540,12 @@ That row is also where the fastest answers are the wrong ones:
 Where a division is exact, the gap is not about `BigInt` against `int` but about
 what the algorithm can see. `divide-dirty` divides a product back by its own
 factors — every step exact, nothing about the numbers saying so in advance —
-and [decimal](https://pub.dev/packages/decimal) spends 343 times longer on it
+and [decimal](https://pub.dev/packages/decimal) spends 341 times longer on it
 than this package.
 
 `unrepresentable-divide` rounds a quotient that has no finite decimal form, and
 this package takes the row ahead of everyone in the comparison, with
-`ShortDecimal` ten times ahead of `Decimal` on top of that. `divide` returns the
+`ShortDecimal` nine times ahead of `Decimal` on top of that. `divide` returns the
 exact answer whenever the division does have a finite form, however many digits
 that takes, and it pays nothing to find out: when the divisor shares no prime
 factor with ten, a non-zero remainder from the rounding is itself the proof that
@@ -769,7 +770,21 @@ one of them has to be rounded to ten digits. This is the price of the total
 forms of division — `divide(other, scaleOnInfinitePrecision: 10)` here,
 `toDecimal(scaleOnInfinitePrecision: 10)` in [decimal](https://pub.dev/packages/decimal),
 `divide(..., scale: 10)` in [big_decimal](https://pub.dev/packages/big_decimal).
-The packages that cannot do it at all show `—`.
+[fixed](https://pub.dev/packages/fixed) has no argument for it at all: its
+`operator /` gives the quotient the wider of the two scales, so it is the
+divisor that carries the ten digits. The packages that cannot do it at all show
+`—`.
+
+##### unrepresentable-divide-wide
+
+The same rounding to ten digits, with money divided by money instead of by
+three. Dividing by three keeps the exact dividend and the answer the same width,
+so a dividend that outgrows a machine word gives an answer that outgrows it too
+and the case cannot be put on a bench at all. A money-sized divisor pulls the
+answer back under four thousand while the exact dividend, carrying ten more
+digits, runs up to `8.9e22` — past what a machine word holds, while the values
+and the answers both stay inside one. Carrying that middle somewhere is what the
+row measures.
 
 ### [decimal](https://pub.dev/packages/decimal) vs [denary](https://pub.dev/packages/denary)
 
@@ -951,32 +966,33 @@ The same bench, this package against
 [precise_decimal](https://pub.dev/packages/precise_decimal), on the sets that
 fit into an `int` so that both families can be shown at once. The first column
 is the package most projects already have; the second is the quickest of the
-competitors on most rows — twelve of the twenty — though not on multiplication,
-`round`, `to-double`, `raw-view` or `repeat-view-zeros`, where it is the slower
-of the two, nor on `compare`, where the two come out level:
+competitors on most rows — thirteen of the twenty-one — though not on
+multiplication, `round`, `to-double`, `raw-view` or `repeat-view-zeros`, where
+it is the slower of the two, nor on `compare`, where the two come out level:
 
-|                           |             decimal |   precise_decimal |         Decimal |    ShortDecimal |
-|:--------------------------|--------------------:|------------------:|----------------:|----------------:|
-| add-int                   |      (▼4x) 0.581 µs |    (▼3x) 0.559 µs |  (▼2x) 0.357 µs |      ★ 0.141 µs |
-| add-dirty-int             |      (▼3x) 0.346 µs |          0.167 µs |  (▼2x) 0.223 µs |      ★ 0.087 µs |
-| multiply-large-int        |      (▼2x) 0.101 µs |    (▼5x) 0.240 µs |  (▼2x) 0.099 µs |      ★ 0.047 µs |
-| multiply-small-int        |      (▼2x) 0.098 µs |    (▼2x) 0.106 µs |  (▼2x) 0.095 µs |      ★ 0.047 µs |
-| multiply-dirty-int        |      (▼2x) 0.038 µs |    (▼2x) 0.046 µs |  (▼2x) 0.037 µs |      ★ 0.017 µs |
-| divide-large-int          |    (▼145x) 7.690 µs |   (▼32x) 1.719 µs | (▼27x) 1.444 µs |      ★ 0.053 µs |
-| divide-small-int          | (▼1154x) 136.201 µs |   (▼58x) 6.928 µs | (▼22x) 2.635 µs |      ★ 0.118 µs |
-| divide-dirty-int          |  (▼1599x) 36.797 µs |  (▼255x) 5.867 µs | (▼24x) 0.574 µs |      ★ 0.023 µs |
-| divide-large-and-view-int |    (▼139x) 7.817 µs |   (▼32x) 1.807 µs | (▼25x) 1.445 µs |      ★ 0.056 µs |
-| divide-small-and-view-int |  (▼436x) 138.236 µs |   (▼22x) 7.115 µs | (▼10x) 3.182 µs |      ★ 0.317 µs |
-| raw-view-int              |     (▼6x) 10.303 µs |  (▼12x) 19.398 µs |  (▼4x) 6.888 µs |      ★ 1.584 µs |
-| raw-view-zeros-int        |    (▼44x) 48.973 µs |  (▼18x) 20.465 µs |  (▼6x) 7.068 µs |      ★ 1.108 µs |
-| repeat-view-int           |    (▼227x) 6.362 µs |   (▼59x) 1.653 µs |      ★ 0.028 µs | (▼55x) 1.546 µs |
-| repeat-view-zeros-int     |     (▼35x) 1.031 µs |   (▼59x) 1.736 µs |      ★ 0.029 µs | (▼31x) 0.927 µs |
-| parse                     |    (▼17x) 14.092 µs |  (▼14x) 11.638 µs |        1.120 µs |      ★ 0.819 µs |
-| compare                   |      (▼4x) 0.633 µs |    (▼4x) 0.635 µs |  (▼2x) 0.334 µs |      ★ 0.157 µs |
-| round                     |     (▼18x) 3.913 µs |   (▼25x) 5.349 µs | (▼16x) 3.487 µs |      ★ 0.206 µs |
-| to-double                 |     (▼20x) 1.844 µs | (▼141x) 13.024 µs |  (▼7x) 0.650 µs |      ★ 0.092 µs |
-| to-string-as-fixed        |     (▼8x) 15.063 µs |    (▼4x) 7.406 µs |  (▼3x) 5.664 µs |      ★ 1.846 µs |
-| unrepresentable-divide    |  (▼320x) 124.302 µs |   (▼10x) 4.255 µs |  (▼9x) 3.789 µs |      ★ 0.388 µs |
+|                             |             decimal |   precise_decimal |         Decimal |    ShortDecimal |
+|:----------------------------|--------------------:|------------------:|----------------:|----------------:|
+| add-int                     |      (▼3x) 0.589 µs |    (▼3x) 0.556 µs |  (▼2x) 0.355 µs |      ★ 0.150 µs |
+| add-dirty-int               |      (▼3x) 0.353 µs |          0.164 µs |  (▼2x) 0.223 µs |      ★ 0.092 µs |
+| multiply-large-int          |      (▼2x) 0.101 µs |    (▼5x) 0.241 µs |  (▼2x) 0.098 µs |      ★ 0.045 µs |
+| multiply-small-int          |      (▼2x) 0.100 µs |    (▼2x) 0.107 µs |  (▼2x) 0.096 µs |      ★ 0.045 µs |
+| multiply-dirty-int          |      (▼2x) 0.038 µs |    (▼2x) 0.046 µs |  (▼2x) 0.037 µs |      ★ 0.017 µs |
+| divide-large-int            |    (▼133x) 7.589 µs |   (▼29x) 1.708 µs | (▼24x) 1.414 µs |      ★ 0.057 µs |
+| divide-small-int            | (▼1092x) 134.427 µs |   (▼56x) 6.957 µs | (▼21x) 2.633 µs |      ★ 0.123 µs |
+| divide-dirty-int            |  (▼1456x) 36.411 µs |  (▼231x) 5.788 µs | (▼22x) 0.567 µs |      ★ 0.025 µs |
+| divide-large-and-view-int   |    (▼129x) 7.746 µs |   (▼30x) 1.809 µs | (▼23x) 1.421 µs |      ★ 0.060 µs |
+| divide-small-and-view-int   |  (▼419x) 134.752 µs |   (▼21x) 7.038 µs |  (▼9x) 3.133 µs |      ★ 0.321 µs |
+| raw-view-int                |     (▼6x) 10.192 µs |  (▼12x) 19.160 µs |  (▼4x) 6.800 µs |      ★ 1.578 µs |
+| raw-view-zeros-int          |    (▼42x) 47.844 µs |  (▼18x) 20.093 µs |  (▼6x) 6.943 µs |      ★ 1.114 µs |
+| repeat-view-int             |    (▼223x) 6.257 µs |   (▼60x) 1.703 µs |      ★ 0.028 µs | (▼55x) 1.545 µs |
+| repeat-view-zeros-int       |     (▼34x) 1.024 µs |   (▼57x) 1.729 µs |      ★ 0.030 µs | (▼31x) 0.930 µs |
+| parse                       |    (▼17x) 14.030 µs |  (▼14x) 11.604 µs |        1.113 µs |      ★ 0.819 µs |
+| compare                     |      (▼4x) 0.636 µs |    (▼3x) 0.616 µs |  (▼2x) 0.329 µs |      ★ 0.159 µs |
+| round                       |     (▼18x) 3.873 µs |   (▼24x) 5.250 µs | (▼15x) 3.425 µs |      ★ 0.215 µs |
+| to-double                   |     (▼19x) 1.842 µs | (▼138x) 13.009 µs |  (▼6x) 0.652 µs |      ★ 0.094 µs |
+| to-string-as-fixed          |     (▼8x) 15.102 µs |    (▼3x) 7.302 µs |  (▼2x) 5.504 µs |      ★ 1.835 µs |
+| unrepresentable-divide      |  (▼308x) 122.338 µs |   (▼10x) 4.184 µs |  (▼9x) 3.708 µs |      ★ 0.397 µs |
+| unrepresentable-divide-wide |   (▼90x) 283.447 µs |          4.456 µs |        3.966 µs |      ★ 3.123 µs |
 
 *For a description of the tests, see [Package performance](#package-performance).*
 
@@ -988,6 +1004,11 @@ One row is about something else. In `repeat-view` `Decimal` is fifty-odd times
 ahead because it keeps the string it printed last time, and `ShortDecimal` may
 not keep one at all — that is what `vm:deeply-immutable` costs, and instances
 the VM can share between isolates are what it buys.
+
+`unrepresentable-divide-wide` is the other one. The exact dividend outgrows a
+machine word there, so `ShortDecimal` carries it on a pair of them instead of
+handing the work to `BigInt` — still ahead, but by a quarter rather than by an
+order.
 
 If your application does a handful of decimal operations, none of this matters
 and `Decimal` from any of these packages will do. If it does a great many of
